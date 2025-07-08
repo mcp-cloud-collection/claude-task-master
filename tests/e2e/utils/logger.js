@@ -92,7 +92,7 @@ export class TestLogger {
 	}
 
 	addCost(cost) {
-		if (typeof cost === 'number' && !isNaN(cost)) {
+		if (typeof cost === 'number' && !Number.isNaN(cost)) {
 			this.totalCost += cost;
 		}
 	}
