@@ -237,14 +237,15 @@ async function runTests(options) {
 		}
 
 		// Check if we need to run setup (either explicitly requested or needed for other tests)
-		const needsSetup = testsToRun.setup || (!testDir && Object.keys(testsToRun).length > 0);
-		
+		const needsSetup =
+			testsToRun.setup || (!testDir && Object.keys(testsToRun).length > 0);
+
 		if (needsSetup) {
 			// Always run setup if we need a test directory
 			if (!testsToRun.setup) {
 				logger.info('No test directory available, running setup automatically');
 			}
-			
+
 			logger.step('Running setup tests');
 			const setupRunner = new SequentialTestRunner(logger, helpers);
 			const setupResults = await setupRunner.runTests(['setup'], {});

@@ -2,56 +2,58 @@ import { readFileSync } from 'fs';
 import fetch from 'node-fetch';
 
 export class LLMAnalyzer {
-  constructor(config, logger) {
-    this.config = config;
-    this.logger = logger;
-    this.apiKey = process.env.ANTHROPIC_API_KEY;
-    this.apiEndpoint = 'https://api.anthropic.com/v1/messages';
-  }
+	constructor(config, logger) {
+		this.config = config;
+		this.logger = logger;
+		this.apiKey = process.env.ANTHROPIC_API_KEY;
+		this.apiEndpoint = 'https://api.anthropic.com/v1/messages';
+	}
 
-  async analyzeLog(logFile, providerSummaryFile = null) {
-    if (!this.config.llmAnalysis.enabled) {
-      this.logger.info('LLM analysis is disabled in configuration');
-      return null;
-    }
+	async analyzeLog(logFile, providerSummaryFile = null) {
+		if (!this.config.llmAnalysis.enabled) {
+			this.logger.info('LLM analysis is disabled in configuration');
+			return null;
+		}
 
-    if (!this.apiKey) {
-      this.logger.error('ANTHROPIC_API_KEY not found in environment');
-      return null;
-    }
+		if (!this.apiKey) {
+			this.logger.error('ANTHROPIC_API_KEY not found in environment');
+			return null;
+		}
 
-    try {
-      const logContent = readFileSync(logFile, 'utf8');
-      const prompt = this.buildAnalysisPrompt(logContent, providerSummaryFile);
+		try {
+			const logContent = readFileSync(logFile, 'utf8');
+			const prompt = this.buildAnalysisPrompt(logContent, providerSummaryFile);
 
-      const response = await this.callLLM(prompt);
-      const analysis = this.parseResponse(response);
-      
-      // Calculate and log cost
-      if (response.usage) {
-        const cost = this.calculateCost(response.usage);
-        this.logger.addCost(cost);
-        this.logger.info(`LLM Analysis AI Cost: $${cost.toFixed(6)} USD`);
-      }
+			const response = await this.callLLM(prompt);
+			const analysis = this.parseResponse(response);
 
-      return analysis;
-    } catch (error) {
-      this.logger.error(`LLM analysis failed: ${error.message}`);
-      return null;
-    }
-  }
+			// Calculate and log cost
+			if (response.usage) {
+				const cost = this.calculateCost(response.usage);
+				this.logger.addCost(cost);
+				this.logger.info(`LLM Analysis AI Cost: $${cost.toFixed(6)} USD`);
+			}
 
-  buildAnalysisPrompt(logContent, providerSummaryFile) {
-    let providerSummary = '';
-    if (providerSummaryFile) {
-      try {
-        providerSummary = readFileSync(providerSummaryFile, 'utf8');
-      } catch (error) {
-        this.logger.warning(`Could not read provider summary file: ${error.message}`);
-      }
-    }
+			return analysis;
+		} catch (error) {
+			this.logger.error(`LLM analysis failed: ${error.message}`);
+			return null;
+		}
+	}
 
-    return `Analyze the following E2E test log for the task-master tool. The log contains output from various 'task-master' commands executed sequentially.
+	buildAnalysisPrompt(logContent, providerSummaryFile) {
+		let providerSummary = '';
+		if (providerSummaryFile) {
+			try {
+				providerSummary = readFileSync(providerSummaryFile, 'utf8');
+			} catch (error) {
+				this.logger.warning(
+					`Could not read provider summary file: ${error.message}`
+				);
+			}
+		}
+
+		return `Analyze the following E2E test log for the task-master tool. The log contains output from various 'task-master' commands executed sequentially.
 
 Your goal is to:
 1. Verify if the key E2E steps completed successfully based on the log messages (e.g., init, parse PRD, list tasks, analyze complexity, expand task, set status, manage models, add/remove dependencies, add/update/remove tasks/subtasks, generate files).
@@ -88,81 +90,82 @@ Return your analysis **strictly** in the following JSON format. Do not include a
 Here is the main log content:
 
 ${logContent}`;
-  }
+	}
 
-  async callLLM(prompt) {
-    const payload = {
-      model: this.config.llmAnalysis.model,
-      max_tokens: this.config.llmAnalysis.maxTokens,
-      messages: [
-        { role: 'user', content: prompt }
-      ]
-    };
+	async callLLM(prompt) {
+		const payload = {
+			model: this.config.llmAnalysis.model,
+			max_tokens: this.config.llmAnalysis.maxTokens,
+			messages: [{ role: 'user', content: prompt }]
+		};
 
-    const response = await fetch(this.apiEndpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': this.apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify(payload)
-    });
+		const response = await fetch(this.apiEndpoint, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'x-api-key': this.apiKey,
+				'anthropic-version': '2023-06-01'
+			},
+			body: JSON.stringify(payload)
+		});
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`LLM API call failed: ${response.status} - ${error}`);
-    }
+		if (!response.ok) {
+			const error = await response.text();
+			throw new Error(`LLM API call failed: ${response.status} - ${error}`);
+		}
 
-    return response.json();
-  }
+		return response.json();
+	}
 
-  parseResponse(response) {
-    try {
-      const content = response.content[0].text;
-      const jsonStart = content.indexOf('{');
-      const jsonEnd = content.lastIndexOf('}');
-      
-      if (jsonStart === -1 || jsonEnd === -1) {
-        throw new Error('No JSON found in response');
-      }
+	parseResponse(response) {
+		try {
+			const content = response.content[0].text;
+			const jsonStart = content.indexOf('{');
+			const jsonEnd = content.lastIndexOf('}');
 
-      const jsonString = content.substring(jsonStart, jsonEnd + 1);
-      return JSON.parse(jsonString);
-    } catch (error) {
-      this.logger.error(`Failed to parse LLM response: ${error.message}`);
-      return null;
-    }
-  }
+			if (jsonStart === -1 || jsonEnd === -1) {
+				throw new Error('No JSON found in response');
+			}
 
-  calculateCost(usage) {
-    const modelCosts = {
-      'claude-3-7-sonnet-20250219': {
-        input: 3.00,   // per 1M tokens
-        output: 15.00  // per 1M tokens
-      }
-    };
+			const jsonString = content.substring(jsonStart, jsonEnd + 1);
+			return JSON.parse(jsonString);
+		} catch (error) {
+			this.logger.error(`Failed to parse LLM response: ${error.message}`);
+			return null;
+		}
+	}
 
-    const costs = modelCosts[this.config.llmAnalysis.model] || { input: 0, output: 0 };
-    const inputCost = (usage.input_tokens / 1000000) * costs.input;
-    const outputCost = (usage.output_tokens / 1000000) * costs.output;
-    
-    return inputCost + outputCost;
-  }
+	calculateCost(usage) {
+		const modelCosts = {
+			'claude-3-7-sonnet-20250219': {
+				input: 3.0, // per 1M tokens
+				output: 15.0 // per 1M tokens
+			}
+		};
 
-  formatReport(analysis) {
-    if (!analysis) return null;
+		const costs = modelCosts[this.config.llmAnalysis.model] || {
+			input: 0,
+			output: 0
+		};
+		const inputCost = (usage.input_tokens / 1000000) * costs.input;
+		const outputCost = (usage.output_tokens / 1000000) * costs.output;
 
-    const report = {
-      title: 'TASKMASTER E2E Test Analysis Report',
-      timestamp: new Date().toISOString(),
-      status: analysis.overall_status,
-      summary: analysis.llm_summary_points,
-      verifiedSteps: analysis.verified_steps,
-      providerComparison: analysis.provider_add_task_comparison,
-      issues: analysis.detected_issues
-    };
+		return inputCost + outputCost;
+	}
 
-    return report;
-  }
+	formatReport(analysis) {
+		if (!analysis) return null;
+
+		const report = {
+			title: 'TASKMASTER E2E Test Analysis Report',
+			timestamp: new Date().toISOString(),
+			status: analysis.overall_status,
+			summary: analysis.llm_summary_points,
+			verifiedSteps: analysis.verified_steps,
+			providerComparison: analysis.provider_add_task_comparison,
+			issues: analysis.detected_issues
+		};
+
+		return report;
+	}
 }
