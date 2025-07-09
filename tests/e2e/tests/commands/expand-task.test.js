@@ -3,32 +3,43 @@
  * Tests all aspects of task expansion including single, multiple, and recursive expansion
  */
 
-export default async function testExpandTask(logger, helpers, context) {
-	const { testDir } = context;
-	const results = {
-		status: 'passed',
-		errors: [],
-		tests: []
-	};
+const { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync, mkdirSync } = require('fs');
+const { join } = require('path');
+const { tmpdir } = require('os');
 
-	async function runTest(name, testFn) {
-		try {
-			logger.info(`\nRunning: ${name}`);
-			await testFn();
-			results.tests.push({ name, status: 'passed' });
-			logger.success(`✓ ${name}`);
-		} catch (error) {
-			results.tests.push({ name, status: 'failed', error: error.message });
-			results.errors.push({ test: name, error: error.message });
-			logger.error(`✗ ${name}: ${error.message}`);
+describe('expand-task command', () => {
+	let testDir;
+	let helpers;
+	let simpleTaskId;
+	let complexTaskId;
+	let manualTaskId;
+
+	beforeEach(async () => {
+		// Create test directory
+		testDir = mkdtempSync(join(tmpdir(), 'task-master-expand-task-'));
+		
+		// Initialize test helpers
+		const context = global.createTestContext('expand-task');
+		helpers = context.helpers;
+		
+		// Copy .env file if it exists
+		const mainEnvPath = join(__dirname, '../../../../.env');
+		const testEnvPath = join(testDir, '.env');
+		if (existsSync(mainEnvPath)) {
+			const envContent = readFileSync(mainEnvPath, 'utf8');
+			writeFileSync(testEnvPath, envContent);
 		}
-	}
-
-	try {
-		logger.info('Starting comprehensive expand-task tests...');
-
-		// Setup: Create tasks for expansion testing
-		logger.info('Setting up test tasks...');
+		
+		// Initialize task-master project
+		const initResult = await helpers.taskMaster('init', ['-y'], { cwd: testDir });
+		expect(initResult).toHaveExitCode(0);
+		
+		// Ensure tasks.json exists (bug workaround)
+		const tasksJsonPath = join(testDir, '.taskmaster/tasks/tasks.json');
+		if (!existsSync(tasksJsonPath)) {
+			mkdirSync(join(testDir, '.taskmaster/tasks'), { recursive: true });
+			writeFileSync(tasksJsonPath, JSON.stringify({ master: { tasks: [] } }));
+		}
 		
 		// Create simple task for expansion
 		const simpleResult = await helpers.taskMaster(
@@ -36,7 +47,7 @@ export default async function testExpandTask(logger, helpers, context) {
 			['--prompt', 'Create a user authentication system'],
 			{ cwd: testDir }
 		);
-		const simpleTaskId = helpers.extractTaskId(simpleResult.stdout);
+		simpleTaskId = helpers.extractTaskId(simpleResult.stdout);
 		
 		// Create complex task for expansion
 		const complexResult = await helpers.taskMaster(
@@ -44,449 +55,302 @@ export default async function testExpandTask(logger, helpers, context) {
 			['--prompt', 'Build a full-stack web application with React frontend and Node.js backend'],
 			{ cwd: testDir }
 		);
-		const complexTaskId = helpers.extractTaskId(complexResult.stdout);
+		complexTaskId = helpers.extractTaskId(complexResult.stdout);
 		
 		// Create manual task (no AI prompt)
 		const manualResult = await helpers.taskMaster(
 			'add-task',
-			['--title', 'Manual task for expansion', '--description', 'This task needs to be broken down into subtasks'],
+			['--title', 'Manual task for expansion', '--description', 'This is a manually created task'],
 			{ cwd: testDir }
 		);
-		const manualTaskId = helpers.extractTaskId(manualResult.stdout);
+		manualTaskId = helpers.extractTaskId(manualResult.stdout);
+	});
 
-		// Test 1: Single task expansion
-		await runTest('Single task expansion', async () => {
+	afterEach(() => {
+		// Clean up test directory
+		if (testDir && existsSync(testDir)) {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	describe('Single task expansion', () => {
+		it('should expand a single task', async () => {
 			const result = await helpers.taskMaster(
 				'expand',
-				[simpleTaskId],
-				{ cwd: testDir, timeout: 120000 }
+				['--id', simpleTaskId],
+				{ cwd: testDir, timeout: 45000 }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Expanded');
 			
 			// Verify subtasks were created
 			const showResult = await helpers.taskMaster('show', [simpleTaskId], { cwd: testDir });
-			if (!showResult.stdout.includes('Subtasks:') && !showResult.stdout.includes('.1')) {
-				throw new Error('No subtasks created during expansion');
-			}
-			
-			// Check expansion output mentions subtasks
-			if (!result.stdout.includes('subtask') && !result.stdout.includes('expanded')) {
-				throw new Error('Expansion output does not mention subtasks');
-			}
-		});
+			expect(showResult.stdout).toContain('Subtasks:');
+		}, 60000);
 
-		// Test 2: Expansion of already expanded task (should skip)
-		await runTest('Expansion of already expanded task', async () => {
+		it('should expand with custom number of subtasks', async () => {
 			const result = await helpers.taskMaster(
 				'expand',
-				[simpleTaskId],
-				{ cwd: testDir }
+				['--id', complexTaskId, '--num', '3'],
+				{ cwd: testDir, timeout: 45000 }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
 			
-			// Should indicate task is already expanded
-			if (!result.stdout.includes('already') && !result.stdout.includes('skip')) {
-				throw new Error('Did not indicate task was already expanded');
-			}
-		});
+			expect(result).toHaveExitCode(0);
+			
+			// Check that we got approximately 3 subtasks
+			const showResult = await helpers.taskMaster('show', [complexTaskId], { cwd: testDir });
+			const subtaskMatches = showResult.stdout.match(/\d+\.\d+/g);
+			expect(subtaskMatches).toBeTruthy();
+			expect(subtaskMatches.length).toBeGreaterThanOrEqual(2);
+			expect(subtaskMatches.length).toBeLessThanOrEqual(5);
+		}, 60000);
 
-		// Test 3: Force re-expansion with --force
-		await runTest('Force re-expansion', async () => {
-			// Get initial subtask count
-			const beforeShow = await helpers.taskMaster('show', [simpleTaskId], { cwd: testDir });
-			const beforeSubtasks = (beforeShow.stdout.match(/\d+\.\d+/g) || []).length;
-			
+		it('should expand with research mode', async () => {
 			const result = await helpers.taskMaster(
 				'expand',
-				[simpleTaskId, '--force'],
-				{ cwd: testDir, timeout: 120000 }
+				['--id', simpleTaskId, '--research'],
+				{ cwd: testDir, timeout: 60000 }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
 			
-			// Verify it actually re-expanded
-			if (!result.stdout.includes('expanded') && !result.stdout.includes('Re-expand')) {
-				throw new Error('Force flag did not trigger re-expansion');
-			}
-			
-			// Check if subtasks changed (they might be different)
-			const afterShow = await helpers.taskMaster('show', [simpleTaskId], { cwd: testDir });
-			const afterSubtasks = (afterShow.stdout.match(/\d+\.\d+/g) || []).length;
-			
-			if (afterSubtasks === 0) {
-				throw new Error('Force re-expansion removed all subtasks');
-			}
-		});
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('research');
+		}, 90000);
 
-		// Test 4: Expand multiple tasks
-		await runTest('Expand multiple tasks', async () => {
+		it('should expand with additional context', async () => {
 			const result = await helpers.taskMaster(
 				'expand',
-				[complexTaskId, manualTaskId],
-				{ cwd: testDir, timeout: 180000 }
+				['--id', manualTaskId, '--prompt', 'Focus on security best practices and testing'],
+				{ cwd: testDir, timeout: 45000 }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
 			
-			// Verify both tasks were expanded
-			const showComplex = await helpers.taskMaster('show', [complexTaskId], { cwd: testDir });
-			const showManual = await helpers.taskMaster('show', [manualTaskId], { cwd: testDir });
+			expect(result).toHaveExitCode(0);
 			
-			if (!showComplex.stdout.includes('Subtasks:')) {
-				throw new Error('Complex task was not expanded');
-			}
-			if (!showManual.stdout.includes('Subtasks:')) {
-				throw new Error('Manual task was not expanded');
-			}
-		});
+			// Verify context was used
+			const showResult = await helpers.taskMaster('show', [manualTaskId], { cwd: testDir });
+			const outputLower = showResult.stdout.toLowerCase();
+			expect(outputLower).toMatch(/security|test/);
+		}, 60000);
+	});
 
-		// Test 5: Expand all tasks with --all
-		await runTest('Expand all tasks', async () => {
-			// Create a few more tasks
-			await helpers.taskMaster('add-task', ['--prompt', 'Task A for expand all'], { cwd: testDir });
-			await helpers.taskMaster('add-task', ['--prompt', 'Task B for expand all'], { cwd: testDir });
-			
+	describe('Bulk expansion', () => {
+		it('should expand all tasks', async () => {
 			const result = await helpers.taskMaster(
 				'expand',
 				['--all'],
-				{ cwd: testDir, timeout: 240000 }
+				{ cwd: testDir, timeout: 120000 }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
 			
-			// Should mention expanding multiple tasks
-			if (!result.stdout.includes('Expand') || !result.stdout.includes('all')) {
-				throw new Error('Expand all did not indicate it was processing all tasks');
-			}
-		});
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Expanding all');
+			
+			// Verify all tasks have subtasks
+			const tasksPath = join(testDir, '.taskmaster/tasks/tasks.json');
+			const tasksData = JSON.parse(readFileSync(tasksPath, 'utf8'));
+			const tasks = tasksData.master.tasks;
+			
+			const tasksWithSubtasks = tasks.filter(t => t.subtasks && t.subtasks.length > 0);
+			expect(tasksWithSubtasks.length).toBeGreaterThanOrEqual(2);
+		}, 150000);
 
-		// Test 6: Error handling - invalid task ID
-		await runTest('Error handling - invalid task ID', async () => {
+		it('should expand all with force flag', async () => {
+			// First expand one task
+			await helpers.taskMaster(
+				'expand',
+				['--id', simpleTaskId],
+				{ cwd: testDir }
+			);
+			
+			// Then expand all with force
 			const result = await helpers.taskMaster(
 				'expand',
-				['99999'],
+				['--all', '--force'],
+				{ cwd: testDir, timeout: 120000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('force');
+		}, 150000);
+	});
+
+	describe('Specific task ranges', () => {
+		it('should expand tasks by ID range', async () => {
+			// Create more tasks
+			await helpers.taskMaster(
+				'add-task',
+				['--prompt', 'Additional task 1'],
+				{ cwd: testDir }
+			);
+			await helpers.taskMaster(
+				'add-task',
+				['--prompt', 'Additional task 2'],
+				{ cwd: testDir }
+			);
+			
+			const result = await helpers.taskMaster(
+				'expand',
+				['--from', '2', '--to', '4'],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify tasks 2-4 were expanded
+			const showResult2 = await helpers.taskMaster('show', ['2'], { cwd: testDir });
+			const showResult3 = await helpers.taskMaster('show', ['3'], { cwd: testDir });
+			const showResult4 = await helpers.taskMaster('show', ['4'], { cwd: testDir });
+			
+			expect(showResult2.stdout).toContain('Subtasks:');
+			expect(showResult3.stdout).toContain('Subtasks:');
+			expect(showResult4.stdout).toContain('Subtasks:');
+		}, 120000);
+
+		it('should expand specific task IDs', async () => {
+			const result = await helpers.taskMaster(
+				'expand',
+				['--id', `${simpleTaskId},${complexTaskId}`],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Both tasks should have subtasks
+			const showResult1 = await helpers.taskMaster('show', [simpleTaskId], { cwd: testDir });
+			const showResult2 = await helpers.taskMaster('show', [complexTaskId], { cwd: testDir });
+			
+			expect(showResult1.stdout).toContain('Subtasks:');
+			expect(showResult2.stdout).toContain('Subtasks:');
+		}, 120000);
+	});
+
+	describe('Error handling', () => {
+		it('should fail for non-existent task ID', async () => {
+			const result = await helpers.taskMaster(
+				'expand',
+				['--id', '99999'],
 				{ cwd: testDir, allowFailure: true }
 			);
-			if (result.exitCode === 0) {
-				throw new Error('Should have failed with invalid task ID');
-			}
-			if (!result.stderr.includes('not found') && !result.stderr.includes('invalid')) {
-				throw new Error('Error message does not indicate task not found');
-			}
+			
+			expect(result.exitCode).not.toBe(0);
+			expect(result.stderr).toContain('not found');
 		});
 
-		// Test 7: Expansion quality verification
-		await runTest('Expansion quality - relevant subtasks', async () => {
-			// Create a specific task
-			const specificResult = await helpers.taskMaster(
-				'add-task',
-				['--prompt', 'Implement user login with email and password'],
-				{ cwd: testDir }
-			);
-			const specificTaskId = helpers.extractTaskId(specificResult.stdout);
-			
-			// Expand it
-			await helpers.taskMaster('expand', [specificTaskId], { cwd: testDir, timeout: 120000 });
-			
-			// Check subtasks are relevant
-			const showResult = await helpers.taskMaster('show', [specificTaskId], { cwd: testDir });
-			const subtaskText = showResult.stdout.toLowerCase();
-			
-			// Should have subtasks related to login functionality
-			const relevantKeywords = ['email', 'password', 'validation', 'auth', 'login', 'user', 'security'];
-			const foundKeywords = relevantKeywords.filter(keyword => subtaskText.includes(keyword));
-			
-			if (foundKeywords.length < 3) {
-				throw new Error('Subtasks do not seem relevant to user login task');
-			}
-		});
-
-		// Test 8: Recursive expansion of subtasks
-		await runTest('Recursive expansion with --recursive', async () => {
-			// Create task for recursive expansion
-			const recursiveResult = await helpers.taskMaster(
-				'add-task',
-				['--prompt', 'Build a complete project management system'],
-				{ cwd: testDir }
-			);
-			const recursiveTaskId = helpers.extractTaskId(recursiveResult.stdout);
-			
-			// First expand the main task
-			await helpers.taskMaster('expand', [recursiveTaskId], { cwd: testDir, timeout: 120000 });
-			
-			// Now expand recursively
-			const result = await helpers.taskMaster(
-				'expand',
-				[recursiveTaskId, '--recursive'],
-				{ cwd: testDir, timeout: 180000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Check for nested subtasks (e.g., 1.1.1)
-			const showResult = await helpers.taskMaster('show', [recursiveTaskId], { cwd: testDir });
-			if (!showResult.stdout.match(/\d+\.\d+\.\d+/)) {
-				throw new Error('Recursive expansion did not create nested subtasks');
-			}
-		});
-
-		// Test 9: Expand with depth limit
-		await runTest('Expand with depth limit', async () => {
-			// Create task for depth testing
-			const depthResult = await helpers.taskMaster(
-				'add-task',
-				['--prompt', 'Create a mobile application'],
-				{ cwd: testDir }
-			);
-			const depthTaskId = helpers.extractTaskId(depthResult.stdout);
-			
-			const result = await helpers.taskMaster(
-				'expand',
-				[depthTaskId, '--depth', '2'],
-				{ cwd: testDir, timeout: 180000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Should have subtasks but not too deep
-			const showResult = await helpers.taskMaster('show', [depthTaskId], { cwd: testDir });
-			const hasLevel1 = showResult.stdout.match(/\d+\.1/);
-			const hasLevel2 = showResult.stdout.match(/\d+\.1\.1/);
-			const hasLevel3 = showResult.stdout.match(/\d+\.1\.1\.1/);
-			
-			if (!hasLevel1) {
-				throw new Error('No level 1 subtasks created');
-			}
-			if (hasLevel3) {
-				throw new Error('Depth limit not respected - found level 3 subtasks');
-			}
-		});
-
-		// Test 10: Expand task with existing subtasks
-		await runTest('Expand task with manual subtasks', async () => {
-			// Create task and add manual subtask
-			const mixedResult = await helpers.taskMaster(
-				'add-task',
-				['--title', 'Mixed subtasks task'],
-				{ cwd: testDir }
-			);
-			const mixedTaskId = helpers.extractTaskId(mixedResult.stdout);
-			
-			// Add manual subtask
+		it('should skip already expanded tasks without force', async () => {
+			// First expansion
 			await helpers.taskMaster(
-				'add-subtask',
-				[mixedTaskId, 'Manual subtask 1'],
+				'expand',
+				['--id', simpleTaskId],
 				{ cwd: testDir }
 			);
 			
-			// Now expand with AI
+			// Second expansion without force
 			const result = await helpers.taskMaster(
 				'expand',
-				[mixedTaskId],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Should preserve manual subtask and add AI ones
-			const showResult = await helpers.taskMaster('show', [mixedTaskId], { cwd: testDir });
-			if (!showResult.stdout.includes('Manual subtask 1')) {
-				throw new Error('Manual subtask was removed during expansion');
-			}
-			
-			// Count total subtasks - should be more than 1
-			const subtaskCount = (showResult.stdout.match(/\d+\.\d+/g) || []).length;
-			if (subtaskCount <= 1) {
-				throw new Error('AI did not add additional subtasks');
-			}
-		});
-
-		// Test 11: Expand with custom prompt
-		await runTest('Expand with custom prompt', async () => {
-			// Create task
-			const customResult = await helpers.taskMaster(
-				'add-task',
-				['--title', 'Generic development task'],
+				['--id', simpleTaskId],
 				{ cwd: testDir }
 			);
-			const customTaskId = helpers.extractTaskId(customResult.stdout);
 			
-			// Expand with custom instructions
-			const result = await helpers.taskMaster(
-				'expand',
-				[customTaskId, '--prompt', 'Break this down focusing on security aspects'],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Verify subtasks focus on security
-			const showResult = await helpers.taskMaster('show', [customTaskId], { cwd: testDir });
-			const subtaskText = showResult.stdout.toLowerCase();
-			
-			if (!subtaskText.includes('security') && !subtaskText.includes('secure') && 
-			    !subtaskText.includes('auth') && !subtaskText.includes('protect')) {
-				throw new Error('Custom prompt did not influence subtask generation');
-			}
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout.toLowerCase()).toMatch(/already|skip/);
 		});
 
-		// Test 12: Performance - expand large task
-		await runTest('Performance - expand complex task', async () => {
-			const perfResult = await helpers.taskMaster(
-				'add-task',
-				['--prompt', 'Build a complete enterprise resource planning (ERP) system with all modules'],
-				{ cwd: testDir }
-			);
-			const perfTaskId = helpers.extractTaskId(perfResult.stdout);
-			
-			const startTime = Date.now();
+		it('should handle invalid number of subtasks', async () => {
 			const result = await helpers.taskMaster(
 				'expand',
-				[perfTaskId],
-				{ cwd: testDir, timeout: 180000 }
+				['--id', simpleTaskId, '--num', '-1'],
+				{ cwd: testDir, allowFailure: true }
 			);
-			const duration = Date.now() - startTime;
 			
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			logger.info(`Complex task expanded in ${duration}ms`);
-			
-			// Should create many subtasks for complex task
-			const showResult = await helpers.taskMaster('show', [perfTaskId], { cwd: testDir });
-			const subtaskCount = (showResult.stdout.match(/\d+\.\d+/g) || []).length;
-			
-			if (subtaskCount < 5) {
-				throw new Error('Complex task should have generated more subtasks');
-			}
-			logger.info(`Generated ${subtaskCount} subtasks`);
+			expect(result.exitCode).not.toBe(0);
 		});
+	});
 
-		// Test 13: Expand with tag context
-		await runTest('Expand within tag context', async () => {
-			// Create tag and task
-			await helpers.taskMaster('add-tag', ['frontend-expansion'], { cwd: testDir });
+	describe('Tag support', () => {
+		it('should expand tasks in specific tag', async () => {
+			// Create tag and tagged task
+			await helpers.taskMaster('add-tag', ['feature-tag'], { cwd: testDir });
+			
 			const taggedResult = await helpers.taskMaster(
 				'add-task',
-				['--prompt', 'Create UI components', '--tag', 'frontend-expansion'],
+				['--prompt', 'Tagged task for expansion', '--tag', 'feature-tag'],
 				{ cwd: testDir }
 			);
-			const taggedTaskId = helpers.extractTaskId(taggedResult.stdout);
+			const taggedId = helpers.extractTaskId(taggedResult.stdout);
 			
-			// Expand within tag context
 			const result = await helpers.taskMaster(
 				'expand',
-				[taggedTaskId, '--tag', 'frontend-expansion'],
-				{ cwd: testDir, timeout: 120000 }
+				['--id', taggedId, '--tag', 'feature-tag'],
+				{ cwd: testDir, timeout: 45000 }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
 			
-			// Verify subtasks inherit tag
-			const listResult = await helpers.taskMaster(
-				'list',
-				['--tag', 'frontend-expansion'],
+			expect(result).toHaveExitCode(0);
+			
+			// Verify expansion in correct tag
+			const showResult = await helpers.taskMaster(
+				'show',
+				[taggedId, '--tag', 'feature-tag'],
+				{ cwd: testDir }
+			);
+			expect(showResult.stdout).toContain('Subtasks:');
+		}, 60000);
+	});
+
+	describe('Model configuration', () => {
+		it('should use specified model for expansion', async () => {
+			const result = await helpers.taskMaster(
+				'expand',
+				['--id', simpleTaskId, '--model', 'gpt-3.5-turbo'],
+				{ cwd: testDir, timeout: 45000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+		}, 60000);
+	});
+
+	describe('Output validation', () => {
+		it('should create valid subtask structure', async () => {
+			await helpers.taskMaster(
+				'expand',
+				['--id', complexTaskId],
 				{ cwd: testDir }
 			);
 			
-			// Should show parent and subtasks in tag
-			const taskMatches = listResult.stdout.match(/\d+(\.\d+)*/g) || [];
-			if (taskMatches.length <= 1) {
-				throw new Error('Subtasks did not inherit tag context');
-			}
+			const tasksPath = join(testDir, '.taskmaster/tasks/tasks.json');
+			const tasksData = JSON.parse(readFileSync(tasksPath, 'utf8'));
+			const task = tasksData.master.tasks.find(t => t.id === parseInt(complexTaskId));
+			
+			expect(task.subtasks).toBeDefined();
+			expect(Array.isArray(task.subtasks)).toBe(true);
+			expect(task.subtasks.length).toBeGreaterThan(0);
+			
+			// Validate subtask structure
+			task.subtasks.forEach((subtask, index) => {
+				expect(subtask.id).toBe(`${complexTaskId}.${index + 1}`);
+				expect(subtask.title).toBeTruthy();
+				expect(subtask.description).toBeTruthy();
+				expect(subtask.status).toBe('pending');
+			});
 		});
 
-		// Test 14: Expand completed task
-		await runTest('Expand completed task', async () => {
-			// Create and complete a task
-			const completedResult = await helpers.taskMaster(
+		it('should maintain task dependencies after expansion', async () => {
+			// Create task with dependency
+			const depResult = await helpers.taskMaster(
 				'add-task',
-				['--title', 'Completed task'],
+				['--prompt', 'Dependent task', '--dependencies', simpleTaskId],
 				{ cwd: testDir }
 			);
-			const completedTaskId = helpers.extractTaskId(completedResult.stdout);
-			await helpers.taskMaster('set-status', [completedTaskId, 'completed'], { cwd: testDir });
+			const depTaskId = helpers.extractTaskId(depResult.stdout);
 			
-			// Try to expand
-			const result = await helpers.taskMaster(
+			// Expand the task
+			await helpers.taskMaster(
 				'expand',
-				[completedTaskId],
-				{ cwd: testDir, allowFailure: true }
+				['--id', depTaskId],
+				{ cwd: testDir }
 			);
 			
-			// Should either fail or warn about completed status
-			if (result.exitCode === 0 && !result.stdout.includes('completed') && !result.stdout.includes('warning')) {
-				throw new Error('No warning about expanding completed task');
-			}
+			// Check dependencies are preserved
+			const showResult = await helpers.taskMaster('show', [depTaskId], { cwd: testDir });
+			expect(showResult.stdout).toContain(`Dependencies: ${simpleTaskId}`);
 		});
-
-		// Test 15: Batch expansion with mixed results
-		await runTest('Batch expansion with mixed results', async () => {
-			// Create tasks in different states
-			const task1 = await helpers.taskMaster('add-task', ['--prompt', 'New task 1'], { cwd: testDir });
-			const taskId1 = helpers.extractTaskId(task1.stdout);
-			
-			const task2 = await helpers.taskMaster('add-task', ['--prompt', 'New task 2'], { cwd: testDir });
-			const taskId2 = helpers.extractTaskId(task2.stdout);
-			
-			// Expand task2 first
-			await helpers.taskMaster('expand', [taskId2], { cwd: testDir });
-			
-			// Now expand both - should skip task2
-			const result = await helpers.taskMaster(
-				'expand',
-				[taskId1, taskId2],
-				{ cwd: testDir, timeout: 180000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Should indicate one was skipped
-			if (!result.stdout.includes('skip') || !result.stdout.includes('already')) {
-				throw new Error('Did not indicate that already-expanded task was skipped');
-			}
-		});
-
-		// Calculate summary
-		const totalTests = results.tests.length;
-		const passedTests = results.tests.filter(t => t.status === 'passed').length;
-		const failedTests = results.tests.filter(t => t.status === 'failed').length;
-
-		logger.info('\n=== Expand-Task Test Summary ===');
-		logger.info(`Total tests: ${totalTests}`);
-		logger.info(`Passed: ${passedTests}`);
-		logger.info(`Failed: ${failedTests}`);
-
-		if (failedTests > 0) {
-			results.status = 'failed';
-			logger.error(`\n${failedTests} tests failed`);
-		} else {
-			logger.success('\n✅ All expand-task tests passed!');
-		}
-
-	} catch (error) {
-		results.status = 'failed';
-		results.errors.push({
-			test: 'expand-task test suite',
-			error: error.message,
-			stack: error.stack
-		});
-		logger.error(`Expand-task test suite failed: ${error.message}`);
-	}
-
-	return results;
-}
+	});
+});

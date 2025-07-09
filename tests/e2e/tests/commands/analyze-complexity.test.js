@@ -3,33 +3,40 @@
  * Tests all aspects of complexity analysis including research mode and output formats
  */
 
-export default async function testAnalyzeComplexity(logger, helpers, context) {
-	const { testDir } = context;
-	const results = {
-		status: 'passed',
-		errors: [],
-		tests: []
-	};
+const { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync, mkdirSync } = require('fs');
+const { join } = require('path');
+const { tmpdir } = require('os');
+const { execSync } = require('child_process');
 
-	async function runTest(name, testFn) {
-		try {
-			logger.info(`\nRunning: ${name}`);
-			await testFn();
-			results.tests.push({ name, status: 'passed' });
-			logger.success(`✓ ${name}`);
-		} catch (error) {
-			results.tests.push({ name, status: 'failed', error: error.message });
-			results.errors.push({ test: name, error: error.message });
-			logger.error(`✗ ${name}: ${error.message}`);
+describe('analyze-complexity command', () => {
+	let testDir;
+	let helpers;
+	let logger;
+	let taskIds;
+
+	beforeEach(async () => {
+		// Create test directory
+		testDir = mkdtempSync(join(tmpdir(), 'task-master-analyze-complexity-'));
+		
+		// Initialize test helpers
+		const context = global.createTestContext('analyze-complexity');
+		helpers = context.helpers;
+		logger = context.logger;
+		
+		// Copy .env file if it exists
+		const mainEnvPath = join(__dirname, '../../../../.env');
+		const testEnvPath = join(testDir, '.env');
+		if (existsSync(mainEnvPath)) {
+			const envContent = readFileSync(mainEnvPath, 'utf8');
+			writeFileSync(testEnvPath, envContent);
 		}
-	}
+		
+		// Initialize task-master project
+		const initResult = await helpers.taskMaster('init', ['-y'], { cwd: testDir });
+		expect(initResult).toHaveExitCode(0);
 
-	try {
-		logger.info('Starting comprehensive analyze-complexity tests...');
-
-		// Setup: Create some tasks for analysis
-		logger.info('Setting up test tasks...');
-		const taskIds = [];
+		// Setup test tasks for analysis
+		taskIds = [];
 		
 		// Create simple task
 		const simple = await helpers.taskMaster(
@@ -58,160 +65,112 @@ export default async function testAnalyzeComplexity(logger, helpers, context) {
 			{ cwd: testDir }
 		);
 		taskIds.push(helpers.extractTaskId(withDeps.stdout));
+	});
 
-		// Test 1: Basic complexity analysis
-		await runTest('Basic complexity analysis', async () => {
+	afterEach(() => {
+		// Clean up test directory
+		if (testDir && existsSync(testDir)) {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	describe('Basic complexity analysis', () => {
+		it('should analyze complexity without flags', async () => {
 			const result = await helpers.taskMaster(
 				'analyze-complexity',
 				[],
 				{ cwd: testDir }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			// Check for basic output
-			if (!result.stdout.includes('Complexity') && !result.stdout.includes('complexity')) {
-				throw new Error('Output does not contain complexity information');
-			}
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout.toLowerCase()).toContain('complexity');
 		});
 
-		// Test 2: Complexity analysis with research flag
-		await runTest('Complexity analysis with --research', async () => {
+		it('should analyze with research flag', async () => {
 			const result = await helpers.taskMaster(
 				'analyze-complexity',
 				['--research'],
 				{ cwd: testDir, timeout: 120000 }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			// Research mode should provide more detailed analysis
-			if (!result.stdout.includes('Complexity') && !result.stdout.includes('complexity')) {
-				throw new Error('Research mode did not provide complexity analysis');
-			}
-		});
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout.toLowerCase()).toContain('complexity');
+		}, 120000);
+	});
 
-		// Test 3: Complexity analysis with custom output file
-		await runTest('Complexity analysis with custom output', async () => {
+	describe('Output options', () => {
+		it('should save to custom output file', async () => {
 			const outputPath = '.taskmaster/reports/custom-complexity.json';
 			const result = await helpers.taskMaster(
 				'analyze-complexity',
 				['--output', outputPath],
 				{ cwd: testDir }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			// Verify file was created
-			const fullPath = `${testDir}/${outputPath}`;
-			if (!helpers.fileExists(fullPath)) {
-				throw new Error('Custom output file was not created');
-			}
+			
+			expect(result).toHaveExitCode(0);
+			
+			const fullPath = join(testDir, outputPath);
+			expect(existsSync(fullPath)).toBe(true);
+			
 			// Verify it's valid JSON
-			const report = helpers.readJson(fullPath);
-			if (!report || typeof report !== 'object') {
-				throw new Error('Output file is not valid JSON');
-			}
+			const report = JSON.parse(readFileSync(fullPath, 'utf8'));
+			expect(report).toBeDefined();
+			expect(typeof report).toBe('object');
 		});
 
-		// Test 4: Complexity analysis for specific tasks
-		await runTest('Complexity analysis for specific tasks', async () => {
-			const result = await helpers.taskMaster(
-				'analyze-complexity',
-				['--tasks', taskIds.join(',')],
-				{ cwd: testDir }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			// Should analyze only specified tasks
-			for (const taskId of taskIds) {
-				if (!result.stdout.includes(taskId)) {
-					throw new Error(`Task ${taskId} not included in analysis`);
-				}
-			}
-		});
-
-		// Test 5: Complexity analysis with custom thresholds
-		await runTest('Complexity analysis with custom thresholds', async () => {
-			const result = await helpers.taskMaster(
-				'analyze-complexity',
-				['--low-threshold', '3', '--medium-threshold', '7', '--high-threshold', '10'],
-				{ cwd: testDir }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			// Output should reflect custom thresholds
-			if (!result.stdout.includes('low') || !result.stdout.includes('medium') || !result.stdout.includes('high')) {
-				throw new Error('Custom thresholds not reflected in output');
-			}
-		});
-
-		// Test 6: Complexity analysis with JSON output format
-		await runTest('Complexity analysis with JSON format', async () => {
+		it('should output in JSON format', async () => {
 			const result = await helpers.taskMaster(
 				'analyze-complexity',
 				['--format', 'json'],
 				{ cwd: testDir }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
+			
+			expect(result).toHaveExitCode(0);
+			
 			// Output should be valid JSON
-			try {
-				const parsed = JSON.parse(result.stdout);
-				if (!parsed || typeof parsed !== 'object') {
-					throw new Error('Output is not valid JSON object');
-				}
-			} catch (e) {
-				throw new Error('Output is not valid JSON format');
-			}
+			let parsed;
+			expect(() => {
+				parsed = JSON.parse(result.stdout);
+			}).not.toThrow();
+			
+			expect(parsed).toBeDefined();
+			expect(typeof parsed).toBe('object');
 		});
 
-		// Test 7: Complexity analysis with detailed breakdown
-		await runTest('Complexity analysis with --detailed flag', async () => {
+		it('should show detailed breakdown', async () => {
 			const result = await helpers.taskMaster(
 				'analyze-complexity',
 				['--detailed'],
 				{ cwd: testDir }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			// Should include detailed breakdown
-			const expectedDetails = ['subtasks', 'dependencies', 'description', 'metadata'];
-			const foundDetails = expectedDetails.filter(detail => 
-				result.stdout.toLowerCase().includes(detail)
-			);
-			if (foundDetails.length < 2) {
-				throw new Error('Detailed breakdown not comprehensive enough');
-			}
-		});
-
-		// Test 8: Complexity analysis for empty project
-		await runTest('Complexity analysis with no tasks', async () => {
-			// Create a new temp directory
-			const emptyDir = `${testDir}_empty`;
-			await helpers.executeCommand('mkdir', ['-p', emptyDir]);
-			await helpers.taskMaster('init', ['-y'], { cwd: emptyDir });
 			
+			expect(result).toHaveExitCode(0);
+			
+			const output = result.stdout.toLowerCase();
+			const expectedDetails = ['subtasks', 'dependencies', 'description', 'metadata'];
+			const foundDetails = expectedDetails.filter(detail => output.includes(detail));
+			
+			expect(foundDetails.length).toBeGreaterThanOrEqual(2);
+		});
+	});
+
+	describe('Filtering options', () => {
+		it('should analyze specific tasks', async () => {
 			const result = await helpers.taskMaster(
 				'analyze-complexity',
-				[],
-				{ cwd: emptyDir }
+				['--tasks', taskIds.join(',')],
+				{ cwd: testDir }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			// Should handle empty project gracefully
-			if (!result.stdout.includes('No tasks') && !result.stdout.includes('0')) {
-				throw new Error('Empty project not handled gracefully');
-			}
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Should analyze only specified tasks
+			taskIds.forEach(taskId => {
+				expect(result.stdout).toContain(taskId);
+			});
 		});
 
-		// Test 9: Complexity analysis with tag filter
-		await runTest('Complexity analysis filtered by tag', async () => {
+		it('should filter by tag', async () => {
 			// Create tag and tagged task
 			await helpers.taskMaster('add-tag', ['complex-tag'], { cwd: testDir });
 			const taggedResult = await helpers.taskMaster(
@@ -226,17 +185,12 @@ export default async function testAnalyzeComplexity(logger, helpers, context) {
 				['--tag', 'complex-tag'],
 				{ cwd: testDir }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			// Should only analyze tagged tasks
-			if (!result.stdout.includes(taggedId)) {
-				throw new Error('Tagged task not included in filtered analysis');
-			}
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain(taggedId);
 		});
 
-		// Test 10: Complexity analysis with status filter
-		await runTest('Complexity analysis filtered by status', async () => {
+		it('should filter by status', async () => {
 			// Set one task to completed
 			await helpers.taskMaster('set-status', [taskIds[0], 'completed'], { cwd: testDir });
 			
@@ -245,64 +199,74 @@ export default async function testAnalyzeComplexity(logger, helpers, context) {
 				['--status', 'pending'],
 				{ cwd: testDir }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
+			
+			expect(result).toHaveExitCode(0);
 			// Should not include completed task
-			if (result.stdout.includes(taskIds[0])) {
-				throw new Error('Completed task included in pending-only analysis');
-			}
+			expect(result.stdout).not.toContain(taskIds[0]);
 		});
+	});
 
-		// Test 11: Generate complexity report command
-		await runTest('Generate complexity report', async () => {
-			// First run analyze-complexity to generate data
-			await helpers.taskMaster(
+	describe('Threshold configuration', () => {
+		it('should use custom thresholds', async () => {
+			const result = await helpers.taskMaster(
 				'analyze-complexity',
-				['--output', '.taskmaster/reports/task-complexity-report.json'],
+				['--low-threshold', '3', '--medium-threshold', '7', '--high-threshold', '10'],
 				{ cwd: testDir }
 			);
 			
-			const result = await helpers.taskMaster(
-				'complexity-report',
-				[],
-				{ cwd: testDir }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			// Should display report
-			if (!result.stdout.includes('Complexity Report') && !result.stdout.includes('complexity')) {
-				throw new Error('Complexity report not displayed');
-			}
+			expect(result).toHaveExitCode(0);
+			
+			const output = result.stdout.toLowerCase();
+			expect(output).toContain('low');
+			expect(output).toContain('medium');
+			expect(output).toContain('high');
 		});
 
-		// Test 12: Error handling - invalid threshold values
-		await runTest('Error handling - invalid thresholds', async () => {
+		it('should reject invalid thresholds', async () => {
 			const result = await helpers.taskMaster(
 				'analyze-complexity',
 				['--low-threshold', '-1'],
 				{ cwd: testDir, allowFailure: true }
 			);
-			if (result.exitCode === 0) {
-				throw new Error('Should have failed with negative threshold');
+			
+			expect(result.exitCode).not.toBe(0);
+		});
+	});
+
+	describe('Edge cases', () => {
+		it('should handle empty project', async () => {
+			// Create a new temp directory
+			const emptyDir = mkdtempSync(join(tmpdir(), 'task-master-empty-'));
+			
+			try {
+				await helpers.taskMaster('init', ['-y'], { cwd: emptyDir });
+				
+				const result = await helpers.taskMaster(
+					'analyze-complexity',
+					[],
+					{ cwd: emptyDir }
+				);
+				
+				expect(result).toHaveExitCode(0);
+				expect(result.stdout.toLowerCase()).toMatch(/no tasks|0/);
+			} finally {
+				rmSync(emptyDir, { recursive: true, force: true });
 			}
 		});
 
-		// Test 13: Error handling - invalid output path
-		await runTest('Error handling - invalid output path', async () => {
+		it('should handle invalid output path', async () => {
 			const result = await helpers.taskMaster(
 				'analyze-complexity',
 				['--output', '/invalid/path/report.json'],
 				{ cwd: testDir, allowFailure: true }
 			);
-			if (result.exitCode === 0) {
-				throw new Error('Should have failed with invalid output path');
-			}
+			
+			expect(result.exitCode).not.toBe(0);
 		});
+	});
 
-		// Test 14: Performance test - large number of tasks
-		await runTest('Performance - analyze many tasks', async () => {
+	describe('Performance', () => {
+		it('should analyze many tasks efficiently', async () => {
 			// Create 20 more tasks
 			const promises = [];
 			for (let i = 0; i < 20; i++) {
@@ -324,67 +288,48 @@ export default async function testAnalyzeComplexity(logger, helpers, context) {
 			);
 			const duration = Date.now() - startTime;
 			
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			// Should complete in reasonable time (< 10 seconds)
-			if (duration > 10000) {
-				throw new Error(`Analysis took too long: ${duration}ms`);
-			}
-			logger.info(`Analyzed ~25 tasks in ${duration}ms`);
+			expect(result).toHaveExitCode(0);
+			expect(duration).toBeLessThan(10000); // Should complete in less than 10 seconds
 		});
+	});
 
-		// Test 15: Verify complexity scoring algorithm
-		await runTest('Verify complexity scoring accuracy', async () => {
-			// The complex task with subtasks should have higher score than simple task
+	describe('Complexity scoring', () => {
+		it('should score complex tasks higher than simple ones', async () => {
 			const result = await helpers.taskMaster(
 				'analyze-complexity',
 				['--format', 'json'],
 				{ cwd: testDir }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
+			
+			expect(result).toHaveExitCode(0);
 			
 			const analysis = JSON.parse(result.stdout);
 			const simpleTask = analysis.tasks?.find(t => t.id === taskIds[0]);
 			const complexTask = analysis.tasks?.find(t => t.id === taskIds[1]);
 			
-			if (!simpleTask || !complexTask) {
-				throw new Error('Could not find tasks in analysis');
-			}
+			expect(simpleTask).toBeDefined();
+			expect(complexTask).toBeDefined();
+			expect(complexTask.complexity).toBeGreaterThan(simpleTask.complexity);
+		});
+	});
+
+	describe('Report generation', () => {
+		it('should generate complexity report', async () => {
+			// First run analyze-complexity to generate data
+			await helpers.taskMaster(
+				'analyze-complexity',
+				['--output', '.taskmaster/reports/task-complexity-report.json'],
+				{ cwd: testDir }
+			);
 			
-			if (simpleTask.complexity >= complexTask.complexity) {
-				throw new Error('Complex task should have higher complexity score than simple task');
-			}
+			const result = await helpers.taskMaster(
+				'complexity-report',
+				[],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout.toLowerCase()).toMatch(/complexity report|complexity/);
 		});
-
-		// Calculate summary
-		const totalTests = results.tests.length;
-		const passedTests = results.tests.filter(t => t.status === 'passed').length;
-		const failedTests = results.tests.filter(t => t.status === 'failed').length;
-
-		logger.info('\n=== Analyze-Complexity Test Summary ===');
-		logger.info(`Total tests: ${totalTests}`);
-		logger.info(`Passed: ${passedTests}`);
-		logger.info(`Failed: ${failedTests}`);
-
-		if (failedTests > 0) {
-			results.status = 'failed';
-			logger.error(`\n${failedTests} tests failed`);
-		} else {
-			logger.success('\n✅ All analyze-complexity tests passed!');
-		}
-
-	} catch (error) {
-		results.status = 'failed';
-		results.errors.push({
-			test: 'analyze-complexity test suite',
-			error: error.message,
-			stack: error.stack
-		});
-		logger.error(`Analyze-complexity test suite failed: ${error.message}`);
-	}
-
-	return results;
-}
+	});
+});
