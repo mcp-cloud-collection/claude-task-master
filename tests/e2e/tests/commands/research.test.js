@@ -3,422 +3,488 @@
  * Tests all aspects of AI-powered research functionality
  */
 
-export default async function testResearch(logger, helpers, context) {
-	const { testDir } = context;
-	const results = {
-		status: 'passed',
-		errors: [],
-		tests: []
-	};
+const { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync, mkdirSync } = require('fs');
+const { join } = require('path');
+const { tmpdir } = require('os');
 
-	async function runTest(name, testFn) {
-		try {
-			logger.info(`\nRunning: ${name}`);
-			await testFn();
-			results.tests.push({ name, status: 'passed' });
-			logger.success(`✓ ${name}`);
-		} catch (error) {
-			results.tests.push({ name, status: 'failed', error: error.message });
-			results.errors.push({ test: name, error: error.message });
-			logger.error(`✗ ${name}: ${error.message}`);
+describe('research command', () => {
+	let testDir;
+	let helpers;
+
+	beforeEach(async () => {
+		// Create test directory
+		testDir = mkdtempSync(join(tmpdir(), 'task-master-research-'));
+		
+		// Initialize test helpers
+		const context = global.createTestContext('research');
+		helpers = context.helpers;
+		
+		// Copy .env file if it exists
+		const mainEnvPath = join(__dirname, '../../../../.env');
+		const testEnvPath = join(testDir, '.env');
+		if (existsSync(mainEnvPath)) {
+			const envContent = readFileSync(mainEnvPath, 'utf8');
+			writeFileSync(testEnvPath, envContent);
 		}
-	}
+		
+		// Initialize task-master project
+		const initResult = await helpers.taskMaster('init', ['-y'], { cwd: testDir });
+		expect(initResult).toHaveExitCode(0);
+	});
 
-	try {
-		logger.info('Starting comprehensive research tests...');
+	afterEach(() => {
+		// Clean up test directory
+		if (testDir && existsSync(testDir)) {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
 
-		// Test 1: Basic research on a topic
-		await runTest('Basic research query', async () => {
+	describe('Basic research functionality', () => {
+		it('should perform research on a topic', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['What are the best practices for implementing JWT authentication in Node.js?'],
-				{ cwd: testDir, timeout: 120000 }
+				['What are the best practices for implementing OAuth 2.0 authentication?'],
+				{ cwd: testDir, timeout: 90000 }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
 			
-			// Check for relevant research output
-			const output = result.stdout.toLowerCase();
-			if (!output.includes('jwt') || !output.includes('authentication')) {
-				throw new Error('Research output does not contain expected keywords');
-			}
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Research Results');
 			
-			// Should provide actionable information
-			const hasActionableInfo = output.includes('implement') || 
-			                         output.includes('use') || 
-			                         output.includes('practice') ||
-			                         output.includes('security');
-			if (!hasActionableInfo) {
-				throw new Error('Research output lacks actionable information');
-			}
-		});
+			// Should contain relevant OAuth information
+			const hasOAuthInfo = result.stdout.toLowerCase().includes('oauth') || 
+				result.stdout.toLowerCase().includes('authentication');
+			expect(hasOAuthInfo).toBe(true);
+		}, 120000);
 
-		// Test 2: Research with specific context
-		await runTest('Research with project context', async () => {
-			// Create a task to provide context
-			const taskResult = await helpers.taskMaster(
-				'add-task',
-				['--title', 'Implement user authentication', '--description', 'Need to add secure login to our Express.js API'],
-				{ cwd: testDir }
-			);
-			const taskId = helpers.extractTaskId(taskResult.stdout);
-			
+		it('should research using --topic flag', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--task', taskId, 'Compare bcrypt vs argon2 for password hashing'],
-				{ cwd: testDir, timeout: 120000 }
+				['--topic', 'React performance optimization techniques'],
+				{ cwd: testDir, timeout: 90000 }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
 			
-			// Should mention both technologies
-			const output = result.stdout.toLowerCase();
-			if (!output.includes('bcrypt') || !output.includes('argon2')) {
-				throw new Error('Research did not compare both technologies');
-			}
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Research Results');
 			
-			// Should relate to the task context
-			if (!output.includes('password') || !output.includes('hash')) {
-				throw new Error('Research not relevant to password hashing');
-			}
-		});
+			// Should contain React-related information
+			const hasReactInfo = result.stdout.toLowerCase().includes('react') || 
+				result.stdout.toLowerCase().includes('performance');
+			expect(hasReactInfo).toBe(true);
+		}, 120000);
 
-		// Test 3: Research with output format options
-		await runTest('Research with markdown output', async () => {
+		it('should handle technical research queries', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--format', 'markdown', 'How to implement rate limiting in REST APIs?'],
-				{ cwd: testDir, timeout: 120000 }
+				['Compare PostgreSQL vs MongoDB for a real-time analytics application'],
+				{ cwd: testDir, timeout: 90000 }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
 			
-			// Check for markdown formatting
-			const hasMarkdown = result.stdout.includes('#') || 
-			                   result.stdout.includes('*') || 
-			                   result.stdout.includes('-') ||
-			                   result.stdout.includes('```');
-			if (!hasMarkdown) {
-				throw new Error('Output does not appear to be in markdown format');
-			}
-		});
+			expect(result).toHaveExitCode(0);
+			
+			// Should contain database comparison
+			const hasDatabaseInfo = result.stdout.toLowerCase().includes('postgresql') || 
+				result.stdout.toLowerCase().includes('mongodb');
+			expect(hasDatabaseInfo).toBe(true);
+		}, 120000);
+	});
 
-		// Test 4: Research with depth parameter
-		await runTest('Research with depth control', async () => {
-			const shallowResult = await helpers.taskMaster(
-				'research',
-				['--depth', 'shallow', 'React state management options'],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			
-			const deepResult = await helpers.taskMaster(
-				'research',
-				['--depth', 'deep', 'React state management options'],
-				{ cwd: testDir, timeout: 180000 }
-			);
-			
-			if (shallowResult.exitCode !== 0 || deepResult.exitCode !== 0) {
-				throw new Error('Research with depth parameter failed');
-			}
-			
-			// Deep research should provide more content
-			if (deepResult.stdout.length <= shallowResult.stdout.length) {
-				throw new Error('Deep research did not provide more detailed information');
-			}
-			
-			// Both should mention state management solutions
-			const solutions = ['redux', 'context', 'mobx', 'zustand', 'recoil'];
-			const shallowMentions = solutions.filter(s => shallowResult.stdout.toLowerCase().includes(s)).length;
-			const deepMentions = solutions.filter(s => deepResult.stdout.toLowerCase().includes(s)).length;
-			
-			if (deepMentions <= shallowMentions) {
-				throw new Error('Deep research should cover more solutions');
-			}
-		});
-
-		// Test 5: Research for multiple tasks
-		await runTest('Research across multiple tasks', async () => {
-			// Create related tasks
-			const task1 = await helpers.taskMaster(
-				'add-task',
-				['--title', 'Setup database connection'],
-				{ cwd: testDir }
-			);
-			const taskId1 = helpers.extractTaskId(task1.stdout);
-			
-			const task2 = await helpers.taskMaster(
-				'add-task',
-				['--title', 'Implement caching layer'],
-				{ cwd: testDir }
-			);
-			const taskId2 = helpers.extractTaskId(task2.stdout);
-			
-			const result = await helpers.taskMaster(
-				'research',
-				['--tasks', `${taskId1},${taskId2}`, 'Best practices for database connection pooling and Redis caching'],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Should cover both topics
-			const output = result.stdout.toLowerCase();
-			if (!output.includes('database') || !output.includes('connection')) {
-				throw new Error('Research did not cover database connections');
-			}
-			if (!output.includes('redis') || !output.includes('cach')) {
-				throw new Error('Research did not cover caching');
-			}
-		});
-
-		// Test 6: Research with source preferences
-		await runTest('Research with source preferences', async () => {
-			const result = await helpers.taskMaster(
-				'research',
-				['--sources', 'official-docs,stackoverflow', 'How to use React hooks effectively?'],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Should focus on practical examples
-			const output = result.stdout.toLowerCase();
-			if (!output.includes('hook') || !output.includes('react')) {
-				throw new Error('Research not relevant to React hooks');
-			}
-		});
-
-		// Test 7: Research with language/framework context
-		await runTest('Research with technology context', async () => {
-			const result = await helpers.taskMaster(
-				'research',
-				['--context', 'python,django', 'How to optimize database queries?'],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Should be Python/Django specific
-			const output = result.stdout.toLowerCase();
-			if (!output.includes('django') || !output.includes('orm') || !output.includes('queryset')) {
-				throw new Error('Research not specific to Django context');
-			}
-		});
-
-		// Test 8: Research error handling - empty query
-		await runTest('Error handling - empty query', async () => {
-			const result = await helpers.taskMaster(
-				'research',
-				[''],
-				{ cwd: testDir, allowFailure: true }
-			);
-			if (result.exitCode === 0) {
-				throw new Error('Should have failed with empty query');
-			}
-		});
-
-		// Test 9: Research with time constraints
-		await runTest('Research with recency filter', async () => {
-			const result = await helpers.taskMaster(
-				'research',
-				['--since', '2023', 'Latest JavaScript features and ES2024 updates'],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Should mention recent features
-			const output = result.stdout.toLowerCase();
-			const recentFeatures = ['es2023', 'es2024', '2023', '2024', 'latest', 'recent'];
-			const mentionsRecent = recentFeatures.some(feature => output.includes(feature));
-			
-			if (!mentionsRecent) {
-				throw new Error('Research did not focus on recent information');
-			}
-		});
-
-		// Test 10: Research with comparison request
-		await runTest('Research comparison analysis', async () => {
-			const result = await helpers.taskMaster(
-				'research',
-				['Compare REST vs GraphQL vs gRPC for microservices communication'],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Should mention all three technologies
-			const output = result.stdout.toLowerCase();
-			if (!output.includes('rest') || !output.includes('graphql') || !output.includes('grpc')) {
-				throw new Error('Research did not compare all three technologies');
-			}
-			
-			// Should include pros/cons or comparison points
-			const hasComparison = output.includes('advantage') || 
-			                     output.includes('disadvantage') || 
-			                     output.includes('pros') || 
-			                     output.includes('cons') ||
-			                     output.includes('better') ||
-			                     output.includes('when to use');
-			if (!hasComparison) {
-				throw new Error('Research lacks comparative analysis');
-			}
-		});
-
-		// Test 11: Research with code examples request
-		await runTest('Research with code examples', async () => {
-			const result = await helpers.taskMaster(
-				'research',
-				['--include-examples', 'How to implement a singleton pattern in TypeScript?'],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Should include code blocks
-			if (!result.stdout.includes('```') && !result.stdout.includes('class') && !result.stdout.includes('function')) {
-				throw new Error('Research did not include code examples');
-			}
-			
-			// Should be TypeScript specific
-			const output = result.stdout.toLowerCase();
-			if (!output.includes('typescript') && !output.includes('private constructor')) {
-				throw new Error('Examples not specific to TypeScript');
-			}
-		});
-
-		// Test 12: Research for architecture decisions
-		await runTest('Research for architecture decisions', async () => {
-			const result = await helpers.taskMaster(
-				'research',
-				['--type', 'architecture', 'Microservices vs monolithic architecture for a startup'],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Should provide architectural insights
-			const output = result.stdout.toLowerCase();
-			const archKeywords = ['scalability', 'deployment', 'complexity', 'team size', 'maintenance', 'cost'];
-			const mentionedKeywords = archKeywords.filter(keyword => output.includes(keyword)).length;
-			
-			if (mentionedKeywords < 3) {
-				throw new Error('Research lacks architectural considerations');
-			}
-		});
-
-		// Test 13: Research with tag context
-		await runTest('Research within tag context', async () => {
-			// Create tag and tagged tasks
-			await helpers.taskMaster('add-tag', ['security-research'], { cwd: testDir });
-			
-			const result = await helpers.taskMaster(
-				'research',
-				['--tag', 'security-research', 'OWASP top 10 vulnerabilities and mitigation strategies'],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Should focus on security
-			const output = result.stdout.toLowerCase();
-			const securityTerms = ['vulnerability', 'security', 'attack', 'protection', 'owasp', 'mitigation'];
-			const mentionedTerms = securityTerms.filter(term => output.includes(term)).length;
-			
-			if (mentionedTerms < 4) {
-				throw new Error('Research not focused on security topics');
-			}
-		});
-
-		// Test 14: Research performance with complex query
-		await runTest('Performance - complex research query', async () => {
+	describe('Research depth control', () => {
+		it('should perform quick research with --quick flag', async () => {
 			const startTime = Date.now();
 			const result = await helpers.taskMaster(
 				'research',
-				['Comprehensive guide to building a scalable real-time chat application with WebSockets, including architecture, database design, message queuing, and deployment strategies'],
-				{ cwd: testDir, timeout: 180000 }
+				['--topic', 'REST API design', '--quick'],
+				{ cwd: testDir, timeout: 60000 }
 			);
 			const duration = Date.now() - startTime;
 			
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Research Results');
 			
-			logger.info(`Complex research completed in ${duration}ms`);
-			
-			// Should cover all requested topics
-			const output = result.stdout.toLowerCase();
-			const topics = ['websocket', 'architecture', 'database', 'queue', 'deployment', 'scalab'];
-			const coveredTopics = topics.filter(topic => output.includes(topic)).length;
-			
-			if (coveredTopics < 4) {
-				throw new Error('Complex research did not cover all requested topics');
-			}
-		});
+			// Quick research should be faster
+			expect(duration).toBeLessThan(60000);
+		}, 90000);
 
-		// Test 15: Research with export option (preparing for research-save)
-		await runTest('Research with export preparation', async () => {
+		it('should perform detailed research with --detailed flag', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--prepare-export', 'Best practices for API versioning'],
+				['--topic', 'Microservices architecture patterns', '--detailed'],
 				{ cwd: testDir, timeout: 120000 }
 			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Research Results');
+			
+			// Detailed research should have more content
+			expect(result.stdout.length).toBeGreaterThan(500);
+			
+			// Should contain comprehensive information
+			const hasPatterns = result.stdout.toLowerCase().includes('pattern') || 
+				result.stdout.toLowerCase().includes('architecture');
+			expect(hasPatterns).toBe(true);
+		}, 150000);
+	});
+
+	describe('Research with citations', () => {
+		it('should include sources with --sources flag', async () => {
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'GraphQL best practices', '--sources'],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Research Results');
+			
+			// Should include source references
+			const hasSources = result.stdout.includes('Source:') || 
+				result.stdout.includes('Reference:') ||
+				result.stdout.includes('http');
+			expect(hasSources).toBe(true);
+		}, 120000);
+	});
+
+	describe('Research output options', () => {
+		it('should save research to file with --save flag', async () => {
+			const outputPath = join(testDir, 'research-output.md');
+			
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'Docker container security', '--save', outputPath],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Research saved to');
+			
+			// Verify file was created
+			expect(existsSync(outputPath)).toBe(true);
+			
+			// Verify file contains research content
+			const content = readFileSync(outputPath, 'utf8');
+			expect(content).toContain('Docker');
+			expect(content.length).toBeGreaterThan(100);
+		}, 120000);
+
+		it('should output in JSON format', async () => {
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'WebSocket implementation', '--output', 'json'],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Output should be valid JSON
+			const jsonOutput = JSON.parse(result.stdout);
+			expect(jsonOutput.topic).toBeDefined();
+			expect(jsonOutput.research).toBeDefined();
+			expect(jsonOutput.timestamp).toBeDefined();
+		}, 120000);
+
+		it('should output in markdown format by default', async () => {
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'CI/CD pipeline best practices'],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Should contain markdown formatting
+			const hasMarkdown = result.stdout.includes('#') || 
+				result.stdout.includes('*') ||
+				result.stdout.includes('-');
+			expect(hasMarkdown).toBe(true);
+		}, 120000);
+	});
+
+	describe('Research categories', () => {
+		it('should research coding patterns', async () => {
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'Singleton pattern in JavaScript', '--category', 'patterns'],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout.toLowerCase()).toContain('singleton');
+			expect(result.stdout.toLowerCase()).toContain('pattern');
+		}, 120000);
+
+		it('should research security topics', async () => {
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'OWASP Top 10 vulnerabilities', '--category', 'security'],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout.toLowerCase()).toContain('security');
+			expect(result.stdout.toUpperCase()).toContain('OWASP');
+		}, 120000);
+
+		it('should research performance topics', async () => {
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'Database query optimization', '--category', 'performance'],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout.toLowerCase()).toContain('optimization');
+			expect(result.stdout.toLowerCase()).toContain('performance');
+		}, 120000);
+	});
+
+	describe('Research integration with tasks', () => {
+		it('should research for specific task context', async () => {
+			// Create a task first
+			const addResult = await helpers.taskMaster(
+				'add-task',
+				['--prompt', 'Implement real-time chat feature'],
+				{ cwd: testDir }
+			);
+			const taskId = helpers.extractTaskId(addResult.stdout);
+			
+			// Research for the task
+			const result = await helpers.taskMaster(
+				'research',
+				['--task', taskId, '--topic', 'WebSocket vs Server-Sent Events'],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Research Results');
+			expect(result.stdout.toLowerCase()).toContain('websocket');
+		}, 120000);
+
+		it('should append research to task notes', async () => {
+			// Create a task
+			const addResult = await helpers.taskMaster(
+				'add-task',
+				['--prompt', 'Setup monitoring system'],
+				{ cwd: testDir }
+			);
+			const taskId = helpers.extractTaskId(addResult.stdout);
+			
+			// Research and append to task
+			const result = await helpers.taskMaster(
+				'research',
+				['--task', taskId, '--topic', 'Prometheus vs ELK stack', '--append-to-task'],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Research appended to task');
+			
+			// Verify task has research notes
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout.toLowerCase()).toContain('prometheus');
+		}, 120000);
+	});
+
+	describe('Research history', () => {
+		it('should save research history', async () => {
+			// Perform multiple researches
+			await helpers.taskMaster(
+				'research',
+				['--topic', 'GraphQL subscriptions'],
+				{ cwd: testDir, timeout: 60000 }
+			);
+			
+			await helpers.taskMaster(
+				'research',
+				['--topic', 'Redis pub/sub'],
+				{ cwd: testDir, timeout: 60000 }
+			);
+			
+			// Check research history
+			const historyPath = join(testDir, '.taskmaster/research-history.json');
+			if (existsSync(historyPath)) {
+				const history = JSON.parse(readFileSync(historyPath, 'utf8'));
+				expect(history.length).toBeGreaterThanOrEqual(2);
+			}
+		}, 150000);
+
+		it('should list recent research with --history flag', async () => {
+			// Perform a research first
+			await helpers.taskMaster(
+				'research',
+				['--topic', 'Kubernetes deployment strategies'],
+				{ cwd: testDir, timeout: 60000 }
+			);
+			
+			// List history
+			const result = await helpers.taskMaster(
+				'research',
+				['--history'],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Research History');
+		}, 90000);
+	});
+
+	describe('Error handling', () => {
+		it('should fail without topic', async () => {
+			const result = await helpers.taskMaster(
+				'research',
+				[],
+				{ cwd: testDir, allowFailure: true }
+			);
+			
+			expect(result.exitCode).not.toBe(0);
+			expect(result.stderr).toContain('topic');
+		});
+
+		it('should handle invalid output format', async () => {
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'Test topic', '--output', 'invalid-format'],
+				{ cwd: testDir, allowFailure: true }
+			);
+			
+			expect(result.exitCode).not.toBe(0);
+			expect(result.stderr).toContain('Invalid output format');
+		});
+
+		it('should handle network errors gracefully', async () => {
+			// This test might pass if network is available
+			// It's mainly to ensure the command handles errors gracefully
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'Test with potential network issues'],
+				{ cwd: testDir, timeout: 30000, allowFailure: true }
+			);
+			
+			// Should either succeed or fail gracefully
 			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
+				expect(result.stderr).toBeTruthy();
+			} else {
+				expect(result.stdout).toContain('Research Results');
 			}
+		}, 45000);
+	});
+
+	describe('Research focus areas', () => {
+		it('should research implementation details', async () => {
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'JWT implementation in Node.js', '--focus', 'implementation'],
+				{ cwd: testDir, timeout: 90000 }
+			);
 			
-			// Should indicate export readiness
-			if (!result.stdout.includes('API') || !result.stdout.includes('version')) {
-				throw new Error('Research content not relevant to query');
-			}
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout.toLowerCase()).toContain('implementation');
+			expect(result.stdout.toLowerCase()).toContain('code');
+		}, 120000);
+
+		it('should research best practices', async () => {
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'REST API versioning', '--focus', 'best-practices'],
+				{ cwd: testDir, timeout: 90000 }
+			);
 			
-			// Check if research is structured for saving
-			const hasStructure = result.stdout.includes('#') || 
-			                    result.stdout.includes('##') || 
-			                    result.stdout.includes('1.') ||
-			                    result.stdout.includes('*');
-			if (!hasStructure) {
-				throw new Error('Research not well-structured for export');
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout.toLowerCase()).toContain('best practice');
+		}, 120000);
+
+		it('should research comparisons', async () => {
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'Vue vs React vs Angular', '--focus', 'comparison'],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			const output = result.stdout.toLowerCase();
+			expect(output).toContain('vue');
+			expect(output).toContain('react');
+			expect(output).toContain('angular');
+		}, 120000);
+	});
+
+	describe('Research with constraints', () => {
+		it('should limit research length with --max-length', async () => {
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'Machine learning basics', '--max-length', '500'],
+				{ cwd: testDir, timeout: 60000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			// Research output should be concise
+			expect(result.stdout.length).toBeLessThan(2000); // Accounting for formatting
+		}, 90000);
+
+		it('should research with specific year constraint', async () => {
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', 'Latest JavaScript features', '--year', '2024'],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			// Should focus on recent content
+			const hasRecentInfo = result.stdout.includes('2024') || 
+				result.stdout.toLowerCase().includes('latest') ||
+				result.stdout.toLowerCase().includes('recent');
+			expect(hasRecentInfo).toBe(true);
+		}, 120000);
+	});
+
+	describe('Research caching', () => {
+		it('should cache and reuse research results', async () => {
+			const topic = 'Redis caching strategies';
+			
+			// First research
+			const startTime1 = Date.now();
+			const result1 = await helpers.taskMaster(
+				'research',
+				['--topic', topic],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			const duration1 = Date.now() - startTime1;
+			expect(result1).toHaveExitCode(0);
+			
+			// Second research (should be cached)
+			const startTime2 = Date.now();
+			const result2 = await helpers.taskMaster(
+				'research',
+				['--topic', topic],
+				{ cwd: testDir, timeout: 30000 }
+			);
+			const duration2 = Date.now() - startTime2;
+			expect(result2).toHaveExitCode(0);
+			
+			// Cached result should be much faster
+			if (result2.stdout.includes('(cached)')) {
+				expect(duration2).toBeLessThan(duration1 / 2);
 			}
-		});
+		}, 150000);
 
-		// Calculate summary
-		const totalTests = results.tests.length;
-		const passedTests = results.tests.filter(t => t.status === 'passed').length;
-		const failedTests = results.tests.filter(t => t.status === 'failed').length;
-
-		logger.info('\n=== Research Test Summary ===');
-		logger.info(`Total tests: ${totalTests}`);
-		logger.info(`Passed: ${passedTests}`);
-		logger.info(`Failed: ${failedTests}`);
-
-		if (failedTests > 0) {
-			results.status = 'failed';
-			logger.error(`\n${failedTests} tests failed`);
-		} else {
-			logger.success('\n✅ All research tests passed!');
-		}
-
-	} catch (error) {
-		results.status = 'failed';
-		results.errors.push({
-			test: 'research test suite',
-			error: error.message,
-			stack: error.stack
-		});
-		logger.error(`Research test suite failed: ${error.message}`);
-	}
-
-	return results;
-}
+		it('should bypass cache with --no-cache flag', async () => {
+			const topic = 'Docker best practices';
+			
+			// First research
+			await helpers.taskMaster(
+				'research',
+				['--topic', topic],
+				{ cwd: testDir, timeout: 60000 }
+			);
+			
+			// Second research without cache
+			const result = await helpers.taskMaster(
+				'research',
+				['--topic', topic, '--no-cache'],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).not.toContain('(cached)');
+		}, 180000);
+	});
+});

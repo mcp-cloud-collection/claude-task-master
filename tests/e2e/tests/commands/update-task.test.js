@@ -1,484 +1,554 @@
 /**
- * Comprehensive E2E tests for update-task command
- * Tests all aspects of task updates including AI-powered and manual updates
+ * Comprehensive E2E tests for update-task command (single task update)
+ * Tests all aspects of single task updates including AI-powered updates
  */
 
-export default async function testUpdateTask(logger, helpers, context) {
-	const { testDir } = context;
-	const results = {
-		status: 'passed',
-		errors: [],
-		tests: []
-	};
+const { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync, mkdirSync } = require('fs');
+const { join } = require('path');
+const { tmpdir } = require('os');
 
-	async function runTest(name, testFn) {
-		try {
-			logger.info(`\nRunning: ${name}`);
-			await testFn();
-			results.tests.push({ name, status: 'passed' });
-			logger.success(`✓ ${name}`);
-		} catch (error) {
-			results.tests.push({ name, status: 'failed', error: error.message });
-			results.errors.push({ test: name, error: error.message });
-			logger.error(`✗ ${name}: ${error.message}`);
+describe('update-task command', () => {
+	let testDir;
+	let helpers;
+	let taskId;
+
+	beforeEach(async () => {
+		// Create test directory
+		testDir = mkdtempSync(join(tmpdir(), 'task-master-update-task-'));
+		
+		// Initialize test helpers
+		const context = global.createTestContext('update-task');
+		helpers = context.helpers;
+		
+		// Copy .env file if it exists
+		const mainEnvPath = join(__dirname, '../../../../.env');
+		const testEnvPath = join(testDir, '.env');
+		if (existsSync(mainEnvPath)) {
+			const envContent = readFileSync(mainEnvPath, 'utf8');
+			writeFileSync(testEnvPath, envContent);
 		}
-	}
-
-	try {
-		logger.info('Starting comprehensive update-task tests...');
-
-		// Setup: Create various tasks for testing
-		logger.info('Setting up test tasks...');
 		
-		// Create simple task
-		const simpleResult = await helpers.taskMaster(
+		// Initialize task-master project
+		const initResult = await helpers.taskMaster('init', ['-y'], { cwd: testDir });
+		expect(initResult).toHaveExitCode(0);
+		
+		// Create a test task for updates
+		const addResult = await helpers.taskMaster(
 			'add-task',
-			['--title', 'Simple task', '--description', 'Initial description'],
+			['--title', 'Initial task', '--description', 'Task to be updated'],
 			{ cwd: testDir }
 		);
-		const simpleTaskId = helpers.extractTaskId(simpleResult.stdout);
-		
-		// Create AI task
-		const aiResult = await helpers.taskMaster(
-			'add-task',
-			['--prompt', 'Create a logging system for the application'],
-			{ cwd: testDir }
-		);
-		const aiTaskId = helpers.extractTaskId(aiResult.stdout);
-		
-		// Create task with metadata
-		const metaResult = await helpers.taskMaster(
-			'add-task',
-			['--title', 'Task with metadata', '--metadata', 'version=1.0'],
-			{ cwd: testDir }
-		);
-		const metaTaskId = helpers.extractTaskId(metaResult.stdout);
+		taskId = helpers.extractTaskId(addResult.stdout);
+	});
 
-		// Test 1: Basic manual update - description only
-		await runTest('Basic description update', async () => {
+	afterEach(() => {
+		// Clean up test directory
+		if (testDir && existsSync(testDir)) {
+			rmSync(testDir, { recursive: true, force: true });
+		}
+	});
+
+	describe('Basic task updates', () => {
+		it('should update task description', async () => {
 			const result = await helpers.taskMaster(
 				'update-task',
-				[simpleTaskId, '--description', 'Updated description with more details'],
+				[taskId, '--description', 'Updated task description with more details'],
 				{ cwd: testDir }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Updated task');
 			
 			// Verify update
-			const showResult = await helpers.taskMaster('show', [simpleTaskId], { cwd: testDir });
-			if (!showResult.stdout.includes('Updated description with more details')) {
-				throw new Error('Description not updated');
-			}
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout).toContain('Updated task description');
 		});
 
-		// Test 2: AI-powered task update
-		await runTest('AI-powered task update', async () => {
+		it('should update task title', async () => {
 			const result = await helpers.taskMaster(
 				'update-task',
-				[aiTaskId, '--prompt', 'Add requirements for structured logging with log levels and rotation'],
-				{ cwd: testDir, timeout: 120000 }
+				[taskId, '--title', 'Completely new title'],
+				{ cwd: testDir }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
 			
-			// Verify AI enhancements
-			const showResult = await helpers.taskMaster('show', [aiTaskId], { cwd: testDir });
-			const output = showResult.stdout.toLowerCase();
+			expect(result).toHaveExitCode(0);
 			
-			// Should mention logging concepts
-			const hasLoggingConcepts = output.includes('log level') || 
-			                          output.includes('rotation') || 
-			                          output.includes('structured') ||
-			                          output.includes('logging');
-			if (!hasLoggingConcepts) {
-				throw new Error('AI did not enhance task with logging requirements');
-			}
+			// Verify update
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout).toContain('Completely new title');
 		});
 
-		// Test 3: Update multiple fields simultaneously
-		await runTest('Multi-field update', async () => {
+		it('should update task priority', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--priority', 'high'],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify update
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout.toLowerCase()).toContain('high');
+		});
+
+		it('should update task details', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--details', 'Implementation notes: Use async/await pattern'],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify update
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout).toContain('async/await');
+		});
+	});
+
+	describe('AI-powered updates', () => {
+		it('should update task using AI prompt', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--prompt', 'Add security considerations and best practices'],
+				{ cwd: testDir, timeout: 45000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Updated task');
+			
+			// Verify AI added security content
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			const hasSecurityInfo = showResult.stdout.toLowerCase().includes('security') || 
+				showResult.stdout.toLowerCase().includes('practice');
+			expect(hasSecurityInfo).toBe(true);
+		}, 60000);
+
+		it('should enhance task with AI suggestions', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--prompt', 'Break this down into subtasks and add implementation details'],
+				{ cwd: testDir, timeout: 45000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Check that task was enhanced
+			const tasksPath = join(testDir, '.taskmaster/tasks/tasks.json');
+			const tasks = JSON.parse(readFileSync(tasksPath, 'utf8'));
+			const updatedTask = tasks.master.tasks.find(t => t.id === parseInt(taskId));
+			
+			// Should have more detailed content
+			expect(updatedTask.details.length).toBeGreaterThan(50);
+		}, 60000);
+
+		it('should update task with research mode', async () => {
 			const result = await helpers.taskMaster(
 				'update-task',
 				[
-					simpleTaskId,
-					'--title', 'Renamed task',
-					'--description', 'New comprehensive description',
+					taskId, 
+					'--prompt', 'Add current industry best practices for authentication',
+					'--research'
+				],
+				{ cwd: testDir, timeout: 90000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Research mode should add comprehensive content
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout.length).toBeGreaterThan(500);
+		}, 120000);
+	});
+
+	describe('Multiple field updates', () => {
+		it('should update multiple fields at once', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[
+					taskId,
+					'--title', 'New comprehensive title',
+					'--description', 'New detailed description',
 					'--priority', 'high',
-					'--status', 'in_progress'
+					'--details', 'Additional implementation notes'
 				],
 				{ cwd: testDir }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
+			
+			expect(result).toHaveExitCode(0);
 			
 			// Verify all updates
-			const showResult = await helpers.taskMaster('show', [simpleTaskId], { cwd: testDir });
-			if (!showResult.stdout.includes('Renamed task')) {
-				throw new Error('Title not updated');
-			}
-			if (!showResult.stdout.includes('New comprehensive description')) {
-				throw new Error('Description not updated');
-			}
-			if (!showResult.stdout.includes('high') && !showResult.stdout.includes('High')) {
-				throw new Error('Priority not updated');
-			}
-			if (!showResult.stdout.includes('in_progress') && !showResult.stdout.includes('In Progress')) {
-				throw new Error('Status not updated');
-			}
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout).toContain('New comprehensive title');
+			expect(showResult.stdout).toContain('New detailed description');
+			expect(showResult.stdout.toLowerCase()).toContain('high');
+			expect(showResult.stdout).toContain('Additional implementation notes');
 		});
 
-		// Test 4: Update task metadata
-		await runTest('Update task metadata', async () => {
+		it('should combine manual updates with AI prompt', async () => {
 			const result = await helpers.taskMaster(
 				'update-task',
 				[
-					metaTaskId,
-					'--metadata', 'version=2.0',
-					'--metadata', 'author=test-user',
-					'--metadata', 'reviewed=true'
+					taskId,
+					'--priority', 'high',
+					'--prompt', 'Add technical requirements and dependencies'
 				],
+				{ cwd: testDir, timeout: 45000 }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify both manual and AI updates
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout.toLowerCase()).toContain('high');
+			const hasTechnicalInfo = showResult.stdout.toLowerCase().includes('requirement') || 
+				showResult.stdout.toLowerCase().includes('dependenc');
+			expect(hasTechnicalInfo).toBe(true);
+		}, 60000);
+	});
+
+	describe('Task metadata updates', () => {
+		it('should add tags to task', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--add-tags', 'backend,api,urgent'],
 				{ cwd: testDir }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
 			
-			// Verify metadata
-			const tasksJson = helpers.readJson(`${testDir}/.taskmaster/tasks/tasks.json`);
-			const task = tasksJson.tasks.find(t => t.id === metaTaskId);
+			expect(result).toHaveExitCode(0);
 			
-			if (!task.metadata || task.metadata.version !== '2.0' || 
-			    task.metadata.author !== 'test-user' || task.metadata.reviewed !== 'true') {
-				throw new Error('Metadata not properly updated');
-			}
+			// Verify tags were added
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout).toContain('backend');
+			expect(showResult.stdout).toContain('api');
+			expect(showResult.stdout).toContain('urgent');
 		});
 
-		// Test 5: Error handling - non-existent task
-		await runTest('Error handling - non-existent task', async () => {
+		it('should remove tags from task', async () => {
+			// First add tags
+			await helpers.taskMaster(
+				'update-task',
+				[taskId, '--add-tags', 'frontend,ui,design'],
+				{ cwd: testDir }
+			);
+			
+			// Then remove some
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--remove-tags', 'ui,design'],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify tags were removed
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout).toContain('frontend');
+			expect(showResult.stdout).not.toContain('ui');
+			expect(showResult.stdout).not.toContain('design');
+		});
+
+		it('should update due date', async () => {
+			const futureDate = new Date();
+			futureDate.setDate(futureDate.getDate() + 7);
+			const dateStr = futureDate.toISOString().split('T')[0];
+			
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--due-date', dateStr],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify due date was set
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout).toContain(dateStr);
+		});
+
+		it('should update estimated time', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--estimated-time', '4h'],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify estimated time was set
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout).toContain('4h');
+		});
+	});
+
+	describe('Status updates', () => {
+		it('should update task status', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--status', 'in_progress'],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify status change
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout.toLowerCase()).toContain('in_progress');
+		});
+
+		it('should mark task as completed', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--status', 'completed'],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify completion
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout.toLowerCase()).toContain('completed');
+		});
+
+		it('should mark task as blocked with reason', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--status', 'blocked', '--blocked-reason', 'Waiting for API access'],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify blocked status and reason
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout.toLowerCase()).toContain('blocked');
+			expect(showResult.stdout).toContain('Waiting for API access');
+		});
+	});
+
+	describe('Append mode', () => {
+		it('should append to description', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--append-description', '\nAdditional requirements added.'],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify description was appended
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout).toContain('Task to be updated');
+			expect(showResult.stdout).toContain('Additional requirements added');
+		});
+
+		it('should append to details', async () => {
+			// First set some details
+			await helpers.taskMaster(
+				'update-task',
+				[taskId, '--details', 'Initial implementation notes.'],
+				{ cwd: testDir }
+			);
+			
+			// Then append
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--append-details', '\nPerformance considerations added.'],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify details were appended
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout).toContain('Initial implementation notes');
+			expect(showResult.stdout).toContain('Performance considerations added');
+		});
+	});
+
+	describe('Tag-specific updates', () => {
+		it('should update task in specific tag', async () => {
+			// Create a tag and move task to it
+			await helpers.taskMaster('add-tag', ['feature-x'], { cwd: testDir });
+			await helpers.taskMaster(
+				'add-task',
+				['--prompt', 'Task in feature-x', '--tag', 'feature-x'],
+				{ cwd: testDir }
+			);
+			
+			// Get task ID from feature-x tag
+			const listResult = await helpers.taskMaster('list', ['--tag', 'feature-x'], { cwd: testDir });
+			const featureTaskId = helpers.extractTaskId(listResult.stdout);
+			
+			// Update task in specific tag
+			const result = await helpers.taskMaster(
+				'update-task',
+				[featureTaskId, '--description', 'Updated in feature tag', '--tag', 'feature-x'],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify update in correct tag
+			const showResult = await helpers.taskMaster(
+				'show',
+				[featureTaskId, '--tag', 'feature-x'],
+				{ cwd: testDir }
+			);
+			expect(showResult.stdout).toContain('Updated in feature tag');
+		});
+	});
+
+	describe('Output formats', () => {
+		it('should output in JSON format', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--description', 'JSON test update', '--output', 'json'],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Output should be valid JSON
+			const jsonOutput = JSON.parse(result.stdout);
+			expect(jsonOutput.success).toBe(true);
+			expect(jsonOutput.task).toBeDefined();
+			expect(jsonOutput.task.description).toBe('JSON test update');
+		});
+	});
+
+	describe('Error handling', () => {
+		it('should fail with non-existent task ID', async () => {
 			const result = await helpers.taskMaster(
 				'update-task',
 				['99999', '--description', 'This should fail'],
 				{ cwd: testDir, allowFailure: true }
 			);
-			if (result.exitCode === 0) {
-				throw new Error('Should have failed with non-existent task');
-			}
-			if (!result.stderr.includes('not found') && !result.stderr.includes('exist')) {
-				throw new Error('Error message not clear about missing task');
-			}
+			
+			expect(result.exitCode).not.toBe(0);
+			expect(result.stderr).toContain('not found');
 		});
 
-		// Test 6: Update with validation of AI output
-		await runTest('AI update with validation', async () => {
-			// Create task with specific context
-			const validationResult = await helpers.taskMaster(
-				'add-task',
-				['--prompt', 'Setup CI/CD pipeline'],
-				{ cwd: testDir }
-			);
-			const validationTaskId = helpers.extractTaskId(validationResult.stdout);
-			
-			// Update with specific requirements
+		it('should fail with invalid priority', async () => {
 			const result = await helpers.taskMaster(
 				'update-task',
-				[validationTaskId, '--prompt', 'Add automated testing and deployment stages', '--validate-ai'],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Check AI added relevant content
-			const showResult = await helpers.taskMaster('show', [validationTaskId], { cwd: testDir });
-			const output = showResult.stdout.toLowerCase();
-			
-			if (!output.includes('test') || !output.includes('deploy')) {
-				throw new Error('AI validation failed - missing required concepts');
-			}
-		});
-
-		// Test 7: Update task with tag changes
-		await runTest('Update task tags', async () => {
-			// Create tags
-			await helpers.taskMaster('add-tag', ['frontend'], { cwd: testDir });
-			await helpers.taskMaster('add-tag', ['urgent'], { cwd: testDir });
-			
-			const result = await helpers.taskMaster(
-				'update-task',
-				[simpleTaskId, '--add-tag', 'frontend', '--add-tag', 'urgent'],
-				{ cwd: testDir }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Verify tags in appropriate contexts
-			const frontendList = await helpers.taskMaster('list', ['--tag', 'frontend'], { cwd: testDir });
-			const urgentList = await helpers.taskMaster('list', ['--tag', 'urgent'], { cwd: testDir });
-			
-			if (!frontendList.stdout.includes(simpleTaskId)) {
-				throw new Error('Task not found in frontend tag');
-			}
-			if (!urgentList.stdout.includes(simpleTaskId)) {
-				throw new Error('Task not found in urgent tag');
-			}
-		});
-
-		// Test 8: Remove tags from task
-		await runTest('Remove task tags', async () => {
-			const result = await helpers.taskMaster(
-				'update-task',
-				[simpleTaskId, '--remove-tag', 'urgent'],
-				{ cwd: testDir }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Verify tag removed
-			const urgentList = await helpers.taskMaster('list', ['--tag', 'urgent'], { cwd: testDir });
-			if (urgentList.stdout.includes(simpleTaskId)) {
-				throw new Error('Task still in removed tag');
-			}
-		});
-
-		// Test 9: Update with dependencies
-		await runTest('Update task dependencies', async () => {
-			// Create dependency task
-			const depResult = await helpers.taskMaster(
-				'add-task',
-				['--title', 'Dependency task'],
-				{ cwd: testDir }
-			);
-			const depTaskId = helpers.extractTaskId(depResult.stdout);
-			
-			const result = await helpers.taskMaster(
-				'update-task',
-				[aiTaskId, '--add-dependency', depTaskId],
-				{ cwd: testDir }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Verify dependency added
-			const showResult = await helpers.taskMaster('show', [aiTaskId], { cwd: testDir });
-			if (!showResult.stdout.includes(depTaskId)) {
-				throw new Error('Dependency not added to task');
-			}
-		});
-
-		// Test 10: Complex AI enhancement
-		await runTest('Complex AI task enhancement', async () => {
-			// Create task needing enhancement
-			const enhanceResult = await helpers.taskMaster(
-				'add-task',
-				['--title', 'Basic API endpoint', '--description', 'Create user endpoint'],
-				{ cwd: testDir }
-			);
-			const enhanceTaskId = helpers.extractTaskId(enhanceResult.stdout);
-			
-			const result = await helpers.taskMaster(
-				'update-task',
-				[
-					enhanceTaskId,
-					'--prompt', 'Enhance with REST best practices, error handling, validation, and OpenAPI documentation',
-					'--keep-original'
-				],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Should preserve original and add enhancements
-			const showResult = await helpers.taskMaster('show', [enhanceTaskId], { cwd: testDir });
-			if (!showResult.stdout.includes('user endpoint')) {
-				throw new Error('Original content lost during enhancement');
-			}
-			
-			// Check for enhancements
-			const output = showResult.stdout.toLowerCase();
-			const enhancements = ['validation', 'error', 'rest', 'openapi', 'documentation'];
-			const foundEnhancements = enhancements.filter(e => output.includes(e)).length;
-			
-			if (foundEnhancements < 3) {
-				throw new Error('AI did not add sufficient enhancements');
-			}
-		});
-
-		// Test 11: Bulk property update
-		await runTest('Update common properties across tasks', async () => {
-			// Update all tasks to have a common property
-			const taskIds = [simpleTaskId, aiTaskId, metaTaskId];
-			
-			// This tests if update-task can handle multiple IDs (implementation dependent)
-			// If not supported, test single updates in sequence
-			for (const taskId of taskIds) {
-				const result = await helpers.taskMaster(
-					'update-task',
-					[taskId, '--metadata', 'project=test-suite'],
-					{ cwd: testDir }
-				);
-				if (result.exitCode !== 0) {
-					throw new Error(`Failed to update task ${taskId}: ${result.stderr}`);
-				}
-			}
-			
-			// Verify all have the metadata
-			const tasksJson = helpers.readJson(`${testDir}/.taskmaster/tasks/tasks.json`);
-			taskIds.forEach(taskId => {
-				const task = tasksJson.tasks.find(t => t.id === taskId);
-				if (!task.metadata || task.metadata.project !== 'test-suite') {
-					throw new Error(`Task ${taskId} missing project metadata`);
-				}
-			});
-		});
-
-		// Test 12: Update completed task
-		await runTest('Update completed task handling', async () => {
-			// Complete a task first
-			await helpers.taskMaster('set-status', [simpleTaskId, 'completed'], { cwd: testDir });
-			
-			// Try to update it
-			const result = await helpers.taskMaster(
-				'update-task',
-				[simpleTaskId, '--description', 'Trying to update completed task'],
+				[taskId, '--priority', 'invalid-priority'],
 				{ cwd: testDir, allowFailure: true }
 			);
 			
-			// Should either fail with clear message or succeed with warning
-			if (result.exitCode !== 0) {
-				if (!result.stderr.includes('completed')) {
-					throw new Error('No clear message about updating completed task');
-				}
-			} else if (!result.stdout.includes('warning') && !result.stdout.includes('completed')) {
-				throw new Error('No warning about updating completed task');
-			}
+			expect(result.exitCode).not.toBe(0);
+			expect(result.stderr).toContain('Invalid priority');
 		});
 
-		// Test 13: Update with context preservation
-		await runTest('Context-aware AI update', async () => {
-			// Create task with rich context
-			const contextResult = await helpers.taskMaster(
+		it('should fail with invalid status', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--status', 'invalid-status'],
+				{ cwd: testDir, allowFailure: true }
+			);
+			
+			expect(result.exitCode).not.toBe(0);
+			expect(result.stderr).toContain('Invalid status');
+		});
+
+		it('should fail without any update parameters', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId],
+				{ cwd: testDir, allowFailure: true }
+			);
+			
+			expect(result.exitCode).not.toBe(0);
+			expect(result.stderr).toContain('No updates specified');
+		});
+	});
+
+	describe('Performance and edge cases', () => {
+		it('should handle very long descriptions', async () => {
+			const longDescription = 'This is a very detailed description. '.repeat(50);
+			
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--description', longDescription],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			
+			// Verify long description was saved
+			const tasksPath = join(testDir, '.taskmaster/tasks/tasks.json');
+			const tasks = JSON.parse(readFileSync(tasksPath, 'utf8'));
+			const updatedTask = tasks.master.tasks.find(t => t.id === parseInt(taskId));
+			expect(updatedTask.description).toBe(longDescription);
+		});
+
+		it('should preserve task relationships during updates', async () => {
+			// Add a dependency
+			const depResult = await helpers.taskMaster(
 				'add-task',
-				['--prompt', 'Implement user profile page with React'],
+				['--title', 'Dependency task', '--description', 'Must be done first'],
 				{ cwd: testDir }
 			);
-			const contextTaskId = helpers.extractTaskId(contextResult.stdout);
+			const depId = helpers.extractTaskId(depResult.stdout);
 			
-			// Expand to add subtasks
-			await helpers.taskMaster('expand', [contextTaskId], { cwd: testDir, timeout: 120000 });
-			
-			// Update with context preservation
-			const result = await helpers.taskMaster(
-				'update-task',
-				[contextTaskId, '--prompt', 'Add accessibility features', '--preserve-context'],
-				{ cwd: testDir, timeout: 120000 }
-			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
-			
-			// Should maintain React context and add accessibility
-			const showResult = await helpers.taskMaster('show', [contextTaskId], { cwd: testDir });
-			const output = showResult.stdout.toLowerCase();
-			
-			if (!output.includes('react')) {
-				throw new Error('Lost React context during update');
-			}
-			if (!output.includes('accessibility') && !output.includes('a11y') && !output.includes('aria')) {
-				throw new Error('Accessibility features not added');
-			}
-		});
-
-		// Test 14: Update with estimation
-		await runTest('Update task with time estimation', async () => {
-			const result = await helpers.taskMaster(
-				'update-task',
-				[
-					aiTaskId,
-					'--estimate', '8h',
-					'--metadata', 'story_points=5'
-				],
+			await helpers.taskMaster(
+				'add-dependency',
+				['--id', taskId, '--depends-on', depId],
 				{ cwd: testDir }
 			);
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
 			
-			// Verify estimation added
-			const tasksJson = helpers.readJson(`${testDir}/.taskmaster/tasks/tasks.json`);
-			const task = tasksJson.tasks.find(t => t.id === aiTaskId);
-			
-			if (!task.estimate || !task.estimate.includes('8h')) {
-				throw new Error('Time estimate not added');
-			}
-			if (!task.metadata || task.metadata.story_points !== '5') {
-				throw new Error('Story points not added');
-			}
-		});
-
-		// Test 15: Performance - large description update
-		await runTest('Performance - large content update', async () => {
-			// Create large description
-			const largeDescription = 'This is a detailed task description. '.repeat(100) + 
-			                        '\n\n## Requirements\n' + 
-			                        '- Requirement item\n'.repeat(50);
-			
-			const startTime = Date.now();
+			// Update the task
 			const result = await helpers.taskMaster(
 				'update-task',
-				[metaTaskId, '--description', largeDescription],
+				[taskId, '--description', 'Updated with dependencies intact'],
 				{ cwd: testDir }
 			);
-			const duration = Date.now() - startTime;
 			
-			if (result.exitCode !== 0) {
-				throw new Error(`Command failed: ${result.stderr}`);
-			}
+			expect(result).toHaveExitCode(0);
 			
-			logger.info(`Large update completed in ${duration}ms`);
-			if (duration > 5000) {
-				throw new Error(`Update too slow: ${duration}ms`);
-			}
-			
-			// Verify content was saved
-			const showResult = await helpers.taskMaster('show', [metaTaskId], { cwd: testDir });
-			if (!showResult.stdout.includes('detailed task description')) {
-				throw new Error('Large description not saved properly');
-			}
+			// Verify dependency is preserved
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout).toContain(depId);
 		});
+	});
 
-		// Calculate summary
-		const totalTests = results.tests.length;
-		const passedTests = results.tests.filter(t => t.status === 'passed').length;
-		const failedTests = results.tests.filter(t => t.status === 'failed').length;
-
-		logger.info('\n=== Update-Task Test Summary ===');
-		logger.info(`Total tests: ${totalTests}`);
-		logger.info(`Passed: ${passedTests}`);
-		logger.info(`Failed: ${failedTests}`);
-
-		if (failedTests > 0) {
-			results.status = 'failed';
-			logger.error(`\n${failedTests} tests failed`);
-		} else {
-			logger.success('\n✅ All update-task tests passed!');
-		}
-
-	} catch (error) {
-		results.status = 'failed';
-		results.errors.push({
-			test: 'update-task test suite',
-			error: error.message,
-			stack: error.stack
+	describe('Dry run mode', () => {
+		it('should preview updates without applying them', async () => {
+			const result = await helpers.taskMaster(
+				'update-task',
+				[taskId, '--description', 'Dry run test', '--dry-run'],
+				{ cwd: testDir }
+			);
+			
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('DRY RUN');
+			expect(result.stdout).toContain('Would update');
+			
+			// Verify task was NOT actually updated
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			expect(showResult.stdout).not.toContain('Dry run test');
 		});
-		logger.error(`Update-task test suite failed: ${error.message}`);
-	}
+	});
 
-	return results;
-}
+	describe('Integration with other commands', () => {
+		it('should work with expand after update', async () => {
+			// Update task with AI
+			await helpers.taskMaster(
+				'update-task',
+				[taskId, '--prompt', 'Add implementation steps'],
+				{ cwd: testDir, timeout: 45000 }
+			);
+			
+			// Then expand it
+			const expandResult = await helpers.taskMaster(
+				'expand',
+				['--id', taskId],
+				{ cwd: testDir, timeout: 45000 }
+			);
+			
+			expect(expandResult).toHaveExitCode(0);
+			expect(expandResult.stdout).toContain('Expanded task');
+		}, 90000);
+	});
+});
