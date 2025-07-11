@@ -30,7 +30,38 @@ export default {
 	],
 	coverageDirectory: '<rootDir>/coverage-e2e',
 	// Custom reporters for better E2E test output
-	reporters: ['default'],
+	reporters: [
+		'default',
+		[
+			'jest-html-reporter',
+			{
+				pageTitle: 'Task Master E2E Test Report',
+				outputPath: '<rootDir>/test-results/e2e-test-report.html',
+				includeFailureMsg: true,
+				includeConsoleLog: true,
+				dateFormat: 'yyyy-mm-dd HH:MM:ss',
+				theme: 'darkTheme',
+				sort: 'status',
+				executionTimeWarningThreshold: 5,
+				customCss: '.test-result { padding: 10px; }',
+				collapseSuitesByDefault: false
+			}
+		],
+		[
+			'jest-junit',
+			{
+				outputDirectory: '<rootDir>/test-results',
+				outputName: 'e2e-junit.xml',
+				classNameTemplate: '{classname} - {title}',
+				titleTemplate: '{classname} - {title}',
+				ancestorSeparator: ' › ',
+				suiteNameTemplate: '{filepath}',
+				includeConsoleOutput: true,
+				includeShortConsoleOutput: true,
+				reportTestSuiteErrors: true
+			}
+		]
+	],
 	// Environment variables for E2E tests
 	testEnvironmentOptions: {
 		env: {
