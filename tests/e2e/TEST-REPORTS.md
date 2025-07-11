@@ -1,30 +1,40 @@
 # E2E Test Reports
 
-Task Master's E2E tests now generate comprehensive test reports similar to Playwright's reporting capabilities.
+Task Master's E2E tests now generate comprehensive test reports using Jest Stare, providing an interactive and visually appealing test report similar to Playwright's reporting capabilities.
 
 ## Test Report Formats
 
 When you run `npm run test:e2e:jest`, the following reports are generated:
 
-### 1. HTML Report
-- **Location**: `test-results/e2e-test-report.html`
+### 1. Jest Stare HTML Report
+- **Location**: `test-results/index.html`
 - **Features**:
-  - Beautiful dark theme UI
-  - Test execution timeline
-  - Detailed failure messages
+  - Interactive dashboard with charts and graphs
+  - Test execution timeline and performance metrics
+  - Detailed failure messages with stack traces
   - Console output for each test
+  - Search and filter capabilities
+  - Pass/Fail/Skip statistics with visual charts
+  - Test duration analysis
   - Collapsible test suites
-  - Execution time warnings
-  - Sort by status (failed tests first)
+  - Coverage link integration
+  - Summary statistics
 
-### 2. JUnit XML Report
+### 2. JSON Results
+- **Location**: `test-results/jest-results.json`
+- **Use Cases**:
+  - Programmatic access to test results
+  - Custom reporting tools
+  - Test result analysis
+
+### 3. JUnit XML Report
 - **Location**: `test-results/e2e-junit.xml`
 - **Use Cases**:
   - CI/CD integration
   - Test result parsing
   - Historical tracking
 
-### 3. Console Output
+### 4. Console Output
 - Standard Jest terminal output with verbose mode enabled
 
 ## Running Tests with Reports

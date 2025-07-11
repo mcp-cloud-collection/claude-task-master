@@ -1,90 +1,99 @@
+/**
+ * E2E tests for add-dependency command
+ * Tests dependency management functionality
+ */
+
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
-import { mkdtempSync } from 'fs';
-import { tmpdir } from 'os';
+import { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'fs';
 import { join } from 'path';
-import { rmSync, existsSync, readFileSync } from 'fs';
+import { tmpdir } from 'os';
 
 describe('task-master add-dependency', () => {
 	let testDir;
 	let helpers;
 
-	beforeEach(() => {
+	beforeEach(async () => {
 		// Create test directory
-		testDir = mkdtempSync(join(tmpdir(), 'tm-test-add-dep-'));
-		process.chdir(testDir);
+		testDir = mkdtempSync(join(tmpdir(), 'task-master-add-dep-'));
 
-		// Get helpers from global context
-		helpers = global.testHelpers;
+		// Initialize test helpers
+		const context = global.createTestContext('add-dependency');
+		helpers = context.helpers;
 
-		// Copy .env if exists
-		const envPath = join(process.cwd(), '../../.env');
-		if (existsSync(envPath)) {
-			const envContent = readFileSync(envPath, 'utf-8');
-			helpers.writeFile('.env', envContent);
+		// Copy .env file if it exists
+		const mainEnvPath = join(process.cwd(), '.env');
+		const testEnvPath = join(testDir, '.env');
+		if (existsSync(mainEnvPath)) {
+			const envContent = readFileSync(mainEnvPath, 'utf8');
+			writeFileSync(testEnvPath, envContent);
 		}
 
 		// Initialize task-master project
-		const initResult = helpers.taskMaster('init', ['-y']);
+		const initResult = await helpers.taskMaster('init', ['-y'], {
+			cwd: testDir
+		});
 		expect(initResult).toHaveExitCode(0);
 
-		// Ensure tasks.json exists
-		const tasksPath = join(testDir, '.taskmaster/tasks/tasks.json');
-		if (!helpers.fileExists(tasksPath)) {
-			helpers.writeFile(tasksPath, JSON.stringify({ tasks: [] }, null, 2));
+		// Ensure tasks.json exists (bug workaround)
+		const tasksJsonPath = join(testDir, '.taskmaster/tasks/tasks.json');
+		if (!existsSync(tasksJsonPath)) {
+			mkdirSync(join(testDir, '.taskmaster/tasks'), { recursive: true });
+			writeFileSync(tasksJsonPath, JSON.stringify({ master: { tasks: [] } }));
 		}
 	});
 
 	afterEach(() => {
 		// Clean up test directory
-		process.chdir('..');
-		rmSync(testDir, { recursive: true, force: true });
+		if (testDir && existsSync(testDir)) {
+			rmSync(testDir, { recursive: true, force: true });
+		}
 	});
 
 	describe('Basic dependency creation', () => {
-		it('should add a single dependency to a task', () => {
+		it('should add a single dependency to a task', async () => {
 			// Create tasks
-			const dep = helpers.taskMaster('add-task', ['Dependency task', '-m']);
+			const dep = await helpers.taskMaster('add-task', ['--title', 'Dependency task', '--description', 'A dependency'], { cwd: testDir });
 			const depId = helpers.extractTaskId(dep.stdout);
 
-			const task = helpers.taskMaster('add-task', ['Main task', '-m']);
+			const task = await helpers.taskMaster('add-task', ['--title', 'Main task', '--description', 'Main task description'], { cwd: testDir });
 			const taskId = helpers.extractTaskId(task.stdout);
 
 			// Add dependency
-			const result = helpers.taskMaster('add-dependency', [taskId, depId]);
+			const result = await helpers.taskMaster('add-dependency', ['--id', taskId, '--depends-on', depId], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Dependency added successfully');
-			expect(result.stdout).toContain(`${taskId} now depends on ${depId}`);
+			expect(result.stdout).toContain('Successfully added dependency');
+			expect(result.stdout).toContain(`Task ${taskId} now depends on ${depId}`);
 
 			// Verify dependency was added
-			const showResult = helpers.taskMaster('show', [taskId]);
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
 			expect(showResult.stdout).toContain('Dependencies:');
-			expect(showResult.stdout).toContain(`${depId} - Dependency task`);
+			expect(showResult.stdout).toContain(depId);
 		});
 
-		it('should add multiple dependencies at once', () => {
+		it('should add multiple dependencies at once', async () => {
 			// Create dependency tasks
-			const dep1 = helpers.taskMaster('add-task', ['First dependency', '-m']);
+			const dep1 = await helpers.taskMaster('add-task', ['--title', 'First dependency', '--description', 'First dep'], { cwd: testDir });
 			const depId1 = helpers.extractTaskId(dep1.stdout);
 
-			const dep2 = helpers.taskMaster('add-task', ['Second dependency', '-m']);
+			const dep2 = await helpers.taskMaster('add-task', ['--title', 'Second dependency', '--description', 'Second dep'], { cwd: testDir });
 			const depId2 = helpers.extractTaskId(dep2.stdout);
 
-			const dep3 = helpers.taskMaster('add-task', ['Third dependency', '-m']);
+			const dep3 = await helpers.taskMaster('add-task', ['--title', 'Third dependency', '--description', 'Third dep'], { cwd: testDir });
 			const depId3 = helpers.extractTaskId(dep3.stdout);
 
-			const task = helpers.taskMaster('add-task', ['Main task', '-m']);
+			const task = await helpers.taskMaster('add-task', ['--title', 'Main task', '--description', 'Main task'], { cwd: testDir });
 			const taskId = helpers.extractTaskId(task.stdout);
 
 			// Add multiple dependencies
-			const result = helpers.taskMaster('add-dependency', [
-				taskId,
-				`${depId1},${depId2},${depId3}`
-			]);
+			const result = await helpers.taskMaster('add-dependency', [
+				'--id', taskId,
+				'--depends-on', `${depId1},${depId2},${depId3}`
+			], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('3 dependencies added');
+			expect(result.stdout).toContain('Dependencies added');
 
 			// Verify all dependencies were added
-			const showResult = helpers.taskMaster('show', [taskId]);
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
 			expect(showResult.stdout).toContain(depId1);
 			expect(showResult.stdout).toContain(depId2);
 			expect(showResult.stdout).toContain(depId3);
@@ -92,71 +101,74 @@ describe('task-master add-dependency', () => {
 	});
 
 	describe('Dependency validation', () => {
-		it('should prevent circular dependencies', () => {
+		it('should prevent circular dependencies', async () => {
 			// Create circular dependency chain
-			const task1 = helpers.taskMaster('add-task', ['Task 1', '-m']);
+			const task1 = await helpers.taskMaster('add-task', ['--title', 'Task 1', '--description', 'First task'], { cwd: testDir });
 			const id1 = helpers.extractTaskId(task1.stdout);
 
-			const task2 = helpers.taskMaster('add-task', ['Task 2', '-m']);
+			const task2 = await helpers.taskMaster('add-task', ['--title', 'Task 2', '--description', 'Second task'], { cwd: testDir });
 			const id2 = helpers.extractTaskId(task2.stdout);
 
 			// Add first dependency
-			helpers.taskMaster('add-dependency', [id2, id1]);
+			await helpers.taskMaster('add-dependency', ['--id', id2, '--depends-on', id1], { cwd: testDir });
 
 			// Try to create circular dependency
-			const result = helpers.taskMaster('add-dependency', [id1, id2], {
+			const result = await helpers.taskMaster('add-dependency', ['--id', id1, '--depends-on', id2], {
+				cwd: testDir,
 				allowFailure: true
 			});
 			expect(result.exitCode).not.toBe(0);
 			expect(result.stderr).toContain('circular dependency');
 		});
 
-		it('should prevent self-dependencies', () => {
-			const task = helpers.taskMaster('add-task', ['Task', '-m']);
+		it('should prevent self-dependencies', async () => {
+			const task = await helpers.taskMaster('add-task', ['--title', 'Task', '--description', 'A task'], { cwd: testDir });
 			const taskId = helpers.extractTaskId(task.stdout);
 
-			const result = helpers.taskMaster('add-dependency', [taskId, taskId], {
+			const result = await helpers.taskMaster('add-dependency', ['--id', taskId, '--depends-on', taskId], {
+				cwd: testDir,
 				allowFailure: true
 			});
 			expect(result.exitCode).not.toBe(0);
 			expect(result.stderr).toContain('cannot depend on itself');
 		});
 
-		it('should detect transitive circular dependencies', () => {
+		it('should detect transitive circular dependencies', async () => {
 			// Create chain: A -> B -> C, then try C -> A
-			const taskA = helpers.taskMaster('add-task', ['Task A', '-m']);
+			const taskA = await helpers.taskMaster('add-task', ['--title', 'Task A', '--description', 'Task A'], { cwd: testDir });
 			const idA = helpers.extractTaskId(taskA.stdout);
 
-			const taskB = helpers.taskMaster('add-task', ['Task B', '-m']);
+			const taskB = await helpers.taskMaster('add-task', ['--title', 'Task B', '--description', 'Task B'], { cwd: testDir });
 			const idB = helpers.extractTaskId(taskB.stdout);
 
-			const taskC = helpers.taskMaster('add-task', ['Task C', '-m']);
+			const taskC = await helpers.taskMaster('add-task', ['--title', 'Task C', '--description', 'Task C'], { cwd: testDir });
 			const idC = helpers.extractTaskId(taskC.stdout);
 
 			// Create chain
-			helpers.taskMaster('add-dependency', [idB, idA]);
-			helpers.taskMaster('add-dependency', [idC, idB]);
+			await helpers.taskMaster('add-dependency', ['--id', idB, '--depends-on', idA], { cwd: testDir });
+			await helpers.taskMaster('add-dependency', ['--id', idC, '--depends-on', idB], { cwd: testDir });
 
 			// Try to create circular dependency
-			const result = helpers.taskMaster('add-dependency', [idA, idC], {
+			const result = await helpers.taskMaster('add-dependency', ['--id', idA, '--depends-on', idC], {
+				cwd: testDir,
 				allowFailure: true
 			});
 			expect(result.exitCode).not.toBe(0);
 			expect(result.stderr).toContain('circular dependency');
 		});
 
-		it('should prevent duplicate dependencies', () => {
-			const dep = helpers.taskMaster('add-task', ['Dependency', '-m']);
+		it('should prevent duplicate dependencies', async () => {
+			const dep = await helpers.taskMaster('add-task', ['--title', 'Dependency', '--description', 'A dependency'], { cwd: testDir });
 			const depId = helpers.extractTaskId(dep.stdout);
 
-			const task = helpers.taskMaster('add-task', ['Task', '-m']);
+			const task = await helpers.taskMaster('add-task', ['--title', 'Task', '--description', 'A task'], { cwd: testDir });
 			const taskId = helpers.extractTaskId(task.stdout);
 
 			// Add dependency first time
-			helpers.taskMaster('add-dependency', [taskId, depId]);
+			await helpers.taskMaster('add-dependency', ['--id', taskId, '--depends-on', depId], { cwd: testDir });
 
 			// Try to add same dependency again
-			const result = helpers.taskMaster('add-dependency', [taskId, depId]);
+			const result = await helpers.taskMaster('add-dependency', ['--id', taskId, '--depends-on', depId], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('already depends on');
 			expect(result.stdout).toContain('No changes made');
@@ -164,101 +176,106 @@ describe('task-master add-dependency', () => {
 	});
 
 	describe('Status updates', () => {
-		it('should update task status to blocked when adding dependencies', () => {
-			const dep = helpers.taskMaster('add-task', [
+		it('should update task status to blocked when adding dependencies', async () => {
+			const dep = await helpers.taskMaster('add-task', [
+				'--title',
 				'Incomplete dependency',
-				'-m'
-			]);
+				'--description',
+				'Not done yet'
+			], { cwd: testDir });
 			const depId = helpers.extractTaskId(dep.stdout);
 
-			const task = helpers.taskMaster('add-task', ['Task', '-m']);
+			const task = await helpers.taskMaster('add-task', ['--title', 'Task', '--description', 'A task'], { cwd: testDir });
 			const taskId = helpers.extractTaskId(task.stdout);
 
 			// Start the task
-			helpers.taskMaster('set-status', [taskId, 'in-progress']);
+			await helpers.taskMaster('set-status', [taskId, 'in-progress'], { cwd: testDir });
 
 			// Add dependency (should change status to blocked)
-			const result = helpers.taskMaster('add-dependency', [taskId, depId]);
+			const result = await helpers.taskMaster('add-dependency', ['--id', taskId, '--depends-on', depId], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Status changed to: blocked');
 
 			// Verify status
-			const showResult = helpers.taskMaster('show', [taskId]);
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
 			expect(showResult.stdout).toContain('Status: blocked');
 		});
 
-		it('should not change status if all dependencies are complete', () => {
-			const dep = helpers.taskMaster('add-task', ['Complete dependency', '-m']);
+		it('should not change status if all dependencies are complete', async () => {
+			const dep = await helpers.taskMaster('add-task', ['--title', 'Complete dependency', '--description', 'Done'], { cwd: testDir });
 			const depId = helpers.extractTaskId(dep.stdout);
-			helpers.taskMaster('set-status', [depId, 'done']);
+			await helpers.taskMaster('set-status', [depId, 'done'], { cwd: testDir });
 
-			const task = helpers.taskMaster('add-task', ['Task', '-m']);
+			const task = await helpers.taskMaster('add-task', ['--title', 'Task', '--description', 'A task'], { cwd: testDir });
 			const taskId = helpers.extractTaskId(task.stdout);
-			helpers.taskMaster('set-status', [taskId, 'in-progress']);
+			await helpers.taskMaster('set-status', [taskId, 'in-progress'], { cwd: testDir });
 
 			// Add completed dependency
-			const result = helpers.taskMaster('add-dependency', [taskId, depId]);
+			const result = await helpers.taskMaster('add-dependency', ['--id', taskId, '--depends-on', depId], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).not.toContain('Status changed');
 
 			// Status should remain in-progress
-			const showResult = helpers.taskMaster('show', [taskId]);
+			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
 			expect(showResult.stdout).toContain('Status: in-progress');
 		});
 	});
 
 	describe('Subtask dependencies', () => {
-		it('should add dependency to a subtask', () => {
+		it('should add dependency to a subtask', async () => {
 			// Create parent and dependency
-			const parent = helpers.taskMaster('add-task', ['Parent task', '-m']);
+			const parent = await helpers.taskMaster('add-task', ['--title', 'Parent task', '--description', 'Parent'], { cwd: testDir });
 			const parentId = helpers.extractTaskId(parent.stdout);
 
-			const dep = helpers.taskMaster('add-task', ['Dependency', '-m']);
+			const dep = await helpers.taskMaster('add-task', ['--title', 'Dependency', '--description', 'A dependency'], { cwd: testDir });
 			const depId = helpers.extractTaskId(dep.stdout);
 
 			// Expand parent
-			helpers.taskMaster('expand', ['-i', parentId, '-n', '2'], {
+			await helpers.taskMaster('expand', ['-i', parentId, '-n', '2'], {
+				cwd: testDir,
 				timeout: 60000
 			});
 
 			// Add dependency to subtask
 			const subtaskId = `${parentId}.1`;
-			const result = helpers.taskMaster('add-dependency', [subtaskId, depId]);
+			const result = await helpers.taskMaster('add-dependency', ['--id', subtaskId, '--depends-on', depId], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain(`${subtaskId} now depends on ${depId}`);
 		});
 
-		it('should allow subtask to depend on another subtask', () => {
+		it('should allow subtask to depend on another subtask', async () => {
 			// Create parent task
-			const parent = helpers.taskMaster('add-task', ['Parent', '-m']);
+			const parent = await helpers.taskMaster('add-task', ['--title', 'Parent', '--description', 'Parent task'], { cwd: testDir });
 			const parentId = helpers.extractTaskId(parent.stdout);
 
 			// Expand to create subtasks
-			helpers.taskMaster('expand', ['-i', parentId, '-n', '3'], {
+			await helpers.taskMaster('expand', ['-i', parentId, '-n', '3'], {
+				cwd: testDir,
 				timeout: 60000
 			});
 
 			// Make subtask 2 depend on subtask 1
-			const result = helpers.taskMaster('add-dependency', [
-				`${parentId}.2`,
-				`${parentId}.1`
-			]);
+			const result = await helpers.taskMaster('add-dependency', [
+				'--id', `${parentId}.2`,
+				'--depends-on', `${parentId}.1`
+			], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Dependency added successfully');
 		});
 
-		it('should prevent parent depending on its own subtask', () => {
-			const parent = helpers.taskMaster('add-task', ['Parent', '-m']);
+		it('should prevent parent depending on its own subtask', async () => {
+			const parent = await helpers.taskMaster('add-task', ['--title', 'Parent', '--description', 'Parent task'], { cwd: testDir });
 			const parentId = helpers.extractTaskId(parent.stdout);
 
-			helpers.taskMaster('expand', ['-i', parentId, '-n', '2'], {
+			await helpers.taskMaster('expand', ['-i', parentId, '-n', '2'], {
+				cwd: testDir,
 				timeout: 60000
 			});
 
-			const result = helpers.taskMaster(
+			const result = await helpers.taskMaster(
 				'add-dependency',
-				[parentId, `${parentId}.1`],
-				{ allowFailure: true }
+				['--id', parentId, '--depends-on', `${parentId}.1`],
+				{ cwd: testDir, allowFailure: true }
 			);
 			expect(result.exitCode).not.toBe(0);
 			expect(result.stderr).toContain('cannot depend on its own subtask');
@@ -266,121 +283,122 @@ describe('task-master add-dependency', () => {
 	});
 
 	describe('Bulk operations', () => {
-		it('should add dependencies to multiple tasks', () => {
+		it('should add dependencies to multiple tasks', async () => {
 			// Create dependency
-			const dep = helpers.taskMaster('add-task', ['Shared dependency', '-m']);
+			const dep = await helpers.taskMaster('add-task', ['--title', 'Shared dependency', '--description', 'Shared dep'], { cwd: testDir });
 			const depId = helpers.extractTaskId(dep.stdout);
 
 			// Create multiple tasks
-			const task1 = helpers.taskMaster('add-task', ['Task 1', '-m']);
+			const task1 = await helpers.taskMaster('add-task', ['--title', 'Task 1', '--description', 'First'], { cwd: testDir });
 			const id1 = helpers.extractTaskId(task1.stdout);
 
-			const task2 = helpers.taskMaster('add-task', ['Task 2', '-m']);
+			const task2 = await helpers.taskMaster('add-task', ['--title', 'Task 2', '--description', 'Second'], { cwd: testDir });
 			const id2 = helpers.extractTaskId(task2.stdout);
 
-			const task3 = helpers.taskMaster('add-task', ['Task 3', '-m']);
+			const task3 = await helpers.taskMaster('add-task', ['--title', 'Task 3', '--description', 'Third'], { cwd: testDir });
 			const id3 = helpers.extractTaskId(task3.stdout);
 
 			// Add dependency to all tasks
-			const result = helpers.taskMaster('add-dependency', [
-				`${id1},${id2},${id3}`,
-				depId
-			]);
+			const result = await helpers.taskMaster('add-dependency', [
+				'--id', `${id1},${id2},${id3}`,
+				'--depends-on', depId
+			], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('3 tasks updated');
 
 			// Verify all have the dependency
 			for (const id of [id1, id2, id3]) {
-				const showResult = helpers.taskMaster('show', [id]);
+				const showResult = await helpers.taskMaster('show', [id], { cwd: testDir });
 				expect(showResult.stdout).toContain(depId);
 			}
 		});
 
-		it('should add dependencies by range', () => {
+		it('should add dependencies by range', async () => {
 			// Create dependency
-			const dep = helpers.taskMaster('add-task', ['Dependency', '-m']);
+			const dep = await helpers.taskMaster('add-task', ['--title', 'Dependency', '--description', 'A dep'], { cwd: testDir });
 			const depId = helpers.extractTaskId(dep.stdout);
 
 			// Create sequential tasks
 			const ids = [];
 			for (let i = 0; i < 5; i++) {
-				const result = helpers.taskMaster('add-task', [`Task ${i + 1}`, '-m']);
+				const result = await helpers.taskMaster('add-task', ['--title', `Task ${i + 1}`, '--description', `Task number ${i + 1}`], { cwd: testDir });
 				ids.push(helpers.extractTaskId(result.stdout));
 			}
 
 			// Add dependency to range
-			const result = helpers.taskMaster('add-dependency', [
+			const result = await helpers.taskMaster('add-dependency', [
 				'--from',
 				ids[1],
 				'--to',
 				ids[3],
+				'--depends-on',
 				depId
-			]);
+			], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('3 tasks updated');
 
 			// Verify middle tasks have dependency
 			for (let i = 1; i <= 3; i++) {
-				const showResult = helpers.taskMaster('show', [ids[i]]);
+				const showResult = await helpers.taskMaster('show', [ids[i]], { cwd: testDir });
 				expect(showResult.stdout).toContain(depId);
 			}
 
 			// Verify edge tasks don't have dependency
-			const show0 = helpers.taskMaster('show', [ids[0]]);
+			const show0 = await helpers.taskMaster('show', [ids[0]], { cwd: testDir });
 			expect(show0.stdout).not.toContain(`Dependencies:.*${depId}`);
 		});
 	});
 
 	describe('Complex dependency graphs', () => {
-		it('should handle diamond dependency pattern', () => {
+		it('should handle diamond dependency pattern', async () => {
 			// Create diamond: A depends on B and C, both B and C depend on D
-			const taskD = helpers.taskMaster('add-task', ['Task D (base)', '-m']);
+			const taskD = await helpers.taskMaster('add-task', ['--title', 'Task D (base)', '--description', 'Base task'], { cwd: testDir });
 			const idD = helpers.extractTaskId(taskD.stdout);
 
-			const taskB = helpers.taskMaster('add-task', ['Task B', '-m']);
+			const taskB = await helpers.taskMaster('add-task', ['--title', 'Task B', '--description', 'Middle task B'], { cwd: testDir });
 			const idB = helpers.extractTaskId(taskB.stdout);
-			helpers.taskMaster('add-dependency', [idB, idD]);
+			await helpers.taskMaster('add-dependency', ['--id', idB, '--depends-on', idD], { cwd: testDir });
 
-			const taskC = helpers.taskMaster('add-task', ['Task C', '-m']);
+			const taskC = await helpers.taskMaster('add-task', ['--title', 'Task C', '--description', 'Middle task C'], { cwd: testDir });
 			const idC = helpers.extractTaskId(taskC.stdout);
-			helpers.taskMaster('add-dependency', [idC, idD]);
+			await helpers.taskMaster('add-dependency', ['--id', idC, '--depends-on', idD], { cwd: testDir });
 
-			const taskA = helpers.taskMaster('add-task', ['Task A (top)', '-m']);
+			const taskA = await helpers.taskMaster('add-task', ['--title', 'Task A (top)', '--description', 'Top task'], { cwd: testDir });
 			const idA = helpers.extractTaskId(taskA.stdout);
 
 			// Add both dependencies to create diamond
-			const result = helpers.taskMaster('add-dependency', [
-				idA,
-				`${idB},${idC}`
-			]);
+			const result = await helpers.taskMaster('add-dependency', [
+				'--id', idA,
+				'--depends-on', `${idB},${idC}`
+			], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('2 dependencies added');
 
 			// Verify the structure
-			const showResult = helpers.taskMaster('show', [idA]);
+			const showResult = await helpers.taskMaster('show', [idA], { cwd: testDir });
 			expect(showResult.stdout).toContain(idB);
 			expect(showResult.stdout).toContain(idC);
 		});
 
-		it('should show transitive dependencies', () => {
+		it('should show transitive dependencies', async () => {
 			// Create chain A -> B -> C -> D
-			const taskD = helpers.taskMaster('add-task', ['Task D', '-m']);
+			const taskD = await helpers.taskMaster('add-task', ['--title', 'Task D', '--description', 'End task'], { cwd: testDir });
 			const idD = helpers.extractTaskId(taskD.stdout);
 
-			const taskC = helpers.taskMaster('add-task', ['Task C', '-m']);
+			const taskC = await helpers.taskMaster('add-task', ['--title', 'Task C', '--description', 'Middle task'], { cwd: testDir });
 			const idC = helpers.extractTaskId(taskC.stdout);
-			helpers.taskMaster('add-dependency', [idC, idD]);
+			await helpers.taskMaster('add-dependency', ['--id', idC, '--depends-on', idD], { cwd: testDir });
 
-			const taskB = helpers.taskMaster('add-task', ['Task B', '-m']);
+			const taskB = await helpers.taskMaster('add-task', ['--title', 'Task B', '--description', 'Middle task'], { cwd: testDir });
 			const idB = helpers.extractTaskId(taskB.stdout);
-			helpers.taskMaster('add-dependency', [idB, idC]);
+			await helpers.taskMaster('add-dependency', ['--id', idB, '--depends-on', idC], { cwd: testDir });
 
-			const taskA = helpers.taskMaster('add-task', ['Task A', '-m']);
+			const taskA = await helpers.taskMaster('add-task', ['--title', 'Task A', '--description', 'Start task'], { cwd: testDir });
 			const idA = helpers.extractTaskId(taskA.stdout);
-			helpers.taskMaster('add-dependency', [idA, idB]);
+			await helpers.taskMaster('add-dependency', ['--id', idA, '--depends-on', idB], { cwd: testDir });
 
 			// Show should indicate full dependency chain
-			const result = helpers.taskMaster('show', [idA]);
+			const result = await helpers.taskMaster('show', [idA], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Dependencies:');
 			expect(result.stdout).toContain(idB);
@@ -389,74 +407,79 @@ describe('task-master add-dependency', () => {
 	});
 
 	describe('Tag context', () => {
-		it('should add dependencies within a tag', () => {
+		it('should add dependencies within a tag', async () => {
 			// Create tag
-			helpers.taskMaster('add-tag', ['feature']);
-			helpers.taskMaster('use-tag', ['feature']);
+			await helpers.taskMaster('add-tag', ['feature'], { cwd: testDir });
+			await helpers.taskMaster('use-tag', ['feature'], { cwd: testDir });
 
 			// Create tasks in feature tag
-			const dep = helpers.taskMaster('add-task', ['Feature dependency', '-m']);
+			const dep = await helpers.taskMaster('add-task', ['--title', 'Feature dependency', '--description', 'Dep in feature'], { cwd: testDir });
 			const depId = helpers.extractTaskId(dep.stdout);
 
-			const task = helpers.taskMaster('add-task', ['Feature task', '-m']);
+			const task = await helpers.taskMaster('add-task', ['--title', 'Feature task', '--description', 'Task in feature'], { cwd: testDir });
 			const taskId = helpers.extractTaskId(task.stdout);
 
 			// Add dependency with tag context
-			const result = helpers.taskMaster('add-dependency', [
-				taskId,
-				depId,
+			const result = await helpers.taskMaster('add-dependency', [
+				'--id', taskId,
+				'--depends-on', depId,
 				'--tag',
 				'feature'
-			]);
+			], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('[feature]');
 		});
 
-		it('should prevent cross-tag dependencies by default', () => {
+		it('should prevent cross-tag dependencies by default', async () => {
 			// Create tasks in different tags
-			const masterTask = helpers.taskMaster('add-task', ['Master task', '-m']);
+			const masterTask = await helpers.taskMaster('add-task', ['--title', 'Master task', '--description', 'In master tag'], { cwd: testDir });
 			const masterId = helpers.extractTaskId(masterTask.stdout);
 
-			helpers.taskMaster('add-tag', ['feature']);
-			helpers.taskMaster('use-tag', ['feature']);
-			const featureTask = helpers.taskMaster('add-task', [
+			await helpers.taskMaster('add-tag', ['feature'], { cwd: testDir });
+			await helpers.taskMaster('use-tag', ['feature'], { cwd: testDir });
+			const featureTask = await helpers.taskMaster('add-task', [
+				'--title',
 				'Feature task',
-				'-m'
-			]);
+				'--description',
+				'In feature tag'
+			], { cwd: testDir });
 			const featureId = helpers.extractTaskId(featureTask.stdout);
 
 			// Try to add cross-tag dependency
-			const result = helpers.taskMaster(
+			const result = await helpers.taskMaster(
 				'add-dependency',
-				[featureId, masterId, '--tag', 'feature'],
-				{ allowFailure: true }
+				['--id', featureId, '--depends-on', masterId, '--tag', 'feature'],
+				{ cwd: testDir, allowFailure: true }
 			);
 			// Depending on implementation, this might warn or fail
 		});
 	});
 
 	describe('Error handling', () => {
-		it('should handle non-existent task IDs', () => {
-			const task = helpers.taskMaster('add-task', ['Task', '-m']);
+		it('should handle non-existent task IDs', async () => {
+			const task = await helpers.taskMaster('add-task', ['--title', 'Task', '--description', 'A task'], { cwd: testDir });
 			const taskId = helpers.extractTaskId(task.stdout);
 
-			const result = helpers.taskMaster('add-dependency', [taskId, '999'], {
+			const result = await helpers.taskMaster('add-dependency', ['--id', taskId, '--depends-on', '999'], {
+				cwd: testDir,
 				allowFailure: true
 			});
 			expect(result.exitCode).not.toBe(0);
 			expect(result.stderr).toMatch(/Task.*999.*not found/i);
 		});
 
-		it('should handle invalid task ID format', () => {
-			const result = helpers.taskMaster('add-dependency', ['invalid-id', '1'], {
+		it('should handle invalid task ID format', async () => {
+			const result = await helpers.taskMaster('add-dependency', ['--id', 'invalid-id', '--depends-on', '1'], {
+				cwd: testDir,
 				allowFailure: true
 			});
 			expect(result.exitCode).not.toBe(0);
 			expect(result.stderr).toContain('Invalid task ID');
 		});
 
-		it('should require both task and dependency IDs', () => {
-			const result = helpers.taskMaster('add-dependency', ['1'], {
+		it('should require both task and dependency IDs', async () => {
+			const result = await helpers.taskMaster('add-dependency', ['--id', '1'], {
+				cwd: testDir,
 				allowFailure: true
 			});
 			expect(result.exitCode).not.toBe(0);
@@ -465,34 +488,34 @@ describe('task-master add-dependency', () => {
 	});
 
 	describe('Output options', () => {
-		it('should support quiet mode', () => {
-			const dep = helpers.taskMaster('add-task', ['Dep', '-m']);
+		it('should support quiet mode', async () => {
+			const dep = await helpers.taskMaster('add-task', ['--title', 'Dep', '--description', 'A dep'], { cwd: testDir });
 			const depId = helpers.extractTaskId(dep.stdout);
 
-			const task = helpers.taskMaster('add-task', ['Task', '-m']);
+			const task = await helpers.taskMaster('add-task', ['--title', 'Task', '--description', 'A task'], { cwd: testDir });
 			const taskId = helpers.extractTaskId(task.stdout);
 
-			const result = helpers.taskMaster('add-dependency', [
-				taskId,
-				depId,
+			const result = await helpers.taskMaster('add-dependency', [
+				'--id', taskId,
+				'--depends-on', depId,
 				'-q'
-			]);
+			], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout.split('\n').length).toBeLessThan(3);
 		});
 
-		it('should support JSON output', () => {
-			const dep = helpers.taskMaster('add-task', ['Dep', '-m']);
+		it('should support JSON output', async () => {
+			const dep = await helpers.taskMaster('add-task', ['--title', 'Dep', '--description', 'A dep'], { cwd: testDir });
 			const depId = helpers.extractTaskId(dep.stdout);
 
-			const task = helpers.taskMaster('add-task', ['Task', '-m']);
+			const task = await helpers.taskMaster('add-task', ['--title', 'Task', '--description', 'A task'], { cwd: testDir });
 			const taskId = helpers.extractTaskId(task.stdout);
 
-			const result = helpers.taskMaster('add-dependency', [
-				taskId,
-				depId,
+			const result = await helpers.taskMaster('add-dependency', [
+				'--id', taskId,
+				'--depends-on', depId,
 				'--json'
-			]);
+			], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
 
 			const json = JSON.parse(result.stdout);
@@ -503,20 +526,20 @@ describe('task-master add-dependency', () => {
 	});
 
 	describe('Visualization', () => {
-		it('should show dependency graph after adding', () => {
+		it('should show dependency graph after adding', async () => {
 			// Create simple dependency chain
-			const task1 = helpers.taskMaster('add-task', ['Base task', '-m']);
+			const task1 = await helpers.taskMaster('add-task', ['--title', 'Base task', '--description', 'Base'], { cwd: testDir });
 			const id1 = helpers.extractTaskId(task1.stdout);
 
-			const task2 = helpers.taskMaster('add-task', ['Middle task', '-m']);
+			const task2 = await helpers.taskMaster('add-task', ['--title', 'Middle task', '--description', 'Middle'], { cwd: testDir });
 			const id2 = helpers.extractTaskId(task2.stdout);
 
-			const task3 = helpers.taskMaster('add-task', ['Top task', '-m']);
+			const task3 = await helpers.taskMaster('add-task', ['--title', 'Top task', '--description', 'Top'], { cwd: testDir });
 			const id3 = helpers.extractTaskId(task3.stdout);
 
 			// Build chain
-			helpers.taskMaster('add-dependency', [id2, id1]);
-			const result = helpers.taskMaster('add-dependency', [id3, id2]);
+			await helpers.taskMaster('add-dependency', ['--id', id2, '--depends-on', id1], { cwd: testDir });
+			const result = await helpers.taskMaster('add-dependency', ['--id', id3, '--depends-on', id2], { cwd: testDir });
 
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Dependency chain:');

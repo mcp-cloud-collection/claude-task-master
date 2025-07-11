@@ -33,18 +33,21 @@ export default {
 	reporters: [
 		'default',
 		[
-			'jest-html-reporter',
+			'jest-stare',
 			{
-				pageTitle: 'Task Master E2E Test Report',
-				outputPath: '<rootDir>/test-results/e2e-test-report.html',
-				includeFailureMsg: true,
-				includeConsoleLog: true,
-				dateFormat: 'yyyy-mm-dd HH:MM:ss',
-				theme: 'darkTheme',
-				sort: 'status',
-				executionTimeWarningThreshold: 5,
-				customCss: '.test-result { padding: 10px; }',
-				collapseSuitesByDefault: false
+				resultDir: 'test-results',
+				reportTitle: 'Task Master E2E Test Report',
+				additionalResultsProcessors: ['jest-junit'],
+				coverageLink: '../coverage-e2e/lcov-report/index.html',
+				jestStareConfigJson: 'jest-stare.config.json',
+				jestGlobalConfigJson: 'jest.e2e.config.json',
+				report: true,
+				reportSummary: true,
+				reportHeadline: 'Task Master E2E Test Results',
+				reportDescriptionHeadline: 'Comprehensive E2E test suite for all CLI commands',
+				disableCharts: false,
+				resultJson: 'jest-results.json',
+				resultHtml: 'index.html'
 			}
 		],
 		[

@@ -3,8 +3,9 @@
  * Runs before each test file
  */
 
-const { TestHelpers } = require('../utils/test-helpers.cjs');
-const { TestLogger } = require('../utils/logger.cjs');
+import { jest, expect, afterAll } from '@jest/globals';
+import { TestHelpers } from '../utils/test-helpers.js';
+import { TestLogger } from '../utils/logger.js';
 
 // Increase timeout for all E2E tests (can be overridden per test)
 jest.setTimeout(180000);
