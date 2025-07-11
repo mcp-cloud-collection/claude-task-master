@@ -20,6 +20,8 @@ export default {
 	testTimeout: 180000, // 3 minutes default (AI operations can be slow)
 	maxWorkers: 1, // Run E2E tests sequentially to avoid conflicts
 	verbose: true,
+	// Suppress console output for cleaner test results
+	silent: false,
 	setupFilesAfterEnv: ['<rootDir>/tests/e2e/setup/jest-setup.js'],
 	globalSetup: '<rootDir>/tests/e2e/setup/global-setup.js',
 	globalTeardown: '<rootDir>/tests/e2e/setup/global-teardown.js',
@@ -30,38 +32,40 @@ export default {
 	],
 	coverageDirectory: '<rootDir>/coverage-e2e',
 	// Custom reporters for better E2E test output
+	// Transform configuration to match unit tests
+	transform: {},
+	transformIgnorePatterns: ['/node_modules/'],
+	// Module configuration
+	moduleNameMapper: {
+		'^@/(.*)$': '<rootDir>/$1'
+	},
+	moduleDirectories: ['node_modules', '<rootDir>'],
+	// Reporters configuration
 	reporters: [
 		'default',
 		[
-			'jest-stare',
+			'jest-html-reporters',
 			{
-				resultDir: 'test-results',
-				reportTitle: 'Task Master E2E Test Report',
-				additionalResultsProcessors: ['jest-junit'],
-				coverageLink: '../coverage-e2e/lcov-report/index.html',
-				jestStareConfigJson: 'jest-stare.config.json',
-				jestGlobalConfigJson: 'jest.e2e.config.json',
-				report: true,
-				reportSummary: true,
-				reportHeadline: 'Task Master E2E Test Results',
-				reportDescriptionHeadline: 'Comprehensive E2E test suite for all CLI commands',
-				disableCharts: false,
-				resultJson: 'jest-results.json',
-				resultHtml: 'index.html'
-			}
-		],
-		[
-			'jest-junit',
-			{
-				outputDirectory: '<rootDir>/test-results',
-				outputName: 'e2e-junit.xml',
-				classNameTemplate: '{classname} - {title}',
-				titleTemplate: '{classname} - {title}',
-				ancestorSeparator: ' › ',
-				suiteNameTemplate: '{filepath}',
-				includeConsoleOutput: true,
-				includeShortConsoleOutput: true,
-				reportTestSuiteErrors: true
+				publicPath: './test-results',
+				filename: 'index.html',
+				pageTitle: 'Task Master E2E Test Report',
+				expand: true,
+				openReport: false,
+				hideIcon: false,
+				includeFailureMsg: true,
+				enableMergeData: true,
+				dataMergeLevel: 1,
+				inlineSource: false,
+				customInfos: [
+					{
+						title: 'Environment',
+						value: 'E2E Testing'
+					},
+					{
+						title: 'Test Type',
+						value: 'CLI Commands'
+					}
+				]
 			}
 		]
 	],

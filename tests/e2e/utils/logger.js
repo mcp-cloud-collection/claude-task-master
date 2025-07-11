@@ -58,7 +58,10 @@ export class TestLogger {
 				break;
 		}
 
-		console.log(coloredMessage);
+		// Only output to console if debugging or it's an error
+		if ((process.env.DEBUG_TESTS || level === 'ERROR') && !process.env.JEST_SILENT_MODE) {
+			console.log(coloredMessage);
+		}
 
 		// Write to file if immediate flush requested
 		if (options.flush) {
