@@ -14,7 +14,7 @@ expect.extend({
 	toContainTaskId(received) {
 		const taskIdRegex = /#?\d+/;
 		const pass = taskIdRegex.test(received);
-		
+
 		if (pass) {
 			return {
 				message: () => `expected ${received} not to contain a task ID`,
@@ -27,10 +27,10 @@ expect.extend({
 			};
 		}
 	},
-	
+
 	toHaveExitCode(received, expected) {
 		const pass = received.exitCode === expected;
-		
+
 		if (pass) {
 			return {
 				message: () => `expected exit code not to be ${expected}`,
@@ -38,16 +38,17 @@ expect.extend({
 			};
 		} else {
 			return {
-				message: () => `expected exit code ${expected} but got ${received.exitCode}\nstderr: ${received.stderr}`,
+				message: () =>
+					`expected exit code ${expected} but got ${received.exitCode}\nstderr: ${received.stderr}`,
 				pass: false
 			};
 		}
 	},
-	
+
 	toContainInOutput(received, expected) {
 		const output = (received.stdout || '') + (received.stderr || '');
 		const pass = output.includes(expected);
-		
+
 		if (pass) {
 			return {
 				message: () => `expected output not to contain "${expected}"`,
@@ -55,7 +56,8 @@ expect.extend({
 			};
 		} else {
 			return {
-				message: () => `expected output to contain "${expected}"\nstdout: ${received.stdout}\nstderr: ${received.stderr}`,
+				message: () =>
+					`expected output to contain "${expected}"\nstdout: ${received.stdout}\nstderr: ${received.stderr}`,
 				pass: false
 			};
 		}
@@ -76,5 +78,5 @@ global.createTestContext = (testName) => {
 // Clean up any hanging processes
 afterAll(async () => {
 	// Give time for any async operations to complete
-	await new Promise(resolve => setTimeout(resolve, 100));
+	await new Promise((resolve) => setTimeout(resolve, 100));
 });

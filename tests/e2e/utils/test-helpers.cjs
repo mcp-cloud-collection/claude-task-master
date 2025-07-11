@@ -1,5 +1,11 @@
 const { spawn } = require('child_process');
-const { readFileSync, existsSync, copyFileSync, writeFileSync, readdirSync } = require('fs');
+const {
+	readFileSync,
+	existsSync,
+	copyFileSync,
+	writeFileSync,
+	readdirSync
+} = require('fs');
 const { join } = require('path');
 
 class TestHelpers {
@@ -120,9 +126,7 @@ class TestHelpers {
 			writeFileSync(filePath, content, 'utf8');
 			return true;
 		} catch (error) {
-			this.logger.error(
-				`Failed to write file ${filePath}: ${error.message}`
-			);
+			this.logger.error(`Failed to write file ${filePath}: ${error.message}`);
 			return false;
 		}
 	}
@@ -134,9 +138,7 @@ class TestHelpers {
 		try {
 			return readFileSync(filePath, 'utf8');
 		} catch (error) {
-			this.logger.error(
-				`Failed to read file ${filePath}: ${error.message}`
-			);
+			this.logger.error(`Failed to read file ${filePath}: ${error.message}`);
 			return null;
 		}
 	}
@@ -148,9 +150,7 @@ class TestHelpers {
 		try {
 			return readdirSync(dirPath);
 		} catch (error) {
-			this.logger.error(
-				`Failed to list files in ${dirPath}: ${error.message}`
-			);
+			this.logger.error(`Failed to list files in ${dirPath}: ${error.message}`);
 			return [];
 		}
 	}

@@ -3,10 +3,7 @@
 const { spawn } = require('child_process');
 const path = require('path');
 
-const args = [
-	'--config', 'jest.e2e.config.js',
-	...process.argv.slice(2)
-];
+const args = ['--config', 'jest.e2e.config.js', ...process.argv.slice(2)];
 
 const jest = spawn('jest', args, {
 	cwd: path.join(__dirname, '../..'),

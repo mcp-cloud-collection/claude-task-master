@@ -3,7 +3,14 @@
  * Tests all aspects of complexity analysis including research mode and output formats
  */
 
-const { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync, mkdirSync } = require('fs');
+const {
+	mkdtempSync,
+	existsSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+	mkdirSync
+} = require('fs');
 const { join } = require('path');
 const { tmpdir } = require('os');
 const { execSync } = require('child_process');
@@ -17,12 +24,12 @@ describe('analyze-complexity command', () => {
 	beforeEach(async () => {
 		// Create test directory
 		testDir = mkdtempSync(join(tmpdir(), 'task-master-analyze-complexity-'));
-		
+
 		// Initialize test helpers
 		const context = global.createTestContext('analyze-complexity');
 		helpers = context.helpers;
 		logger = context.logger;
-		
+
 		// Copy .env file if it exists
 		const mainEnvPath = join(__dirname, '../../../../.env');
 		const testEnvPath = join(testDir, '.env');
@@ -30,14 +37,16 @@ describe('analyze-complexity command', () => {
 			const envContent = readFileSync(mainEnvPath, 'utf8');
 			writeFileSync(testEnvPath, envContent);
 		}
-		
+
 		// Initialize task-master project
-		const initResult = await helpers.taskMaster('init', ['-y'], { cwd: testDir });
+		const initResult = await helpers.taskMaster('init', ['-y'], {
+			cwd: testDir
+		});
 		expect(initResult).toHaveExitCode(0);
 
 		// Setup test tasks for analysis
 		taskIds = [];
-		
+
 		// Create simple task
 		const simple = await helpers.taskMaster(
 			'add-task',
@@ -45,19 +54,22 @@ describe('analyze-complexity command', () => {
 			{ cwd: testDir }
 		);
 		taskIds.push(helpers.extractTaskId(simple.stdout));
-		
+
 		// Create complex task with subtasks
 		const complex = await helpers.taskMaster(
 			'add-task',
-			['--prompt', 'Build a complete e-commerce platform with payment processing'],
+			[
+				'--prompt',
+				'Build a complete e-commerce platform with payment processing'
+			],
 			{ cwd: testDir }
 		);
 		const complexId = helpers.extractTaskId(complex.stdout);
 		taskIds.push(complexId);
-		
+
 		// Expand complex task to add subtasks
 		await helpers.taskMaster('expand', [complexId], { cwd: testDir });
-		
+
 		// Create task with dependencies
 		const withDeps = await helpers.taskMaster(
 			'add-task',
@@ -76,12 +88,10 @@ describe('analyze-complexity command', () => {
 
 	describe('Basic complexity analysis', () => {
 		it('should analyze complexity without flags', async () => {
-			const result = await helpers.taskMaster(
-				'analyze-complexity',
-				[],
-				{ cwd: testDir }
-			);
-			
+			const result = await helpers.taskMaster('analyze-complexity', [], {
+				cwd: testDir
+			});
+
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout.toLowerCase()).toContain('complexity');
 		});
@@ -92,7 +102,7 @@ describe('analyze-complexity command', () => {
 				['--research'],
 				{ cwd: testDir, timeout: 120000 }
 			);
-			
+
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout.toLowerCase()).toContain('complexity');
 		}, 120000);
@@ -106,12 +116,12 @@ describe('analyze-complexity command', () => {
 				['--output', outputPath],
 				{ cwd: testDir }
 			);
-			
+
 			expect(result).toHaveExitCode(0);
-			
+
 			const fullPath = join(testDir, outputPath);
 			expect(existsSync(fullPath)).toBe(true);
-			
+
 			// Verify it's valid JSON
 			const report = JSON.parse(readFileSync(fullPath, 'utf8'));
 			expect(report).toBeDefined();
@@ -124,15 +134,15 @@ describe('analyze-complexity command', () => {
 				['--format', 'json'],
 				{ cwd: testDir }
 			);
-			
+
 			expect(result).toHaveExitCode(0);
-			
+
 			// Output should be valid JSON
 			let parsed;
 			expect(() => {
 				parsed = JSON.parse(result.stdout);
 			}).not.toThrow();
-			
+
 			expect(parsed).toBeDefined();
 			expect(typeof parsed).toBe('object');
 		});
@@ -143,13 +153,20 @@ describe('analyze-complexity command', () => {
 				['--detailed'],
 				{ cwd: testDir }
 			);
-			
+
 			expect(result).toHaveExitCode(0);
-			
+
 			const output = result.stdout.toLowerCase();
-			const expectedDetails = ['subtasks', 'dependencies', 'description', 'metadata'];
-			const foundDetails = expectedDetails.filter(detail => output.includes(detail));
-			
+			const expectedDetails = [
+				'subtasks',
+				'dependencies',
+				'description',
+				'metadata'
+			];
+			const foundDetails = expectedDetails.filter((detail) =>
+				output.includes(detail)
+			);
+
 			expect(foundDetails.length).toBeGreaterThanOrEqual(2);
 		});
 	});
@@ -161,11 +178,11 @@ describe('analyze-complexity command', () => {
 				['--tasks', taskIds.join(',')],
 				{ cwd: testDir }
 			);
-			
+
 			expect(result).toHaveExitCode(0);
-			
+
 			// Should analyze only specified tasks
-			taskIds.forEach(taskId => {
+			taskIds.forEach((taskId) => {
 				expect(result.stdout).toContain(taskId);
 			});
 		});
@@ -179,27 +196,29 @@ describe('analyze-complexity command', () => {
 				{ cwd: testDir }
 			);
 			const taggedId = helpers.extractTaskId(taggedResult.stdout);
-			
+
 			const result = await helpers.taskMaster(
 				'analyze-complexity',
 				['--tag', 'complex-tag'],
 				{ cwd: testDir }
 			);
-			
+
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain(taggedId);
 		});
 
 		it('should filter by status', async () => {
 			// Set one task to completed
-			await helpers.taskMaster('set-status', [taskIds[0], 'completed'], { cwd: testDir });
-			
+			await helpers.taskMaster('set-status', [taskIds[0], 'completed'], {
+				cwd: testDir
+			});
+
 			const result = await helpers.taskMaster(
 				'analyze-complexity',
 				['--status', 'pending'],
 				{ cwd: testDir }
 			);
-			
+
 			expect(result).toHaveExitCode(0);
 			// Should not include completed task
 			expect(result.stdout).not.toContain(taskIds[0]);
@@ -210,12 +229,19 @@ describe('analyze-complexity command', () => {
 		it('should use custom thresholds', async () => {
 			const result = await helpers.taskMaster(
 				'analyze-complexity',
-				['--low-threshold', '3', '--medium-threshold', '7', '--high-threshold', '10'],
+				[
+					'--low-threshold',
+					'3',
+					'--medium-threshold',
+					'7',
+					'--high-threshold',
+					'10'
+				],
 				{ cwd: testDir }
 			);
-			
+
 			expect(result).toHaveExitCode(0);
-			
+
 			const output = result.stdout.toLowerCase();
 			expect(output).toContain('low');
 			expect(output).toContain('medium');
@@ -228,7 +254,7 @@ describe('analyze-complexity command', () => {
 				['--low-threshold', '-1'],
 				{ cwd: testDir, allowFailure: true }
 			);
-			
+
 			expect(result.exitCode).not.toBe(0);
 		});
 	});
@@ -237,16 +263,14 @@ describe('analyze-complexity command', () => {
 		it('should handle empty project', async () => {
 			// Create a new temp directory
 			const emptyDir = mkdtempSync(join(tmpdir(), 'task-master-empty-'));
-			
+
 			try {
 				await helpers.taskMaster('init', ['-y'], { cwd: emptyDir });
-				
-				const result = await helpers.taskMaster(
-					'analyze-complexity',
-					[],
-					{ cwd: emptyDir }
-				);
-				
+
+				const result = await helpers.taskMaster('analyze-complexity', [], {
+					cwd: emptyDir
+				});
+
 				expect(result).toHaveExitCode(0);
 				expect(result.stdout.toLowerCase()).toMatch(/no tasks|0/);
 			} finally {
@@ -260,7 +284,7 @@ describe('analyze-complexity command', () => {
 				['--output', '/invalid/path/report.json'],
 				{ cwd: testDir, allowFailure: true }
 			);
-			
+
 			expect(result.exitCode).not.toBe(0);
 		});
 	});
@@ -279,15 +303,13 @@ describe('analyze-complexity command', () => {
 				);
 			}
 			await Promise.all(promises);
-			
+
 			const startTime = Date.now();
-			const result = await helpers.taskMaster(
-				'analyze-complexity',
-				[],
-				{ cwd: testDir }
-			);
+			const result = await helpers.taskMaster('analyze-complexity', [], {
+				cwd: testDir
+			});
 			const duration = Date.now() - startTime;
-			
+
 			expect(result).toHaveExitCode(0);
 			expect(duration).toBeLessThan(10000); // Should complete in less than 10 seconds
 		});
@@ -300,13 +322,13 @@ describe('analyze-complexity command', () => {
 				['--format', 'json'],
 				{ cwd: testDir }
 			);
-			
+
 			expect(result).toHaveExitCode(0);
-			
+
 			const analysis = JSON.parse(result.stdout);
-			const simpleTask = analysis.tasks?.find(t => t.id === taskIds[0]);
-			const complexTask = analysis.tasks?.find(t => t.id === taskIds[1]);
-			
+			const simpleTask = analysis.tasks?.find((t) => t.id === taskIds[0]);
+			const complexTask = analysis.tasks?.find((t) => t.id === taskIds[1]);
+
 			expect(simpleTask).toBeDefined();
 			expect(complexTask).toBeDefined();
 			expect(complexTask.complexity).toBeGreaterThan(simpleTask.complexity);
@@ -321,15 +343,15 @@ describe('analyze-complexity command', () => {
 				['--output', '.taskmaster/reports/task-complexity-report.json'],
 				{ cwd: testDir }
 			);
-			
-			const result = await helpers.taskMaster(
-				'complexity-report',
-				[],
-				{ cwd: testDir }
-			);
-			
+
+			const result = await helpers.taskMaster('complexity-report', [], {
+				cwd: testDir
+			});
+
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout.toLowerCase()).toMatch(/complexity report|complexity/);
+			expect(result.stdout.toLowerCase()).toMatch(
+				/complexity report|complexity/
+			);
 		});
 	});
 });
