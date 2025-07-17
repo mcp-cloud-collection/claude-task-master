@@ -190,8 +190,25 @@ function parseUpdatedTaskFromText(text, expectedTaskId, logFn, isMCP) {
 		throw new Error('Parsed AI response is not a valid JSON object.');
 	}
 
+	// Preprocess the task to ensure subtasks have proper structure
+	const preprocessedTask = {
+		...parsedTask,
+		// Ensure subtasks is an array and each subtask has required fields
+		subtasks: Array.isArray(parsedTask.subtasks) 
+			? parsedTask.subtasks.map(subtask => ({
+				...subtask,
+				title: subtask.title || '',
+				description: subtask.description || '',
+				status: subtask.status || 'pending',
+				dependencies: Array.isArray(subtask.dependencies) ? subtask.dependencies : [],
+				details: typeof subtask.details === 'string' ? subtask.details : String(subtask.details || ''),
+				testStrategy: typeof subtask.testStrategy === 'string' ? subtask.testStrategy : String(subtask.testStrategy || '')
+			}))
+			: []
+	};
+
 	// Validate the parsed task object using Zod
-	const validationResult = updatedTaskSchema.safeParse(parsedTask);
+	const validationResult = updatedTaskSchema.safeParse(preprocessedTask);
 	if (!validationResult.success) {
 		report('error', 'Parsed task object failed Zod validation.');
 		validationResult.error.errors.forEach((err) => {
