@@ -68,7 +68,7 @@ export const kiroProfile = createProfile({
 	fileMap: {
 		// Override specific mappings - the base profile will create:
 		// 'rules/cursor_rules.mdc': 'kiro_rules.md'
-		// 'rules/dev_workflow.mdc': 'dev_workflow.md' 
+		// 'rules/dev_workflow.mdc': 'dev_workflow.md'
 		// 'rules/self_improve.mdc': 'self_improve.md'
 		// 'rules/taskmaster.mdc': 'taskmaster.md'
 		// We can add additional custom mappings here if needed

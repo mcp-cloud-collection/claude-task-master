@@ -91,12 +91,18 @@ describe('Kiro Integration', () => {
 		expect(fs.mkdirSync).toHaveBeenCalledWith(path.join(tempDir, '.kiro'), {
 			recursive: true
 		});
-		expect(fs.mkdirSync).toHaveBeenCalledWith(path.join(tempDir, '.kiro', 'settings'), {
-			recursive: true
-		});
-		expect(fs.mkdirSync).toHaveBeenCalledWith(path.join(tempDir, '.kiro', 'steering'), {
-			recursive: true
-		});
+		expect(fs.mkdirSync).toHaveBeenCalledWith(
+			path.join(tempDir, '.kiro', 'settings'),
+			{
+				recursive: true
+			}
+		);
+		expect(fs.mkdirSync).toHaveBeenCalledWith(
+			path.join(tempDir, '.kiro', 'steering'),
+			{
+				recursive: true
+			}
+		);
 	});
 
 	test('creates Kiro mcp.json with mcpServers format', () => {
