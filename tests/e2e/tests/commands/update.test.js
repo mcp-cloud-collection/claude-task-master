@@ -1,5 +1,5 @@
 /**
- * Comprehensive E2E tests for update-tasks command (bulk update)
+ * Comprehensive E2E tests for update command (bulk update)
  * Tests all aspects of bulk task updates including AI-powered updates
  */
 
@@ -21,7 +21,7 @@ describe('update command', () => {
 
 	beforeEach(async () => {
 		// Create test directory
-		testDir = mkdtempSync(join(tmpdir(), 'task-master-update-tasks-'));
+		testDir = mkdtempSync(join(tmpdir(), 'task-master-update-'));
 
 		// Initialize test helpers
 		const context = global.createTestContext('update');
@@ -118,36 +118,35 @@ describe('update command', () => {
 			expect(allTasksValid).toBe(true);
 		}, 60000);
 
-		it('should update specific tasks by IDs', async () => {
+		it('should update tasks from ID 2 onwards', async () => {
 			const result = await helpers.taskMaster(
-				'update-tasks',
-				['--ids', '1,3', '--prompt', 'Add performance optimization notes'],
+				'update',
+				['--from', '2', '--prompt', 'Add performance optimization notes'],
 				{ cwd: testDir, timeout: 45000 }
 			);
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Updated 2 task');
+			expect(result.stdout).toContain('Successfully updated');
+			expect(result.stdout).toContain('2 tasks');
 		}, 60000);
 
-		it('should update tasks by status filter', async () => {
+		it('should update all tasks from ID 1', async () => {
 			const result = await helpers.taskMaster(
-				'update-tasks',
-				['--status', 'pending', '--prompt', 'Add estimated time requirements'],
+				'update',
+				['--from', '1', '--prompt', 'Add estimated time requirements'],
 				{ cwd: testDir, timeout: 45000 }
 			);
 
 			expect(result).toHaveExitCode(0);
-			// Should update tasks 1 and 2 (pending status)
-			expect(result.stdout).toContain('Updated 2 task');
+			// Should update all 3 tasks
+			expect(result.stdout).toContain('Successfully updated');
+			expect(result.stdout).toContain('3 tasks');
 
 			const tasksPath = join(testDir, '.taskmaster/tasks/tasks.json');
 			const tasks = JSON.parse(readFileSync(tasksPath, 'utf8'));
 
-			// Verify only pending tasks were updated
-			const pendingTasks = tasks.master.tasks.filter(
-				(t) => t.status === 'pending'
-			);
-			const hasTimeEstimates = pendingTasks.some(
+			// Verify tasks were updated
+			const hasTimeEstimates = tasks.master.tasks.some(
 				(t) =>
 					t.details &&
 					(t.details.includes('time') ||
@@ -179,7 +178,7 @@ describe('update command', () => {
 			);
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Updated');
+			expect(result.stdout).toContain('Successfully updated');
 
 			// Research mode should produce more detailed updates
 			const tasksPath = join(testDir, '.taskmaster/tasks/tasks.json');
@@ -241,10 +240,10 @@ describe('update command', () => {
 
 		it('should handle empty filter results gracefully', async () => {
 			const result = await helpers.taskMaster(
-				'update-tasks',
+				'update',
 				[
-					'--status',
-					'completed',
+					'--from',
+					'999',
 					'--prompt',
 					'This should not update anything'
 				],
@@ -252,7 +251,8 @@ describe('update command', () => {
 			);
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('No tasks found matching the criteria');
+			expect(result.stdout).toContain('Successfully updated');
+			expect(result.stdout).toContain('0 tasks');
 		}, 45000);
 	});
 
@@ -275,7 +275,7 @@ describe('update command', () => {
 			);
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Updated');
+			expect(result.stdout).toContain('Successfully updated');
 
 			// Verify task in tag was updated
 			const tasksPath = join(testDir, '.taskmaster/tasks/tasks.json');
@@ -294,13 +294,13 @@ describe('update command', () => {
 
 			// Update all tasks across all tags
 			const result = await helpers.taskMaster(
-				'update-tasks',
+				'update',
 				['--prompt', 'Add error handling strategies'],
 				{ cwd: testDir, timeout: 45000 }
 			);
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Updated');
+			expect(result.stdout).toContain('Successfully updated');
 		}, 60000);
 	});
 
@@ -320,18 +320,13 @@ describe('update command', () => {
 			);
 
 			expect(result).toHaveExitCode(0);
-
-			// Output should be valid JSON
-			const jsonOutput = JSON.parse(result.stdout);
-			expect(jsonOutput.success).toBe(true);
-			expect(jsonOutput.updated).toBeDefined();
-			expect(jsonOutput.tasks).toBeDefined();
+			expect(result.stdout).toContain('Successfully updated');
 		}, 60000);
 	});
 
 	describe('Error handling', () => {
 		it('should fail without prompt', async () => {
-			const result = await helpers.taskMaster('update-tasks', ['--ids', '1'], {
+			const result = await helpers.taskMaster('update', ['--from', '1'], {
 				cwd: testDir,
 				allowFailure: true
 			});
@@ -342,35 +337,37 @@ describe('update command', () => {
 
 		it('should handle invalid task IDs gracefully', async () => {
 			const result = await helpers.taskMaster(
-				'update-tasks',
-				['--ids', '999,1000', '--prompt', 'Update non-existent tasks'],
+				'update',
+				['--from', '999', '--prompt', 'Update non-existent tasks'],
 				{ cwd: testDir }
 			);
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('No tasks found');
+			expect(result.stdout).toContain('Successfully updated');
+			expect(result.stdout).toContain('0 tasks');
 		});
 
-		it('should handle invalid status filter', async () => {
+		it('should handle missing required --from parameter', async () => {
 			const result = await helpers.taskMaster(
-				'update-tasks',
-				['--status', 'invalid-status', '--prompt', 'Test invalid status'],
+				'update',
+				['--prompt', 'Test missing from parameter'],
+				{ cwd: testDir }
+			);
+
+			// The --from parameter defaults to '1' so this should succeed
+			expect(result).toHaveExitCode(0);
+			expect(result.stdout).toContain('Successfully updated');
+		});
+
+		it('should handle using --id instead of --from', async () => {
+			const result = await helpers.taskMaster(
+				'update',
+				['--id', '1', '--prompt', 'Test wrong parameter'],
 				{ cwd: testDir, allowFailure: true }
 			);
 
 			expect(result.exitCode).not.toBe(0);
-			expect(result.stderr).toContain('Invalid status');
-		});
-
-		it('should handle invalid priority filter', async () => {
-			const result = await helpers.taskMaster(
-				'update-tasks',
-				['--priority', 'urgent', '--prompt', 'Test invalid priority'],
-				{ cwd: testDir, allowFailure: true }
-			);
-
-			expect(result.exitCode).not.toBe(0);
-			expect(result.stderr).toContain('Invalid priority');
+			expect(result.stderr).toContain('The update command uses --from');
 		});
 	});
 
@@ -394,14 +391,15 @@ describe('update command', () => {
 
 			const startTime = Date.now();
 			const result = await helpers.taskMaster(
-				'update-tasks',
-				['--prompt', 'Add brief implementation notes'],
+				'update',
+				['--from', '1', '--prompt', 'Add brief implementation notes'],
 				{ cwd: testDir, timeout: 120000 }
 			);
 			const duration = Date.now() - startTime;
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Updated 20 task');
+			expect(result.stdout).toContain('Successfully updated');
+			expect(result.stdout).toContain('20 tasks');
 			expect(duration).toBeLessThan(120000); // Should complete within 2 minutes
 		}, 150000);
 
@@ -414,8 +412,8 @@ describe('update command', () => {
 			writeFileSync(tasksPath, JSON.stringify(currentTasks, null, 2));
 
 			const result = await helpers.taskMaster(
-				'update-tasks',
-				['--prompt', 'Clarify implementation order'],
+				'update',
+				['--from', '1', '--prompt', 'Clarify implementation order'],
 				{ cwd: testDir, timeout: 45000 }
 			);
 
@@ -428,40 +426,14 @@ describe('update command', () => {
 		}, 60000);
 	});
 
-	describe('Dry run mode', () => {
-		it('should preview updates without applying them', async () => {
-			const result = await helpers.taskMaster(
-				'update-tasks',
-				[
-					'--ids',
-					'1,2',
-					'--prompt',
-					'Add test coverage requirements',
-					'--dry-run'
-				],
-				{ cwd: testDir, timeout: 45000 }
-			);
-
-			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('DRY RUN');
-			expect(result.stdout).toContain('Would update');
-
-			// Verify tasks were NOT actually updated
-			const tasksPath = join(testDir, '.taskmaster/tasks/tasks.json');
-			const tasks = JSON.parse(readFileSync(tasksPath, 'utf8'));
-			const hasTestCoverage = tasks.master.tasks.some(
-				(t) => t.details && t.details.toLowerCase().includes('test coverage')
-			);
-			expect(hasTestCoverage).toBe(false);
-		}, 60000);
-	});
+	// Note: The update command doesn't support dry-run mode
 
 	describe('Integration with other commands', () => {
 		it('should work with expand command on bulk-updated tasks', async () => {
 			// First bulk update
 			await helpers.taskMaster(
-				'update-tasks',
-				['--ids', '1', '--prompt', 'Add detailed specifications'],
+				'update',
+				['--from', '1', '--prompt', 'Add detailed specifications'],
 				{ cwd: testDir, timeout: 45000 }
 			);
 

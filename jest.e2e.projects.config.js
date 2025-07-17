@@ -97,7 +97,7 @@ export default {
 				'<rootDir>/tests/e2e/**/parse-prd.test.js',
 				'<rootDir>/tests/e2e/**/generate.test.js',
 				'<rootDir>/tests/e2e/**/analyze-complexity.test.js',
-				'<rootDir>/tests/e2e/**/update-tasks.test.js'
+				'<rootDir>/tests/e2e/**/update.test.js'
 			],
 			// Heavy AI tests run sequentially to avoid rate limits
 			maxWorkers: 1,

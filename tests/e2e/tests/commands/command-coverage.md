@@ -3,7 +3,7 @@
 ## Commands Found in commands.js
 
 1. **parse-prd** ✅ (has test: parse-prd.test.js)
-2. **update** ✅ (has test: update-tasks.test.js)
+2. **update** ✅ (has test: update.test.js)
 3. **update-task** ✅ (has test: update-task.test.js)
 4. **update-subtask** ✅ (has test: update-subtask.test.js)
 5. **generate** ✅ (has test: generate.test.js)
@@ -84,7 +84,7 @@
 18. **set-status** - 17/17 tests pass (100%)
 19. **tags** - 14/14 tests pass (100%)
 20. **update-subtask** - Core functionality working (test file includes tests for unimplemented options)
-21. **update** (update-tasks) - Core functionality working (test file expects features that don't exist)
+21. **update** - Fixed: test file renamed from update-tasks.test.js to update.test.js, uses correct --from parameter instead of non-existent --ids/--status/--priority
 22. **use-tag** - 6/6 tests pass (100%)
 23. **validate-dependencies** - 8/8 tests pass (100%)
 
