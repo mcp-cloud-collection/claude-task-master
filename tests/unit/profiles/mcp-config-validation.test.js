@@ -41,6 +41,12 @@ describe('MCP Configuration Validation', () => {
 				expectedConfigName: 'settings.json',
 				expectedPath: '.gemini/settings.json'
 			},
+			kiro: {
+				shouldHaveMcp: true,
+				expectedDir: '.kiro',
+				expectedConfigName: 'mcp.json',
+				expectedPath: '.kiro/mcp.json'
+			},
 			opencode: {
 				shouldHaveMcp: true,
 				expectedDir: '.',
