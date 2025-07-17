@@ -2,12 +2,8 @@
 "task-master-ai": minor
 ---
 
-feat: Add Kiro editor rule profile with comprehensive rule set and MCP config
+Add Kiro editor rule profile support
 
-- Add Kiro IDE integration leveraging base profile's default file mapping system
-- Generate complete rule set: `kiro_rules.md`, `dev_workflow.md`, `self_improve.md`, `taskmaster.md`
-- Support for `.kiro/steering/` directory structure for all rule files with `.md` extension
-- Custom MCP configuration in `.kiro/settings/mcp.json` with `mcpServers` format
-- Enhanced MCP format with inclusion patterns using `fileMatchPattern: "**/*"`
-- Minimal lifecycle function for MCP config transformation and directory setup
-- Comprehensive test coverage for Kiro profile functionality
+- Add support for Kiro IDE with custom rule files and MCP configuration
+- Generate rule files in `.kiro/steering/` directory with markdown format
+- Include MCP server configuration with enhanced file inclusion patterns
