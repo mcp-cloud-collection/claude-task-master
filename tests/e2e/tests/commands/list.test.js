@@ -3,17 +3,17 @@
  * Tests all aspects of task listing including filtering and display options
  */
 
-const {
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import {
 	mkdtempSync,
 	existsSync,
 	readFileSync,
 	rmSync,
 	writeFileSync,
 	mkdirSync
-} = require('fs');
-const { join } = require('path');
-const { tmpdir } = require('os');
-const path = require('path');
+} from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 describe('list command', () => {
 	let testDir;
@@ -28,7 +28,7 @@ describe('list command', () => {
 		helpers = context.helpers;
 
 		// Copy .env file if it exists
-		const mainEnvPath = join(__dirname, '../../../../.env');
+		const mainEnvPath = join(process.cwd(), '.env');
 		const testEnvPath = join(testDir, '.env');
 		if (existsSync(mainEnvPath)) {
 			const envContent = readFileSync(mainEnvPath, 'utf8');
@@ -156,13 +156,13 @@ describe('list command', () => {
 
 			const task4 = await helpers.taskMaster(
 				'add-task',
-				['--title', 'Blocked task', '--description', 'Blocked by dependency'],
+				['--title', 'Review task', '--description', 'Needs review'],
 				{ cwd: testDir }
 			);
 			const taskId4 = helpers.extractTaskId(task4.stdout);
 			await helpers.taskMaster(
 				'set-status',
-				['--id', taskId4, '--status', 'blocked'],
+				['--id', taskId4, '--status', 'review'],
 				{ cwd: testDir }
 			);
 
@@ -227,13 +227,13 @@ describe('list command', () => {
 			expect(result.stdout).not.toContain('In progress task');
 		});
 
-		it('should filter by blocked status', async () => {
-			const result = await helpers.taskMaster('list', ['--status', 'blocked'], {
+		it('should filter by review status', async () => {
+			const result = await helpers.taskMaster('list', ['--status', 'review'], {
 				cwd: testDir
 			});
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Blocked task');
+			expect(result.stdout).toContain('Review task');
 			expect(result.stdout).not.toContain('Pending task');
 		});
 
@@ -272,7 +272,7 @@ describe('list command', () => {
 			expect(result.stdout).toContain('Pending task');
 			expect(result.stdout).toContain('In progress task');
 			expect(result.stdout).not.toContain('Done task');
-			expect(result.stdout).not.toContain('Blocked task');
+			expect(result.stdout).not.toContain('Review task');
 		});
 
 		it('should show empty message for non-existent status filter', async () => {
@@ -583,7 +583,7 @@ describe('list command', () => {
 			expect(result.stdout).toContain('Dependency Status & Next Task');
 			expect(result.stdout).toContain('Tasks with no dependencies:');
 			expect(result.stdout).toContain('Tasks ready to work on:');
-			expect(result.stdout).toContain('Tasks blocked by dependencies:');
+			expect(result.stdout).toContain('Tasks with dependencies:');
 		});
 	});
 
@@ -642,8 +642,8 @@ describe('list command', () => {
 			expect(result.stdout).toContain('task-master show');
 		});
 
-		it('should show no eligible task when all are blocked', async () => {
-			// Create blocked task
+		it('should show next eligible task when dependencies are resolved', async () => {
+			// Create prerequisite task
 			const task1 = await helpers.taskMaster(
 				'add-task',
 				['--title', 'Prerequisite', '--description', 'Must be done first'],
@@ -656,7 +656,7 @@ describe('list command', () => {
 				'add-task',
 				[
 					'--title',
-					'Blocked task',
+					'Dependent task',
 					'--description',
 					'Waiting for prerequisite',
 					'--dependencies',
@@ -675,9 +675,9 @@ describe('list command', () => {
 			const result = await helpers.taskMaster('list', [], { cwd: testDir });
 
 			expect(result).toHaveExitCode(0);
-			// Should recommend the unblocked task
+			// Should recommend the ready task
 			expect(result.stdout).toContain('Next Task to Work On');
-			expect(result.stdout).toContain('Blocked task');
+			expect(result.stdout).toContain('Dependent task');
 		});
 	});
 

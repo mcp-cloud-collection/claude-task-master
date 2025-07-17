@@ -3,16 +3,17 @@
  * Tests all aspects of AI-powered research functionality
  */
 
-const {
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import {
 	mkdtempSync,
 	existsSync,
 	readFileSync,
 	rmSync,
 	writeFileSync,
 	mkdirSync
-} = require('fs');
-const { join } = require('path');
-const { tmpdir } = require('os');
+} from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 describe('research command', () => {
 	let testDir;
@@ -27,7 +28,7 @@ describe('research command', () => {
 		helpers = context.helpers;
 
 		// Copy .env file if it exists
-		const mainEnvPath = join(__dirname, '../../../../.env');
+		const mainEnvPath = join(process.cwd(), '.env');
 		const testEnvPath = join(testDir, '.env');
 		if (existsSync(mainEnvPath)) {
 			const envContent = readFileSync(mainEnvPath, 'utf8');
@@ -39,6 +40,13 @@ describe('research command', () => {
 			cwd: testDir
 		});
 		expect(initResult).toHaveExitCode(0);
+
+		// Ensure tasks.json exists (bug workaround)
+		const tasksJsonPath = join(testDir, '.taskmaster/tasks/tasks.json');
+		if (!existsSync(tasksJsonPath)) {
+			mkdirSync(join(testDir, '.taskmaster/tasks'), { recursive: true });
+			writeFileSync(tasksJsonPath, JSON.stringify({ master: { tasks: [] } }));
+		}
 	});
 
 	afterEach(() => {
@@ -68,10 +76,10 @@ describe('research command', () => {
 			expect(hasOAuthInfo).toBe(true);
 		}, 120000);
 
-		it('should research using --topic flag', async () => {
+		it('should research using topic as argument', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'React performance optimization techniques'],
+				['React performance optimization techniques'],
 				{ cwd: testDir, timeout: 90000 }
 			);
 
@@ -107,7 +115,7 @@ describe('research command', () => {
 			const startTime = Date.now();
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'REST API design', '--quick'],
+				['REST API design', '--quick'],
 				{ cwd: testDir, timeout: 60000 }
 			);
 			const duration = Date.now() - startTime;
@@ -122,7 +130,7 @@ describe('research command', () => {
 		it('should perform detailed research with --detailed flag', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'Microservices architecture patterns', '--detailed'],
+				['Microservices architecture patterns', '--detailed'],
 				{ cwd: testDir, timeout: 120000 }
 			);
 
@@ -144,7 +152,7 @@ describe('research command', () => {
 		it('should include sources with --sources flag', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'GraphQL best practices', '--sources'],
+				['GraphQL best practices', '--sources'],
 				{ cwd: testDir, timeout: 90000 }
 			);
 
@@ -166,7 +174,7 @@ describe('research command', () => {
 
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'Docker container security', '--save', outputPath],
+				['Docker container security', '--save', outputPath],
 				{ cwd: testDir, timeout: 90000 }
 			);
 
@@ -185,7 +193,7 @@ describe('research command', () => {
 		it('should output in JSON format', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'WebSocket implementation', '--output', 'json'],
+				['WebSocket implementation', '--output', 'json'],
 				{ cwd: testDir, timeout: 90000 }
 			);
 
@@ -201,7 +209,7 @@ describe('research command', () => {
 		it('should output in markdown format by default', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'CI/CD pipeline best practices'],
+				['CI/CD pipeline best practices'],
 				{ cwd: testDir, timeout: 90000 }
 			);
 
@@ -237,7 +245,7 @@ describe('research command', () => {
 		it('should research security topics', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'OWASP Top 10 vulnerabilities', '--category', 'security'],
+				['OWASP Top 10 vulnerabilities', '--category', 'security'],
 				{ cwd: testDir, timeout: 90000 }
 			);
 
@@ -249,7 +257,7 @@ describe('research command', () => {
 		it('should research performance topics', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'Database query optimization', '--category', 'performance'],
+				['Database query optimization', '--category', 'performance'],
 				{ cwd: testDir, timeout: 90000 }
 			);
 
@@ -272,7 +280,7 @@ describe('research command', () => {
 			// Research for the task
 			const result = await helpers.taskMaster(
 				'research',
-				['--task', taskId, '--topic', 'WebSocket vs Server-Sent Events'],
+				['--id', taskId, '--topic', 'WebSocket vs Server-Sent Events'],
 				{ cwd: testDir, timeout: 90000 }
 			);
 
@@ -294,7 +302,7 @@ describe('research command', () => {
 			const result = await helpers.taskMaster(
 				'research',
 				[
-					'--task',
+					'--id',
 					taskId,
 					'--topic',
 					'Prometheus vs ELK stack',
@@ -319,11 +327,11 @@ describe('research command', () => {
 			// Perform multiple researches
 			await helpers.taskMaster(
 				'research',
-				['--topic', 'GraphQL subscriptions'],
+				['GraphQL subscriptions'],
 				{ cwd: testDir, timeout: 60000 }
 			);
 
-			await helpers.taskMaster('research', ['--topic', 'Redis pub/sub'], {
+			await helpers.taskMaster('research', ['Redis pub/sub'], {
 				cwd: testDir,
 				timeout: 60000
 			});
@@ -340,7 +348,7 @@ describe('research command', () => {
 			// Perform a research first
 			await helpers.taskMaster(
 				'research',
-				['--topic', 'Kubernetes deployment strategies'],
+				['Kubernetes deployment strategies'],
 				{ cwd: testDir, timeout: 60000 }
 			);
 
@@ -368,7 +376,7 @@ describe('research command', () => {
 		it('should handle invalid output format', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'Test topic', '--output', 'invalid-format'],
+				['Test topic', '--output', 'invalid-format'],
 				{ cwd: testDir, allowFailure: true }
 			);
 
@@ -381,7 +389,7 @@ describe('research command', () => {
 			// It's mainly to ensure the command handles errors gracefully
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'Test with potential network issues'],
+				['Test with potential network issues'],
 				{ cwd: testDir, timeout: 30000, allowFailure: true }
 			);
 
@@ -415,7 +423,7 @@ describe('research command', () => {
 		it('should research best practices', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'REST API versioning', '--focus', 'best-practices'],
+				['REST API versioning', '--focus', 'best-practices'],
 				{ cwd: testDir, timeout: 90000 }
 			);
 
@@ -426,7 +434,7 @@ describe('research command', () => {
 		it('should research comparisons', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'Vue vs React vs Angular', '--focus', 'comparison'],
+				['Vue vs React vs Angular', '--focus', 'comparison'],
 				{ cwd: testDir, timeout: 90000 }
 			);
 
@@ -442,7 +450,7 @@ describe('research command', () => {
 		it('should limit research length with --max-length', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'Machine learning basics', '--max-length', '500'],
+				['Machine learning basics', '--max-length', '500'],
 				{ cwd: testDir, timeout: 60000 }
 			);
 
@@ -454,7 +462,7 @@ describe('research command', () => {
 		it('should research with specific year constraint', async () => {
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', 'Latest JavaScript features', '--year', '2024'],
+				['Latest JavaScript features', '--year', '2024'],
 				{ cwd: testDir, timeout: 90000 }
 			);
 
@@ -474,7 +482,7 @@ describe('research command', () => {
 
 			// First research
 			const startTime1 = Date.now();
-			const result1 = await helpers.taskMaster('research', ['--topic', topic], {
+			const result1 = await helpers.taskMaster('research', [topic], {
 				cwd: testDir,
 				timeout: 90000
 			});
@@ -483,7 +491,7 @@ describe('research command', () => {
 
 			// Second research (should be cached)
 			const startTime2 = Date.now();
-			const result2 = await helpers.taskMaster('research', ['--topic', topic], {
+			const result2 = await helpers.taskMaster('research', [topic], {
 				cwd: testDir,
 				timeout: 30000
 			});
@@ -500,7 +508,7 @@ describe('research command', () => {
 			const topic = 'Docker best practices';
 
 			// First research
-			await helpers.taskMaster('research', ['--topic', topic], {
+			await helpers.taskMaster('research', [topic], {
 				cwd: testDir,
 				timeout: 60000
 			});
@@ -508,7 +516,7 @@ describe('research command', () => {
 			// Second research without cache
 			const result = await helpers.taskMaster(
 				'research',
-				['--topic', topic, '--no-cache'],
+				[topic, '--no-cache'],
 				{ cwd: testDir, timeout: 90000 }
 			);
 

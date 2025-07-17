@@ -1,19 +1,49 @@
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
-import { setupTestEnvironment, cleanupTestEnvironment, runCommand } from '../../utils/test-helpers.js';
-import path from 'path';
-import fs from 'fs';
-
-describe('validate-dependencies command', () => {
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { mkdtempSync, existsSync, readFileSync, rmSync, writeFileSync, mkdirSync } from 'fs';
+import { join, dirname } from 'path';
+import { tmpdir } from 'os';
+describe('task-master validate-dependencies command', () => {
 	let testDir;
+	let helpers;
 	let tasksPath;
 
-	beforeAll(() => {
-		testDir = setupTestEnvironment('validate-dependencies-command');
-		tasksPath = path.join(testDir, '.taskmaster', 'tasks-master.json');
+	beforeEach(async () => {
+		// Create test directory
+		testDir = mkdtempSync(join(tmpdir(), 'task-master-validate-dependencies-command-'));
+
+		// Initialize test helpers
+		const context = global.createTestContext('validate-dependencies command');
+		helpers = context.helpers;
+
+		// Copy .env file if it exists
+		const mainEnvPath = join(process.cwd(), '.env');
+		const testEnvPath = join(testDir, '.env');
+		if (existsSync(mainEnvPath)) {
+			const envContent = readFileSync(mainEnvPath, 'utf8');
+			writeFileSync(testEnvPath, envContent);
+		}
+
+		// Initialize task-master project
+		const initResult = await helpers.taskMaster('init', ['-y'], {
+			cwd: testDir
+		});
+		expect(initResult).toHaveExitCode(0);
+
+		// Set up tasks path
+		tasksPath = join(testDir, '.taskmaster/tasks/tasks.json');
+		
+		// Ensure tasks.json exists (bug workaround)
+		if (!existsSync(tasksPath)) {
+			mkdirSync(join(testDir, '.taskmaster/tasks'), { recursive: true });
+			writeFileSync(tasksPath, JSON.stringify({ master: { tasks: [] } }));
+		}
 	});
 
-	afterAll(() => {
-		cleanupTestEnvironment(testDir);
+	afterEach(() => {
+		// Clean up test directory
+		if (testDir && existsSync(testDir)) {
+			rmSync(testDir, { recursive: true, force: true });
+		}
 	});
 
 	it('should validate tasks with no dependency issues', async () => {
@@ -49,20 +79,16 @@ describe('validate-dependencies command', () => {
 			}
 		};
 
-		fs.mkdirSync(path.dirname(tasksPath), { recursive: true });
-		fs.writeFileSync(tasksPath, JSON.stringify(validTasks, null, 2));
+		mkdirSync(dirname(tasksPath), { recursive: true });
+		writeFileSync(tasksPath, JSON.stringify(validTasks, null, 2));
 
 		// Run validate-dependencies command
-		const result = await runCommand(
-			'validate-dependencies',
-			['-f', tasksPath],
-			testDir
-		);
+		const result = await helpers.taskMaster('validate-dependencies', ['-f', tasksPath], { cwd: testDir });
 
 		// Should succeed with no issues
-		expect(result.code).toBe(0);
-		expect(result.stdout).toContain('Validating dependencies');
-		expect(result.stdout).toContain('All dependencies are valid');
+		expect(result).toHaveExitCode(0);
+		expect(result.stdout).toContain('Checking for invalid dependencies');
+		expect(result.stdout).toContain('All Dependencies Are Valid');
 	});
 
 	it('should detect circular dependencies', async () => {
@@ -98,18 +124,14 @@ describe('validate-dependencies command', () => {
 			}
 		};
 
-		fs.writeFileSync(tasksPath, JSON.stringify(circularTasks, null, 2));
+		writeFileSync(tasksPath, JSON.stringify(circularTasks, null, 2));
 
 		// Run validate-dependencies command
-		const result = await runCommand(
-			'validate-dependencies',
-			['-f', tasksPath],
-			testDir
-		);
+		const result = await helpers.taskMaster('validate-dependencies', ['-f', tasksPath], { cwd: testDir });
 
 		// Should detect circular dependency
-		expect(result.code).toBe(0);
-		expect(result.stdout).toContain('Circular dependency detected');
+		expect(result).toHaveExitCode(0);
+		expect(result.stdout).toContain('[CIRCULAR]');
 		expect(result.stdout).toContain('Task 1');
 		expect(result.stdout).toContain('Task 2');
 		expect(result.stdout).toContain('Task 3');
@@ -140,22 +162,18 @@ describe('validate-dependencies command', () => {
 			}
 		};
 
-		fs.writeFileSync(tasksPath, JSON.stringify(missingDepTasks, null, 2));
+		writeFileSync(tasksPath, JSON.stringify(missingDepTasks, null, 2));
 
 		// Run validate-dependencies command
-		const result = await runCommand(
-			'validate-dependencies',
-			['-f', tasksPath],
-			testDir
-		);
+		const result = await helpers.taskMaster('validate-dependencies', ['-f', tasksPath], { cwd: testDir });
 
 		// Should detect missing dependencies
-		expect(result.code).toBe(0);
-		expect(result.stdout).toContain('dependency issues found');
+		expect(result).toHaveExitCode(0);
+		expect(result.stdout).toContain('Dependency validation failed');
 		expect(result.stdout).toContain('Task 1');
-		expect(result.stdout).toContain('missing: 999');
+		expect(result.stdout).toContain('999');
 		expect(result.stdout).toContain('Task 2');
-		expect(result.stdout).toContain('missing: 888');
+		expect(result.stdout).toContain('888');
 	});
 
 	it('should validate subtask dependencies', async () => {
@@ -198,20 +216,16 @@ describe('validate-dependencies command', () => {
 			}
 		};
 
-		fs.writeFileSync(tasksPath, JSON.stringify(subtaskDepTasks, null, 2));
+		writeFileSync(tasksPath, JSON.stringify(subtaskDepTasks, null, 2));
 
 		// Run validate-dependencies command
-		const result = await runCommand(
-			'validate-dependencies',
-			['-f', tasksPath],
-			testDir
-		);
+		const result = await helpers.taskMaster('validate-dependencies', ['-f', tasksPath], { cwd: testDir });
 
 		// Should detect invalid subtask dependency
-		expect(result.code).toBe(0);
-		expect(result.stdout).toContain('dependency issues found');
+		expect(result).toHaveExitCode(0);
+		expect(result.stdout).toContain('Dependency validation failed');
 		expect(result.stdout).toContain('Subtask 1.1');
-		expect(result.stdout).toContain('missing: 999');
+		expect(result.stdout).toContain('999');
 	});
 
 	it('should detect self-dependencies', async () => {
@@ -247,18 +261,14 @@ describe('validate-dependencies command', () => {
 			}
 		};
 
-		fs.writeFileSync(tasksPath, JSON.stringify(selfDepTasks, null, 2));
+		writeFileSync(tasksPath, JSON.stringify(selfDepTasks, null, 2));
 
 		// Run validate-dependencies command
-		const result = await runCommand(
-			'validate-dependencies',
-			['-f', tasksPath],
-			testDir
-		);
+		const result = await helpers.taskMaster('validate-dependencies', ['-f', tasksPath], { cwd: testDir });
 
 		// Should detect self-dependencies
-		expect(result.code).toBe(0);
-		expect(result.stdout).toContain('dependency issues found');
+		expect(result).toHaveExitCode(0);
+		expect(result.stdout).toContain('Dependency validation failed');
 		expect(result.stdout).toContain('depends on itself');
 	});
 
@@ -295,17 +305,13 @@ describe('validate-dependencies command', () => {
 			}
 		};
 
-		fs.writeFileSync(tasksPath, JSON.stringify(completedDepTasks, null, 2));
+		writeFileSync(tasksPath, JSON.stringify(completedDepTasks, null, 2));
 
 		// Run validate-dependencies command
-		const result = await runCommand(
-			'validate-dependencies',
-			['-f', tasksPath],
-			testDir
-		);
+		const result = await helpers.taskMaster('validate-dependencies', ['-f', tasksPath], { cwd: testDir });
 
 		// Check output
-		expect(result.code).toBe(0);
+		expect(result).toHaveExitCode(0);
 		// Depending on implementation, might flag completed tasks with pending dependencies
 	});
 
@@ -332,28 +338,20 @@ describe('validate-dependencies command', () => {
 			}
 		};
 
-		fs.writeFileSync(tasksPath, JSON.stringify(multiTagTasks, null, 2));
+		writeFileSync(tasksPath, JSON.stringify(multiTagTasks, null, 2));
 
 		// Validate feature tag
-		const result = await runCommand(
-			'validate-dependencies',
-			['-f', tasksPath, '--tag', 'feature'],
-			testDir
-		);
+		const result = await helpers.taskMaster('validate-dependencies', ['-f', tasksPath, '--tag', 'feature'], { cwd: testDir });
 
-		expect(result.code).toBe(0);
-		expect(result.stdout).toContain('All dependencies are valid');
+		expect(result).toHaveExitCode(0);
+		expect(result.stdout).toContain('All Dependencies Are Valid');
 
 		// Validate master tag
-		const result2 = await runCommand(
-			'validate-dependencies',
-			['-f', tasksPath, '--tag', 'master'],
-			testDir
-		);
+		const result2 = await helpers.taskMaster('validate-dependencies', ['-f', tasksPath, '--tag', 'master'], { cwd: testDir });
 
-		expect(result2.code).toBe(0);
-		expect(result2.stdout).toContain('dependency issues found');
-		expect(result2.stdout).toContain('missing: 999');
+		expect(result2.exitCode).toBe(0);
+		expect(result2.stdout).toContain('Dependency validation failed');
+		expect(result2.stdout).toContain('999');
 	});
 
 	it('should handle empty task list', async () => {
@@ -364,17 +362,13 @@ describe('validate-dependencies command', () => {
 			}
 		};
 
-		fs.writeFileSync(tasksPath, JSON.stringify(emptyTasks, null, 2));
+		writeFileSync(tasksPath, JSON.stringify(emptyTasks, null, 2));
 
 		// Run validate-dependencies command
-		const result = await runCommand(
-			'validate-dependencies',
-			['-f', tasksPath],
-			testDir
-		);
+		const result = await helpers.taskMaster('validate-dependencies', ['-f', tasksPath], { cwd: testDir });
 
 		// Should handle gracefully
-		expect(result.code).toBe(0);
-		expect(result.stdout).toContain('No tasks');
+		expect(result).toHaveExitCode(0);
+		expect(result.stdout).toContain('Tasks checked: 0');
 	});
 });

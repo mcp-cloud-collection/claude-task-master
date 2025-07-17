@@ -3,16 +3,17 @@
  * Tests all aspects of PRD parsing including task generation, research mode, and various formats
  */
 
-const {
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import {
 	mkdtempSync,
 	existsSync,
 	readFileSync,
 	rmSync,
 	writeFileSync,
 	mkdirSync
-} = require('fs');
-const { join } = require('path');
-const { tmpdir } = require('os');
+} from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 describe('parse-prd command', () => {
 	let testDir;
@@ -27,7 +28,7 @@ describe('parse-prd command', () => {
 		helpers = context.helpers;
 
 		// Copy .env file if it exists
-		const mainEnvPath = join(__dirname, '../../../../.env');
+		const mainEnvPath = join(process.cwd(), '.env');
 		const testEnvPath = join(testDir, '.env');
 		if (existsSync(mainEnvPath)) {
 			const envContent = readFileSync(mainEnvPath, 'utf8');
@@ -64,11 +65,11 @@ describe('parse-prd command', () => {
 
 			const result = await helpers.taskMaster('parse-prd', [prdPath], {
 				cwd: testDir,
-				timeout: 45000
+				timeout: 150000
 			});
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Tasks generated successfully');
+			expect(result.stdout).toContain('Successfully generated');
 
 			// Verify tasks.json was created
 			const tasksPath = join(testDir, '.taskmaster/tasks/tasks.json');
@@ -76,23 +77,23 @@ describe('parse-prd command', () => {
 
 			const tasks = JSON.parse(readFileSync(tasksPath, 'utf8'));
 			expect(tasks.master.tasks.length).toBeGreaterThan(0);
-		}, 60000);
+		}, 180000);
 
 		it('should use default PRD file when none specified', async () => {
-			// Create default prd.txt
+			// Create default prd.txt in docs directory (first location checked)
 			const prdContent = 'Build a simple todo application';
-			const defaultPrdPath = join(testDir, '.taskmaster/prd.txt');
-			mkdirSync(join(testDir, '.taskmaster'), { recursive: true });
+			const defaultPrdPath = join(testDir, '.taskmaster/docs/prd.txt');
+			mkdirSync(join(testDir, '.taskmaster/docs'), { recursive: true });
 			writeFileSync(defaultPrdPath, prdContent);
 
 			const result = await helpers.taskMaster('parse-prd', [], {
 				cwd: testDir,
-				timeout: 45000
+				timeout: 150000
 			});
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Using default PRD file');
-		}, 60000);
+			expect(result.stdout).toContain('Successfully generated');
+		}, 180000);
 
 		it('should parse PRD using --input option', async () => {
 			const prdContent = 'Create a REST API for blog management';
@@ -106,8 +107,8 @@ describe('parse-prd command', () => {
 			);
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Tasks generated successfully');
-		}, 60000);
+			expect(result.stdout).toContain('Successfully generated');
+		}, 180000);
 	});
 
 	describe('Task generation options', () => {
@@ -130,7 +131,7 @@ describe('parse-prd command', () => {
 			// AI might generate slightly more or less, but should be close to 5
 			expect(tasks.master.tasks.length).toBeGreaterThanOrEqual(3);
 			expect(tasks.master.tasks.length).toBeLessThanOrEqual(7);
-		}, 60000);
+		}, 180000);
 
 		it('should handle custom output path', async () => {
 			const prdContent = 'Build a chat application';
@@ -150,7 +151,7 @@ describe('parse-prd command', () => {
 
 			const tasks = JSON.parse(readFileSync(customOutput, 'utf8'));
 			expect(tasks.master.tasks.length).toBeGreaterThan(0);
-		}, 60000);
+		}, 180000);
 	});
 
 	describe('Force and append modes', () => {
@@ -176,7 +177,7 @@ describe('parse-prd command', () => {
 
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).not.toContain('overwrite existing tasks?');
-		}, 90000);
+		}, 180000);
 
 		it('should append tasks with --append flag', async () => {
 			// Create initial tasks
@@ -211,7 +212,7 @@ describe('parse-prd command', () => {
 			// Verify IDs are sequential
 			const maxId = Math.max(...finalTasks.master.tasks.map((t) => t.id));
 			expect(maxId).toBe(finalTasks.master.tasks.length);
-		}, 90000);
+		}, 180000);
 	});
 
 	describe('Research mode', () => {
@@ -241,7 +242,7 @@ describe('parse-prd command', () => {
 				(t) => t.details && t.details.length > 200
 			);
 			expect(hasDetailedTasks).toBe(true);
-		}, 120000);
+		}, 180000);
 	});
 
 	describe('Tag support', () => {
@@ -266,7 +267,7 @@ describe('parse-prd command', () => {
 
 			expect(tasks['feature-x']).toBeDefined();
 			expect(tasks['feature-x'].tasks.length).toBeGreaterThan(0);
-		}, 60000);
+		}, 180000);
 	});
 
 	describe('File format handling', () => {
@@ -291,7 +292,7 @@ Build a task management system with the following features:
 
 			const result = await helpers.taskMaster('parse-prd', [prdPath], {
 				cwd: testDir,
-				timeout: 45000
+				timeout: 150000
 			});
 
 			expect(result).toHaveExitCode(0);
@@ -306,7 +307,7 @@ Build a task management system with the following features:
 					t.description.toLowerCase().includes('api')
 			);
 			expect(hasApiTask).toBe(true);
-		}, 60000);
+		}, 180000);
 
 		it('should handle PRD with code blocks', async () => {
 			const prdContent = `# API Requirements
@@ -327,7 +328,7 @@ Each endpoint should have proper error handling and validation.`;
 
 			const result = await helpers.taskMaster('parse-prd', [prdPath], {
 				cwd: testDir,
-				timeout: 45000
+				timeout: 150000
 			});
 
 			expect(result).toHaveExitCode(0);
@@ -343,7 +344,7 @@ Each endpoint should have proper error handling and validation.`;
 					t.details.includes('/api/')
 			);
 			expect(hasEndpointTasks).toBe(true);
-		}, 60000);
+		}, 180000);
 	});
 
 	describe('Error handling', () => {
@@ -355,7 +356,7 @@ Each endpoint should have proper error handling and validation.`;
 			);
 
 			expect(result.exitCode).not.toBe(0);
-			expect(result.stderr).toContain('not found');
+			expect(result.stderr).toContain('does not exist');
 		});
 
 		it('should fail with empty PRD file', async () => {
@@ -372,12 +373,13 @@ Each endpoint should have proper error handling and validation.`;
 
 		it('should show help when no PRD specified and no default exists', async () => {
 			const result = await helpers.taskMaster('parse-prd', [], {
-				cwd: testDir
+				cwd: testDir,
+				allowFailure: true
 			});
 
-			expect(result).toHaveExitCode(0);
+			expect(result.exitCode).not.toBe(0);
 			expect(result.stdout).toContain('Parse PRD Help');
-			expect(result.stdout).toContain('No PRD file specified');
+			expect(result.stderr).toContain('PRD file not found');
 		});
 	});
 
@@ -400,7 +402,7 @@ Each endpoint should have proper error handling and validation.`;
 			const result = await helpers.taskMaster(
 				'parse-prd',
 				[prdPath, '--num-tasks', '20'],
-				{ cwd: testDir, timeout: 120000 }
+				{ cwd: testDir, timeout: 150000 }
 			);
 			const duration = Date.now() - startTime;
 
@@ -410,7 +412,7 @@ Each endpoint should have proper error handling and validation.`;
 			const tasksPath = join(testDir, '.taskmaster/tasks/tasks.json');
 			const tasks = JSON.parse(readFileSync(tasksPath, 'utf8'));
 			expect(tasks.master.tasks.length).toBeGreaterThan(10);
-		}, 150000);
+		}, 180000);
 
 		it('should handle PRD with special characters', async () => {
 			const prdContent = `# Project: Système de Gestion 管理システム
@@ -425,7 +427,7 @@ Build a system with:
 
 			const result = await helpers.taskMaster('parse-prd', [prdPath], {
 				cwd: testDir,
-				timeout: 45000
+				timeout: 150000
 			});
 
 			expect(result).toHaveExitCode(0);
@@ -436,7 +438,7 @@ Build a system with:
 
 			// Verify special characters are preserved
 			expect(tasksContent).toContain('UTF-8');
-		}, 60000);
+		}, 180000);
 	});
 
 	describe('Integration with other commands', () => {
@@ -468,11 +470,11 @@ Build a system with:
 			// Expand first task
 			const expandResult = await helpers.taskMaster('expand', ['--id', '1'], {
 				cwd: testDir,
-				timeout: 45000
+				timeout: 150000
 			});
 
 			expect(expandResult).toHaveExitCode(0);
 			expect(expandResult.stdout).toContain('Expanded task');
-		}, 90000);
+		}, 180000);
 	});
 });

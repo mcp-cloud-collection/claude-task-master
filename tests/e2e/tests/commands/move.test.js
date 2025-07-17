@@ -3,17 +3,17 @@
  * Tests moving tasks and subtasks to different positions
  */
 
-const {
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import {
 	mkdtempSync,
 	existsSync,
 	readFileSync,
 	rmSync,
 	writeFileSync,
 	mkdirSync
-} = require('fs');
-const { join } = require('path');
-const { tmpdir } = require('os');
-const path = require('path');
+} from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 describe('move command', () => {
 	let testDir;
@@ -28,7 +28,7 @@ describe('move command', () => {
 		helpers = context.helpers;
 
 		// Copy .env file if it exists
-		const mainEnvPath = join(__dirname, '../../../../.env');
+		const mainEnvPath = join(process.cwd(), '.env');
 		const testEnvPath = join(testDir, '.env');
 		if (existsSync(mainEnvPath)) {
 			const envContent = readFileSync(mainEnvPath, 'utf8');

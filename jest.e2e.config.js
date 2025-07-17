@@ -17,8 +17,10 @@ export default {
 		'/tests/e2e/run_fallback_verification.sh'
 	],
 	testEnvironment: 'node',
-	testTimeout: 180000, // 3 minutes default (AI operations can be slow)
-	maxWorkers: 1, // Run E2E tests sequentially to avoid conflicts
+	testTimeout: 600000, // 10 minutes default (AI operations can be slow)
+	maxWorkers: 6, // Run tests in 6 parallel workers to avoid rate limits
+	maxConcurrency: 6, // Limit concurrent test execution
+	testSequencer: '<rootDir>/tests/e2e/setup/rate-limit-sequencer.cjs', // Custom sequencer for rate limiting
 	verbose: true,
 	// Suppress console output for cleaner test results
 	silent: false,
@@ -43,6 +45,7 @@ export default {
 	// Reporters configuration
 	reporters: [
 		'default',
+		'jest-junit',
 		[
 			'jest-html-reporters',
 			{

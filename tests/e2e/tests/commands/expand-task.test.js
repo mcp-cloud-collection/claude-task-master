@@ -3,16 +3,17 @@
  * Tests all aspects of task expansion including single, multiple, and recursive expansion
  */
 
-const {
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import {
 	mkdtempSync,
 	existsSync,
 	readFileSync,
 	rmSync,
 	writeFileSync,
 	mkdirSync
-} = require('fs');
-const { join } = require('path');
-const { tmpdir } = require('os');
+} from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 describe('expand-task command', () => {
 	let testDir;
@@ -30,7 +31,7 @@ describe('expand-task command', () => {
 		helpers = context.helpers;
 
 		// Copy .env file if it exists
-		const mainEnvPath = join(__dirname, '../../../../.env');
+		const mainEnvPath = join(process.cwd(), '.env');
 		const testEnvPath = join(testDir, '.env');
 		if (existsSync(mainEnvPath)) {
 			const envContent = readFileSync(mainEnvPath, 'utf8');

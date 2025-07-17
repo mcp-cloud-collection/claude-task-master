@@ -3,17 +3,18 @@
  * Tests response language management functionality
  */
 
-const {
+import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import fs, {
 	mkdtempSync,
 	existsSync,
 	readFileSync,
 	rmSync,
 	writeFileSync,
-	mkdirSync
-} = require('fs');
-const { join } = require('path');
-const { tmpdir } = require('os');
-const path = require('path');
+	mkdirSync,
+	chmodSync
+} from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
 
 describe('lang command', () => {
 	let testDir;
@@ -29,7 +30,7 @@ describe('lang command', () => {
 		helpers = context.helpers;
 
 		// Copy .env file if it exists
-		const mainEnvPath = join(__dirname, '../../../../.env');
+		const mainEnvPath = join(process.cwd(), '.env');
 		const testEnvPath = join(testDir, '.env');
 		if (existsSync(mainEnvPath)) {
 			const envContent = readFileSync(mainEnvPath, 'utf8');
@@ -69,7 +70,6 @@ describe('lang command', () => {
 			);
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Response language set to: Spanish');
 			expect(result.stdout).toContain('✅ Successfully set response language to: Spanish');
 
 			// Verify config was updated
@@ -85,7 +85,6 @@ describe('lang command', () => {
 			);
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Response language set to: Français');
 			expect(result.stdout).toContain('✅ Successfully set response language to: Français');
 
 			// Verify config was updated
@@ -96,12 +95,11 @@ describe('lang command', () => {
 		it('should handle multi-word language names', async () => {
 			const result = await helpers.taskMaster(
 				'lang',
-				['--response', 'Traditional Chinese'],
+				['--response', '"Traditional Chinese"'],
 				{ cwd: testDir }
 			);
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Response language set to: Traditional Chinese');
 			expect(result.stdout).toContain('✅ Successfully set response language to: Traditional Chinese');
 
 			// Verify config was updated
@@ -220,8 +218,7 @@ describe('lang command', () => {
 
 		it('should handle config write errors gracefully', async () => {
 			// Make config file read-only (simulate write error)
-			const fs = require('fs');
-			fs.chmodSync(configPath, 0o444);
+			chmodSync(configPath, 0o444);
 
 			const result = await helpers.taskMaster(
 				'lang',
@@ -298,7 +295,7 @@ describe('lang command', () => {
 			const longLanguage = 'Ancient Mesopotamian Cuneiform Script Translation';
 			const result = await helpers.taskMaster(
 				'lang',
-				['--response', longLanguage],
+				['--response', `"${longLanguage}"`],
 				{ cwd: testDir }
 			);
 
@@ -312,7 +309,7 @@ describe('lang command', () => {
 		it('should handle language with numbers', async () => {
 			const result = await helpers.taskMaster(
 				'lang',
-				['--response', 'English 2.0'],
+				['--response', '"English 2.0"'],
 				{ cwd: testDir }
 			);
 

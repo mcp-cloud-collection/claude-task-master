@@ -3,17 +3,17 @@
  * Tests all aspects of task creation including AI and manual modes
  */
 
-const {
+import {
 	mkdtempSync,
 	existsSync,
 	readFileSync,
 	rmSync,
 	writeFileSync,
 	mkdirSync
-} = require('fs');
-const { join } = require('path');
-const { tmpdir } = require('os');
-const path = require('path');
+} from 'fs';
+import { join } from 'path';
+import { tmpdir } from 'os';
+import path from 'path';
 
 describe('add-task command', () => {
 	let testDir;
@@ -28,7 +28,7 @@ describe('add-task command', () => {
 		helpers = context.helpers;
 
 		// Copy .env file if it exists
-		const mainEnvPath = join(__dirname, '../../../../.env');
+		const mainEnvPath = join(process.cwd(), '.env');
 		const testEnvPath = join(testDir, '.env');
 		if (existsSync(mainEnvPath)) {
 			const envContent = readFileSync(mainEnvPath, 'utf8');
