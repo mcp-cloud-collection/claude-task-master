@@ -271,9 +271,10 @@ describe('task-master complexity-report command', () => {
 		// Should show distribution
 		expect(result).toHaveExitCode(0);
 		expect(result.stdout).toContain('Complexity Distribution');
-		expect(result.stdout).toContain('Low (1-4): 3 tasks');
-		expect(result.stdout).toContain('Medium (5-7): 5 tasks');
-		expect(result.stdout).toContain('High (8-10): 2 tasks');
+		// The distribution text appears with percentages in a decorative box
+		expect(result.stdout).toMatch(/Low\s*\(1-4\):\s*3\s*tasks/);
+		expect(result.stdout).toMatch(/Medium\s*\(5-7\):\s*5\s*tasks/);
+		expect(result.stdout).toMatch(/High\s*\(8-10\):\s*2\s*tasks/);
 	});
 
 	it('should handle malformed report gracefully', async () => {
@@ -286,10 +287,9 @@ describe('task-master complexity-report command', () => {
 		// The command exits silently when JSON parsing fails
 		expect(result).toHaveExitCode(0);
 		// Output shows error message and tag footer
-		const expected = result.stdout.trim();
-		expect(expected).toContain('🏷️ tag: master');
-		expect(expected).toContain('[ERROR]');
-		expect(expected).toContain('Error reading complexity report');
+		expect(result.stdout).toContain('🏷️ tag: master');
+		expect(result.stdout).toContain('[ERROR]');
+		expect(result.stdout).toContain('Error reading complexity report');
 	});
 
 	it('should display report generation time', async () => {

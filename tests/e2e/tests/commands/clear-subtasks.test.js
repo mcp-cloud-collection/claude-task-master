@@ -131,7 +131,8 @@ describe('task-master clear-subtasks command', () => {
 		// Verify success
 		expect(result).toHaveExitCode(0);
 		expect(result.stdout).toContain('Clearing Subtasks');
-		expect(result.stdout).toContain('Successfully cleared subtasks from 2 task(s)');
+		// The success message appears in a decorative box with extra spaces
+		expect(result.stdout).toMatch(/Successfully\s+cleared\s+subtasks\s+from\s+2\s+task\(s\)/i);
 
 		// Read updated tasks
 		const updatedTasks = JSON.parse(readFileSync(tasksPath, 'utf8'));
@@ -152,7 +153,8 @@ describe('task-master clear-subtasks command', () => {
 		// Verify success
 		expect(result).toHaveExitCode(0);
 		expect(result.stdout).toContain('Clearing Subtasks');
-		expect(result.stdout).toContain('Successfully cleared subtasks from');
+		// The success message appears in a decorative box with extra spaces
+		expect(result.stdout).toMatch(/Successfully\s+cleared\s+subtasks\s+from/i);
 
 		// Read updated tasks
 		const updatedTasks = JSON.parse(readFileSync(tasksPath, 'utf8'));
