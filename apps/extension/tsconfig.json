@@ -3,13 +3,10 @@
 		"module": "ESNext",
 		"target": "ES2022",
 		"outDir": "out",
-		"lib": [
-			"ES2022",
-			"DOM"
-		],
+		"lib": ["ES2022", "DOM"],
 		"sourceMap": true,
 		"rootDir": "src",
-		"strict": true,   /* enable all strict type-checking options */
+		"strict": true /* enable all strict type-checking options */,
 		"moduleResolution": "Node",
 		"esModuleInterop": true,
 		"skipLibCheck": true,
@@ -26,10 +23,5 @@
 			"@/lib/*": ["./src/lib/*"]
 		}
 	},
-	"exclude": [
-		"node_modules",
-		".vscode-test",
-		"out",
-		"dist"
-	]
+	"exclude": ["node_modules", ".vscode-test", "out", "dist"]
 }

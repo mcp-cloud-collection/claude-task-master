@@ -1,5 +1,5 @@
-const esbuild = require("esbuild");
-const path = require("path");
+const esbuild = require('esbuild');
+const path = require('path');
 
 const production = process.argv.includes('--production');
 const watch = process.argv.includes('--watch');
@@ -17,11 +17,13 @@ const esbuildProblemMatcherPlugin = {
 		build.onEnd((result) => {
 			result.errors.forEach(({ text, location }) => {
 				console.error(`✘ [ERROR] ${text}`);
-				console.error(`    ${location.file}:${location.line}:${location.column}:`);
+				console.error(
+					`    ${location.file}:${location.line}:${location.column}:`
+				);
 			});
 			console.log('[watch] build finished');
 		});
-	},
+	}
 };
 
 /**
@@ -31,13 +33,13 @@ const aliasPlugin = {
 	name: 'alias',
 	setup(build) {
 		// Handle @/ aliases for shadcn/ui
-		build.onResolve({ filter: /^@\// }, args => {
+		build.onResolve({ filter: /^@\// }, (args) => {
 			const resolvedPath = path.resolve(__dirname, 'src', args.path.slice(2));
-			
+
 			// Try to resolve with common TypeScript extensions
 			const fs = require('fs');
 			const extensions = ['.tsx', '.ts', '.jsx', '.js'];
-			
+
 			// Check if it's a file first
 			for (const ext of extensions) {
 				const fullPath = resolvedPath + ext;
@@ -45,7 +47,7 @@ const aliasPlugin = {
 					return { path: fullPath };
 				}
 			}
-			
+
 			// Check if it's a directory with index file
 			for (const ext of extensions) {
 				const indexPath = path.join(resolvedPath, 'index' + ext);
@@ -53,11 +55,11 @@ const aliasPlugin = {
 					return { path: indexPath };
 				}
 			}
-			
+
 			// Fallback to original behavior
 			return { path: resolvedPath };
 		});
-	},
+	}
 };
 
 async function main() {
@@ -76,12 +78,9 @@ async function main() {
 		// Add production optimizations
 		...(production && {
 			drop: ['debugger'],
-			pure: ['console.log', 'console.debug', 'console.trace'],
+			pure: ['console.log', 'console.debug', 'console.trace']
 		}),
-		plugins: [
-			esbuildProblemMatcherPlugin,
-			aliasPlugin,
-		],
+		plugins: [esbuildProblemMatcherPlugin, aliasPlugin]
 	});
 
 	// Build configuration for the React webview
@@ -102,35 +101,26 @@ async function main() {
 		external: ['*.css'],
 		define: {
 			'process.env.NODE_ENV': production ? '"production"' : '"development"',
-			'global': 'globalThis'
+			global: 'globalThis'
 		},
 		// Add production optimizations for webview too
 		...(production && {
 			drop: ['debugger'],
-			pure: ['console.log', 'console.debug', 'console.trace'],
+			pure: ['console.log', 'console.debug', 'console.trace']
 		}),
-		plugins: [
-			esbuildProblemMatcherPlugin,
-			aliasPlugin,
-		],
+		plugins: [esbuildProblemMatcherPlugin, aliasPlugin]
 	});
 
 	if (watch) {
-		await Promise.all([
-			extensionCtx.watch(),
-			webviewCtx.watch()
-		]);
+		await Promise.all([extensionCtx.watch(), webviewCtx.watch()]);
 	} else {
-		await Promise.all([
-			extensionCtx.rebuild(),
-			webviewCtx.rebuild()
-		]);
+		await Promise.all([extensionCtx.rebuild(), webviewCtx.rebuild()]);
 		await extensionCtx.dispose();
 		await webviewCtx.dispose();
 	}
 }
 
-main().catch(e => {
+main().catch((e) => {
 	console.error(e);
 	process.exit(1);
 });
