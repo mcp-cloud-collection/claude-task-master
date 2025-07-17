@@ -202,8 +202,8 @@ Use the .mdc extension for all rule files.`;
 		expect(kiroProfile.displayName).toBe('Kiro');
 		expect(kiroProfile.profileDir).toBe('.kiro');
 		expect(kiroProfile.mcpConfig).toBe(true);
-		expect(kiroProfile.mcpConfigName).toBe('mcp.json');
-		expect(kiroProfile.mcpConfigPath).toBe('.kiro/mcp.json');
+		expect(kiroProfile.mcpConfigName).toBe('settings/mcp.json');
+		expect(kiroProfile.mcpConfigPath).toBe('.kiro/settings/mcp.json');
 		expect(kiroProfile.includeDefaultRules).toBe(true);
 		expect(kiroProfile.fileMap).toEqual({
 			'rules/cursor_rules.mdc': 'kiro_rules.md',

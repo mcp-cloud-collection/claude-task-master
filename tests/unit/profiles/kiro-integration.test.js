@@ -51,15 +51,16 @@ describe('Kiro Integration', () => {
 	function mockCreateKiroStructure() {
 		// This function simulates the actual kiro profile creation logic
 		// It explicitly calls the mocked fs methods to ensure consistency with the test environment
-		
+
 		// Simulate directory creation calls - these will call the mocked mkdirSync
 		fs.mkdirSync(path.join(tempDir, '.kiro'), { recursive: true });
 		fs.mkdirSync(path.join(tempDir, '.kiro', 'steering'), { recursive: true });
+		fs.mkdirSync(path.join(tempDir, '.kiro', 'settings'), { recursive: true });
 
-		// Create MCP config file at .kiro/mcp.json (not in settings subdirectory)
+		// Create MCP config file at .kiro/settings/mcp.json
 		// This will call the mocked writeFileSync
 		fs.writeFileSync(
-			path.join(tempDir, '.kiro', 'mcp.json'),
+			path.join(tempDir, '.kiro', 'settings', 'mcp.json'),
 			JSON.stringify({ mcpServers: {} }, null, 2)
 		);
 
@@ -97,6 +98,12 @@ describe('Kiro Integration', () => {
 				recursive: true
 			}
 		);
+		expect(fs.mkdirSync).toHaveBeenCalledWith(
+			path.join(tempDir, '.kiro', 'settings'),
+			{
+				recursive: true
+			}
+		);
 	});
 
 	test('creates Kiro mcp.json with mcpServers format', () => {
@@ -105,7 +112,7 @@ describe('Kiro Integration', () => {
 
 		// Assert
 		expect(fs.writeFileSync).toHaveBeenCalledWith(
-			path.join(tempDir, '.kiro', 'mcp.json'),
+			path.join(tempDir, '.kiro', 'settings', 'mcp.json'),
 			JSON.stringify({ mcpServers: {} }, null, 2)
 		);
 	});

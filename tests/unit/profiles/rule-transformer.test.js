@@ -215,8 +215,8 @@ describe('Rule Transformer - General', () => {
 				},
 				kiro: {
 					mcpConfig: true,
-					mcpConfigName: 'mcp.json',
-					expectedPath: '.kiro/mcp.json'
+					mcpConfigName: 'settings/mcp.json',
+					expectedPath: '.kiro/settings/mcp.json'
 				},
 				opencode: {
 					mcpConfig: true,
