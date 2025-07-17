@@ -194,16 +194,24 @@ function parseUpdatedTaskFromText(text, expectedTaskId, logFn, isMCP) {
 	const preprocessedTask = {
 		...parsedTask,
 		// Ensure subtasks is an array and each subtask has required fields
-		subtasks: Array.isArray(parsedTask.subtasks) 
-			? parsedTask.subtasks.map(subtask => ({
-				...subtask,
-				title: subtask.title || '',
-				description: subtask.description || '',
-				status: subtask.status || 'pending',
-				dependencies: Array.isArray(subtask.dependencies) ? subtask.dependencies : [],
-				details: typeof subtask.details === 'string' ? subtask.details : String(subtask.details || ''),
-				testStrategy: typeof subtask.testStrategy === 'string' ? subtask.testStrategy : String(subtask.testStrategy || '')
-			}))
+		subtasks: Array.isArray(parsedTask.subtasks)
+			? parsedTask.subtasks.map((subtask) => ({
+					...subtask,
+					title: subtask.title || '',
+					description: subtask.description || '',
+					status: subtask.status || 'pending',
+					dependencies: Array.isArray(subtask.dependencies)
+						? subtask.dependencies
+						: [],
+					details:
+						typeof subtask.details === 'string'
+							? subtask.details
+							: String(subtask.details || ''),
+					testStrategy:
+						typeof subtask.testStrategy === 'string'
+							? subtask.testStrategy
+							: String(subtask.testStrategy || '')
+				}))
 			: []
 	};
 

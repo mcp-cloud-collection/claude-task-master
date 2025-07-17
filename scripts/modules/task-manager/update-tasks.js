@@ -197,7 +197,7 @@ function parseUpdatedTasksFromText(text, expectedCount, logFn, isMCP) {
 	}
 
 	// Preprocess tasks to ensure required fields have proper defaults
-	const preprocessedTasks = parsedTasks.map(task => ({
+	const preprocessedTasks = parsedTasks.map((task) => ({
 		...task,
 		// Ensure subtasks is always an array (not null or undefined)
 		subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
@@ -459,7 +459,10 @@ async function updateTasks(
 						...task, // Keep all existing fields
 						...updatedTask, // Override with updated fields
 						// Ensure subtasks field is preserved if not provided by AI
-						subtasks: updatedTask.subtasks !== undefined ? updatedTask.subtasks : task.subtasks
+						subtasks:
+							updatedTask.subtasks !== undefined
+								? updatedTask.subtasks
+								: task.subtasks
 					};
 					actualUpdateCount++;
 				}
