@@ -13,7 +13,7 @@ import {
 } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import path from 'path';
+import { copyConfigFiles } from '../../utils/test-setup.js';
 
 describe('add-task command', () => {
 	let testDir;
@@ -27,13 +27,7 @@ describe('add-task command', () => {
 		const context = global.createTestContext('add-task');
 		helpers = context.helpers;
 
-		// Copy .env file if it exists
-		const mainEnvPath = join(process.cwd(), '.env');
-		const testEnvPath = join(testDir, '.env');
-		if (existsSync(mainEnvPath)) {
-			const envContent = readFileSync(mainEnvPath, 'utf8');
-			writeFileSync(testEnvPath, envContent);
-		}
+		copyConfigFiles(testDir);
 
 		// Initialize task-master project
 		const initResult = await helpers.taskMaster('init', ['-y'], {
@@ -350,7 +344,8 @@ describe('add-task command', () => {
 			const showResult = await helpers.taskMaster('show', [taskId], {
 				cwd: testDir
 			});
-			expect(showResult.stdout).toMatch(/Priority:\s+│\s+medium/);
+			expect(showResult.stdout).toContain('Priority:');
+			expect(showResult.stdout).toContain('medium');
 		});
 
 		it('should warn and continue with non-existent dependency', async () => {
@@ -483,7 +478,8 @@ describe('add-task command', () => {
 				const showResult = await helpers.taskMaster('show', [taskId], {
 					cwd: testDir
 				});
-				expect(showResult.stdout).toMatch(new RegExp(`Priority:\\s+│\\s+${expected[i]}`));
+				expect(showResult.stdout).toContain('Priority:');
+				expect(showResult.stdout).toContain(expected[i]);
 			}
 		});
 

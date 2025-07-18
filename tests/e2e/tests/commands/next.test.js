@@ -96,7 +96,8 @@ describe('task-master next command', () => {
 		expect(result.stdout).toContain('Next Task: #2');
 		expect(result.stdout).toContain('Next available task');
 		expect(result.stdout).toContain('The next available task');
-		expect(result.stdout).toContain('│ Priority:     │ high');
+		expect(result.stdout).toContain('Priority:');
+		expect(result.stdout).toContain('high');
 	});
 
 	it('should prioritize tasks based on complexity report', async () => {

@@ -144,11 +144,10 @@ describe('task-master show', () => {
 			const parent = await helpers.taskMaster('add-task', ['--title', 'Parent task', '--description', 'Has subtasks'], { cwd: testDir });
 			const parentId = helpers.extractTaskId(parent.stdout);
 
-			// Expand to create subtasks
-			await helpers.taskMaster('expand', ['-i', parentId, '-n', '3'], {
-				cwd: testDir,
-				timeout: 60000
-			});
+			// Add subtasks manually
+			await helpers.taskMaster('add-subtask', ['--parent', parentId, '--title', 'Subtask 1', '--description', 'First subtask'], { cwd: testDir });
+			await helpers.taskMaster('add-subtask', ['--parent', parentId, '--title', 'Subtask 2', '--description', 'Second subtask'], { cwd: testDir });
+			await helpers.taskMaster('add-subtask', ['--parent', parentId, '--title', 'Subtask 3', '--description', 'Third subtask'], { cwd: testDir });
 
 			// Show the parent task
 			const result = await helpers.taskMaster('show', [parentId], { cwd: testDir });
@@ -311,14 +310,9 @@ describe('task-master show', () => {
 			const main = await helpers.taskMaster('add-task', ['--title', 'Main project', '--description', 'Top level'], { cwd: testDir });
 			const mainId = helpers.extractTaskId(main.stdout);
 
-			// Expand to create subtasks
-			await helpers.taskMaster('expand', ['-i', mainId, '-n', '2'], {
-				cwd: testDir,
-				timeout: 60000
-			});
-
-			// Expand a subtask (if supported)
-			// This may not be supported in all implementations
+			// Add subtasks manually
+			await helpers.taskMaster('add-subtask', ['--parent', mainId, '--title', 'Subtask 1', '--description', 'First level subtask'], { cwd: testDir });
+			await helpers.taskMaster('add-subtask', ['--parent', mainId, '--title', 'Subtask 2', '--description', 'Second level subtask'], { cwd: testDir });
 
 			// Show main task
 			const result = await helpers.taskMaster('show', [mainId], { cwd: testDir });
@@ -338,11 +332,9 @@ describe('task-master show', () => {
 			const mainId = helpers.extractTaskId(main.stdout);
 			await helpers.taskMaster('add-dependency', ['--id', mainId, '--depends-on', depId], { cwd: testDir });
 
-			// Add subtasks
-			await helpers.taskMaster('expand', ['-i', mainId, '-n', '2'], {
-				cwd: testDir,
-				timeout: 60000
-			});
+			// Add subtasks manually
+			await helpers.taskMaster('add-subtask', ['--parent', mainId, '--title', 'Subtask 1', '--description', 'First subtask'], { cwd: testDir });
+			await helpers.taskMaster('add-subtask', ['--parent', mainId, '--title', 'Subtask 2', '--description', 'Second subtask'], { cwd: testDir });
 
 			// Show the complex task
 			const result = await helpers.taskMaster('show', [mainId], { cwd: testDir });

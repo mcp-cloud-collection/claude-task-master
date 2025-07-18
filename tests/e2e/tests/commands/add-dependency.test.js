@@ -231,14 +231,24 @@ describe('task-master add-dependency', () => {
 			const depId = helpers.extractTaskId(dep.stdout);
 
 			// Expand parent
-			await helpers.taskMaster('expand', ['-i', parentId, '-n', '2'], {
+			const expandResult = await helpers.taskMaster('expand', ['--id', parentId, '--num', '2'], {
 				cwd: testDir,
 				timeout: 60000
 			});
+			
+			// Verify expand succeeded
+			expect(expandResult).toHaveExitCode(0);
 
 			// Add dependency to subtask
 			const subtaskId = `${parentId}.1`;
-			const result = await helpers.taskMaster('add-dependency', ['--id', subtaskId, '--depends-on', depId], { cwd: testDir });
+			const result = await helpers.taskMaster('add-dependency', ['--id', subtaskId, '--depends-on', depId], { cwd: testDir, allowFailure: true });
+			
+			// Debug output
+			if (result.exitCode !== 0) {
+				console.log('STDERR:', result.stderr);
+				console.log('STDOUT:', result.stdout);
+			}
+			
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully added dependency');
 		});
@@ -249,16 +259,17 @@ describe('task-master add-dependency', () => {
 			const parentId = helpers.extractTaskId(parent.stdout);
 
 			// Expand to create subtasks
-			await helpers.taskMaster('expand', ['-i', parentId, '-n', '3'], {
+			const expandResult = await helpers.taskMaster('expand', ['--id', parentId, '--num', '3'], {
 				cwd: testDir,
 				timeout: 60000
 			});
+			expect(expandResult).toHaveExitCode(0);
 
 			// Make subtask 2 depend on subtask 1
 			const result = await helpers.taskMaster('add-dependency', [
 				'--id', `${parentId}.2`,
 				'--depends-on', `${parentId}.1`
-			], { cwd: testDir });
+			], { cwd: testDir, allowFailure: true });
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully added dependency');
 		});
@@ -268,15 +279,16 @@ describe('task-master add-dependency', () => {
 			const parent = await helpers.taskMaster('add-task', ['--title', 'Parent', '--description', 'Parent task'], { cwd: testDir });
 			const parentId = helpers.extractTaskId(parent.stdout);
 
-			await helpers.taskMaster('expand', ['-i', parentId, '-n', '2'], {
+			const expandResult = await helpers.taskMaster('expand', ['--id', parentId, '--num', '2'], {
 				cwd: testDir,
 				timeout: 60000
 			});
+			expect(expandResult).toHaveExitCode(0);
 
 			const result = await helpers.taskMaster(
 				'add-dependency',
 				['--id', parentId, '--depends-on', `${parentId}.1`],
-				{ cwd: testDir }
+				{ cwd: testDir, allowFailure: true }
 			);
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully added dependency');

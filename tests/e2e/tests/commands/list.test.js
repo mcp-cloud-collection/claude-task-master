@@ -405,9 +405,9 @@ describe('list command', () => {
 
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('│ 1     │ Parent');
-			// The actual output uses spaces between columns and may have variations
-			expect(result.stdout).toMatch(/│\s*1\.1\s*│\s*└─\s*Subtask/);
-			expect(result.stdout).toMatch(/│\s*1\.2\s*│\s*└─\s*Subtask/);
+			// Check for subtask rows in the table
+			expect(result.stdout).toContain('│ 1.1   │ └─ Subtask');
+			expect(result.stdout).toContain('│ 1.2   │ └─ Subtask');
 			expect(result.stdout).toContain(`${parentTaskId}.1`);
 			expect(result.stdout).toContain(`${parentTaskId}.2`);
 			expect(result.stdout).toContain('└─');
@@ -420,8 +420,8 @@ describe('list command', () => {
 
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Subtasks Progress:');
-			// Match the format in the Subtasks Progress section
-			expect(result.stdout).toMatch(/Completed:\s*0\/2/);
+			// Check for completion count in subtasks progress
+			expect(result.stdout).toContain('Completed: 0/2');
 		});
 	});
 
@@ -467,8 +467,8 @@ describe('list command', () => {
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('│ 1  │ Feature');
 			expect(result.stdout).not.toContain('Master task 1');
-			// The tag appears at the beginning of the output
-			expect(result.stdout).toMatch(/tag:\s*feature-branch/);
+			// Check for tag in the output
+			expect(result.stdout).toContain('🏷️ tag: feature-branch');
 		});
 
 		it('should list tasks from master tag by default', async () => {
@@ -686,8 +686,8 @@ describe('list command', () => {
 			expect(result).toHaveExitCode(0);
 			// Should recommend the ready task
 			expect(result.stdout).toContain('Next Task to Work On');
-			// The actual output shows the full task title
-			expect(result.stdout).toMatch(/ID:\s*2\s*-\s*Dependent\s*task/);
+			// Check for next task recommendation
+			expect(result.stdout).toContain('ID: 2 - Dependent task');
 		});
 	});
 

@@ -14,6 +14,7 @@ import {
 } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { copyConfigFiles } from '../../utils/test-setup.js';
 
 describe('update-task command', () => {
 	let testDir;
@@ -29,23 +30,18 @@ describe('update-task command', () => {
 		const context = global.createTestContext('update-task');
 		helpers = context.helpers;
 
-		// Copy .env file if it exists
-		const mainEnvPath = join(process.cwd(), '.env');
-		const testEnvPath = join(testDir, '.env');
-		if (existsSync(mainEnvPath)) {
-			const envContent = readFileSync(mainEnvPath, 'utf8');
-			writeFileSync(testEnvPath, envContent);
-		}
-
 		// Initialize task-master project
 		const initResult = await helpers.taskMaster('init', ['-y'], {
 			cwd: testDir
 		});
 		expect(initResult).toHaveExitCode(0);
 
+		// Copy configuration files
+		copyConfigFiles(testDir);
+
 		// Set up tasks path
 		tasksPath = join(testDir, '.taskmaster/tasks/tasks.json');
-		
+
 		// Ensure tasks.json exists after init
 		if (!existsSync(tasksPath)) {
 			mkdirSync(join(testDir, '.taskmaster/tasks'), { recursive: true });
@@ -55,7 +51,12 @@ describe('update-task command', () => {
 		// Create a test task for updates
 		const addResult = await helpers.taskMaster(
 			'add-task',
-			['--title', '"Initial task"', '--description', '"Basic task for testing updates"'],
+			[
+				'--title',
+				'"Initial task"',
+				'--description',
+				'"Basic task for testing updates"'
+			],
 			{ cwd: testDir }
 		);
 		taskId = helpers.extractTaskId(addResult.stdout);
@@ -72,7 +73,14 @@ describe('update-task command', () => {
 		it('should update task with simple prompt', async () => {
 			const result = await helpers.taskMaster(
 				'update-task',
-				['-f', tasksPath, '--id', taskId, '--prompt', 'Make this task about implementing user authentication'],
+				[
+					'-f',
+					tasksPath,
+					'--id',
+					taskId,
+					'--prompt',
+					'Make this task about implementing user authentication'
+				],
 				{ cwd: testDir }
 			);
 
@@ -85,16 +93,19 @@ describe('update-task command', () => {
 			const result = await helpers.taskMaster(
 				'update-task',
 				[
-					'-f', tasksPath, 
-					'--id', taskId, 
-					'--prompt', 'Update this task to be about building a REST API with endpoints for user management, including GET, POST, PUT, DELETE operations'
+					'-f',
+					tasksPath,
+					'--id',
+					taskId,
+					'--prompt',
+					'Update this task to be about building a REST API with endpoints for user management, including GET, POST, PUT, DELETE operations'
 				],
 				{ cwd: testDir }
 			);
 
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully updated task');
-			
+
 			// Verify the update happened by checking the stdout contains update success
 			// Note: The actual content depends on the AI model's response
 			expect(result.stdout).toContain('Successfully updated task');
@@ -104,9 +115,12 @@ describe('update-task command', () => {
 			const result = await helpers.taskMaster(
 				'update-task',
 				[
-					'-f', tasksPath,
-					'--id', taskId,
-					'--prompt', 'Add detailed implementation steps, technical requirements, and testing strategies'
+					'-f',
+					tasksPath,
+					'--id',
+					taskId,
+					'--prompt',
+					'Add detailed implementation steps, technical requirements, and testing strategies'
 				],
 				{ cwd: testDir }
 			);
@@ -121,9 +135,12 @@ describe('update-task command', () => {
 			const result = await helpers.taskMaster(
 				'update-task',
 				[
-					'-f', tasksPath,
-					'--id', taskId,
-					'--prompt', 'Add a note that this task is blocked by infrastructure setup',
+					'-f',
+					tasksPath,
+					'--id',
+					taskId,
+					'--prompt',
+					'Add a note that this task is blocked by infrastructure setup',
 					'--append'
 				],
 				{ cwd: testDir }
@@ -138,9 +155,12 @@ describe('update-task command', () => {
 			await helpers.taskMaster(
 				'update-task',
 				[
-					'-f', tasksPath,
-					'--id', taskId,
-					'--prompt', 'Progress update: Started initial research',
+					'-f',
+					tasksPath,
+					'--id',
+					taskId,
+					'--prompt',
+					'Progress update: Started initial research',
 					'--append'
 				],
 				{ cwd: testDir }
@@ -150,18 +170,23 @@ describe('update-task command', () => {
 			const result = await helpers.taskMaster(
 				'update-task',
 				[
-					'-f', tasksPath,
-					'--id', taskId,
-					'--prompt', 'Progress update: Completed design phase',
+					'-f',
+					tasksPath,
+					'--id',
+					taskId,
+					'--prompt',
+					'Progress update: Completed design phase',
 					'--append'
 				],
 				{ cwd: testDir }
 			);
 
 			expect(result).toHaveExitCode(0);
-			
+
 			// Verify both updates are present
-			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			const showResult = await helpers.taskMaster('show', [taskId], {
+				cwd: testDir
+			});
 			expect(showResult.stdout).toContain('Implementation Details');
 		}, 45000);
 	});
@@ -171,9 +196,12 @@ describe('update-task command', () => {
 			const result = await helpers.taskMaster(
 				'update-task',
 				[
-					'-f', tasksPath,
-					'--id', taskId,
-					'--prompt', 'Research and add current best practices for React component testing',
+					'-f',
+					tasksPath,
+					'--id',
+					taskId,
+					'--prompt',
+					'Research and add current best practices for React component testing',
 					'--research'
 				],
 				{ cwd: testDir }
@@ -181,7 +209,7 @@ describe('update-task command', () => {
 
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully updated task');
-			
+
 			// Should show research was used
 			const outputLower = result.stdout.toLowerCase();
 			expect(outputLower).toMatch(/research|perplexity/);
@@ -191,9 +219,12 @@ describe('update-task command', () => {
 			const result = await helpers.taskMaster(
 				'update-task',
 				[
-					'-f', tasksPath,
-					'--id', taskId,
-					'--prompt', 'Research and add OWASP security best practices for web applications',
+					'-f',
+					tasksPath,
+					'--id',
+					taskId,
+					'--prompt',
+					'Research and add OWASP security best practices for web applications',
 					'--research'
 				],
 				{ cwd: testDir }
@@ -207,13 +238,22 @@ describe('update-task command', () => {
 	describe('Tag context', () => {
 		it('should update task in specific tag', async () => {
 			// Create a new tag
-			await helpers.taskMaster('add-tag', ['feature-x', '--description', '"Feature X development"'], { cwd: testDir });
-			
+			await helpers.taskMaster(
+				'add-tag',
+				['feature-x', '--description', '"Feature X development"'],
+				{ cwd: testDir }
+			);
+
 			// Add a task to the tag
 			await helpers.taskMaster('use-tag', ['feature-x'], { cwd: testDir });
 			const addResult = await helpers.taskMaster(
 				'add-task',
-				['--title', '"Feature X task"', '--description', '"Task in feature branch"'],
+				[
+					'--title',
+					'"Feature X task"',
+					'--description',
+					'"Task in feature branch"'
+				],
 				{ cwd: testDir }
 			);
 			const featureTaskId = helpers.extractTaskId(addResult.stdout);
@@ -222,17 +262,21 @@ describe('update-task command', () => {
 			const result = await helpers.taskMaster(
 				'update-task',
 				[
-					'-f', tasksPath,
-					'--id', featureTaskId,
-					'--prompt', 'Update this to include feature toggle implementation',
-					'--tag', 'feature-x'
+					'-f',
+					tasksPath,
+					'--id',
+					featureTaskId,
+					'--prompt',
+					'Update this to include feature toggle implementation',
+					'--tag',
+					'feature-x'
 				],
 				{ cwd: testDir }
 			);
 
 			expect(result).toHaveExitCode(0);
 			// The output includes an emoji before the tag
-			expect(result.stdout).toContain('tag: feature-x');
+			expect(result.stdout).toMatch(/🏷️\s*tag:\s*feature-x/);
 			expect(result.stdout).toContain('Successfully updated task');
 		}, 60000);
 	});
@@ -240,7 +284,8 @@ describe('update-task command', () => {
 	describe('Complex prompts', () => {
 		it('should handle multi-line prompts', async () => {
 			// Use a single line prompt to avoid shell interpretation issues
-			const complexPrompt = 'Update this task with: 1) Add acceptance criteria 2) Include performance requirements 3) Define success metrics 4) Add rollback plan';
+			const complexPrompt =
+				'Update this task with: 1) Add acceptance criteria 2) Include performance requirements 3) Define success metrics 4) Add rollback plan';
 
 			const result = await helpers.taskMaster(
 				'update-task',
@@ -256,9 +301,12 @@ describe('update-task command', () => {
 			const result = await helpers.taskMaster(
 				'update-task',
 				[
-					'-f', tasksPath,
-					'--id', taskId,
-					'--prompt', 'Convert this into a technical specification with API endpoints, data models, and error handling strategies'
+					'-f',
+					tasksPath,
+					'--id',
+					taskId,
+					'--prompt',
+					'Convert this into a technical specification with API endpoints, data models, and error handling strategies'
 				],
 				{ cwd: testDir }
 			);
@@ -272,7 +320,14 @@ describe('update-task command', () => {
 		it('should fail with non-existent task ID', async () => {
 			const result = await helpers.taskMaster(
 				'update-task',
-				['-f', tasksPath, '--id', '999', '--prompt', 'Update non-existent task'],
+				[
+					'-f',
+					tasksPath,
+					'--id',
+					'999',
+					'--prompt',
+					'Update non-existent task'
+				],
 				{ cwd: testDir, allowFailure: true }
 			);
 
@@ -305,7 +360,14 @@ describe('update-task command', () => {
 		it('should handle invalid task file path', async () => {
 			const result = await helpers.taskMaster(
 				'update-task',
-				['-f', '/invalid/path/tasks.json', '--id', taskId, '--prompt', 'Update task'],
+				[
+					'-f',
+					'/invalid/path/tasks.json',
+					'--id',
+					taskId,
+					'--prompt',
+					'Update task'
+				],
 				{ cwd: testDir, allowFailure: true }
 			);
 
@@ -317,28 +379,31 @@ describe('update-task command', () => {
 	describe('Integration scenarios', () => {
 		it('should update task and preserve subtasks', async () => {
 			// First expand the task
-			await helpers.taskMaster(
-				'expand',
-				['--id', taskId, '--num', '3'],
-				{ cwd: testDir }
-			);
+			await helpers.taskMaster('expand', ['--id', taskId, '--num', '3'], {
+				cwd: testDir
+			});
 
 			// Then update the parent task
 			const result = await helpers.taskMaster(
 				'update-task',
 				[
-					'-f', tasksPath,
-					'--id', taskId,
-					'--prompt', 'Update the main task description to focus on microservices architecture'
+					'-f',
+					tasksPath,
+					'--id',
+					taskId,
+					'--prompt',
+					'Update the main task description to focus on microservices architecture'
 				],
 				{ cwd: testDir }
 			);
 
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully updated task');
-			
+
 			// Verify subtasks are preserved
-			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			const showResult = await helpers.taskMaster('show', [taskId], {
+				cwd: testDir
+			});
 			expect(showResult.stdout).toContain('Subtasks');
 		}, 60000);
 
@@ -346,7 +411,12 @@ describe('update-task command', () => {
 			// Create another task
 			const depResult = await helpers.taskMaster(
 				'add-task',
-				['--title', '"Dependency task"', '--description', '"This task must be done first"'],
+				[
+					'--title',
+					'"Dependency task"',
+					'--description',
+					'"This task must be done first"'
+				],
 				{ cwd: testDir }
 			);
 			const depId = helpers.extractTaskId(depResult.stdout);
@@ -362,17 +432,22 @@ describe('update-task command', () => {
 			const result = await helpers.taskMaster(
 				'update-task',
 				[
-					'-f', tasksPath,
-					'--id', taskId,
-					'--prompt', 'Update this task to include database migration requirements'
+					'-f',
+					tasksPath,
+					'--id',
+					taskId,
+					'--prompt',
+					'Update this task to include database migration requirements'
 				],
 				{ cwd: testDir }
 			);
 
 			expect(result).toHaveExitCode(0);
-			
+
 			// Verify dependency is preserved
-			const showResult = await helpers.taskMaster('show', [taskId], { cwd: testDir });
+			const showResult = await helpers.taskMaster('show', [taskId], {
+				cwd: testDir
+			});
 			expect(showResult.stdout).toContain('Dependencies:');
 		}, 45000);
 	});
@@ -381,7 +456,14 @@ describe('update-task command', () => {
 		it('should show AI usage telemetry', async () => {
 			const result = await helpers.taskMaster(
 				'update-task',
-				['-f', tasksPath, '--id', taskId, '--prompt', 'Add unit test requirements'],
+				[
+					'-f',
+					tasksPath,
+					'--id',
+					taskId,
+					'--prompt',
+					'Add unit test requirements'
+				],
 				{ cwd: testDir }
 			);
 
@@ -395,7 +477,14 @@ describe('update-task command', () => {
 		it('should show update progress', async () => {
 			const result = await helpers.taskMaster(
 				'update-task',
-				['-f', tasksPath, '--id', taskId, '--prompt', 'Add deployment checklist'],
+				[
+					'-f',
+					tasksPath,
+					'--id',
+					taskId,
+					'--prompt',
+					'Add deployment checklist'
+				],
 				{ cwd: testDir }
 			);
 
