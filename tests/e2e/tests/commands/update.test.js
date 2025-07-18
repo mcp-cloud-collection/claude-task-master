@@ -214,7 +214,10 @@ describe('update command', () => {
 					description: 'Perform security review',
 					priority: 'high',
 					status: 'pending',
-					details: 'Initial security check'
+					details: 'Initial security check',
+					dependencies: [],
+					testStrategy: 'Security testing',
+					subtasks: []
 				},
 				{
 					id: 5,
@@ -222,7 +225,10 @@ describe('update command', () => {
 					description: 'Load testing',
 					priority: 'high',
 					status: 'in_progress',
-					details: 'Using JMeter'
+					details: 'Using JMeter',
+					dependencies: [],
+					testStrategy: 'Performance testing',
+					subtasks: []
 				}
 			);
 			writeFileSync(tasksPath, JSON.stringify(currentTasks, null, 2));

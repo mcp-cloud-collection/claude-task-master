@@ -14,6 +14,7 @@ import {
 } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { copyConfigFiles } from '../../utils/test-setup.js';
 
 // Skip these tests if Perplexity API key is not available
 const shouldSkip = !process.env.PERPLEXITY_API_KEY;
@@ -43,6 +44,9 @@ describe.skip('parse-prd command', () => {
 			cwd: testDir
 		});
 		expect(initResult).toHaveExitCode(0);
+
+		// Copy configuration files
+		copyConfigFiles(testDir);
 	});
 
 	afterEach(() => {
