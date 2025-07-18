@@ -420,6 +420,6 @@ describe('task-master fix-dependencies command', () => {
 		// Should handle gracefully
 		expect(result).toHaveExitCode(0);
 		// The output includes this in a formatted box
-		expect(result.stdout).toMatch(/Tasks checked:\s+0/);
+		expect(result.stdout).toMatch(/Tasks checked:\s*0/);
 	});
 });

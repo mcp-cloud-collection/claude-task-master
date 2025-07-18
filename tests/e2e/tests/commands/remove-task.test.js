@@ -55,8 +55,8 @@ describe('task-master remove-task', () => {
 			const task = await helpers.taskMaster('add-task', ['--title', 'Task to remove', '--description', 'This will be removed'], { cwd: testDir });
 			const taskId = helpers.extractTaskId(task.stdout);
 
-			// Remove the task
-			const result = await helpers.taskMaster('remove-task', ['--id', taskId], { cwd: testDir });
+			// Remove the task with --yes to skip confirmation
+			const result = await helpers.taskMaster('remove-task', ['--id', taskId, '--yes'], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully removed task');
@@ -72,8 +72,8 @@ describe('task-master remove-task', () => {
 			const task = await helpers.taskMaster('add-task', ['--title', 'Task to force remove', '--description', 'Will be removed with force'], { cwd: testDir });
 			const taskId = helpers.extractTaskId(task.stdout);
 
-			// Remove with force flag
-			const result = await helpers.taskMaster('remove-task', ['--id', taskId, '--force'], { cwd: testDir });
+			// Remove with yes flag to skip confirmation
+			const result = await helpers.taskMaster('remove-task', ['--id', taskId, '--yes'], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully removed task');
@@ -91,7 +91,7 @@ describe('task-master remove-task', () => {
 			const taskId3 = helpers.extractTaskId(task3.stdout);
 
 			// Remove first two tasks
-			const result = await helpers.taskMaster('remove-task', ['--id', `${taskId1},${taskId2}`, '--force'], { cwd: testDir });
+			const result = await helpers.taskMaster('remove-task', ['--id', `${taskId1},${taskId2}`, '--yes'], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully removed');
@@ -106,7 +106,7 @@ describe('task-master remove-task', () => {
 
 	describe('Error handling', () => {
 		it('should fail when removing non-existent task', async () => {
-			const result = await helpers.taskMaster('remove-task', ['--id', '999', '--force'], {
+			const result = await helpers.taskMaster('remove-task', ['--id', '999', '--yes'], {
 				cwd: testDir,
 				allowFailure: true
 			});
@@ -126,7 +126,7 @@ describe('task-master remove-task', () => {
 		});
 
 		it('should handle invalid task ID format', async () => {
-			const result = await helpers.taskMaster('remove-task', ['--id', 'invalid-id', '--force'], {
+			const result = await helpers.taskMaster('remove-task', ['--id', 'invalid-id', '--yes'], {
 				cwd: testDir,
 				allowFailure: true
 			});
@@ -148,7 +148,7 @@ describe('task-master remove-task', () => {
 			await helpers.taskMaster('add-dependency', ['--id', taskId2, '--depends-on', taskId1], { cwd: testDir });
 
 			// Try to remove base task
-			const result = await helpers.taskMaster('remove-task', ['--id', taskId1, '--force'], { cwd: testDir });
+			const result = await helpers.taskMaster('remove-task', ['--id', taskId1, '--yes'], { cwd: testDir });
 			
 			// Should either warn or update dependent tasks
 			expect(result).toHaveExitCode(0);
@@ -166,7 +166,7 @@ describe('task-master remove-task', () => {
 			await helpers.taskMaster('add-dependency', ['--id', taskId2, '--depends-on', taskId1], { cwd: testDir });
 
 			// Remove the main task (with dependencies)
-			const result = await helpers.taskMaster('remove-task', ['--id', taskId2, '--force'], { cwd: testDir });
+			const result = await helpers.taskMaster('remove-task', ['--id', taskId2, '--yes'], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully removed task');
@@ -191,7 +191,7 @@ describe('task-master remove-task', () => {
 			});
 
 			// Remove parent task
-			const result = await helpers.taskMaster('remove-task', ['--id', parentId, '--force'], { cwd: testDir });
+			const result = await helpers.taskMaster('remove-task', ['--id', parentId, '--yes'], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully removed task');
@@ -216,7 +216,7 @@ describe('task-master remove-task', () => {
 			});
 
 			// Remove only one subtask
-			const result = await helpers.taskMaster('remove-task', ['--id', `${parentId}.2`, '--force'], { cwd: testDir });
+			const result = await helpers.taskMaster('remove-task', ['--id', `${parentId}.2`, '--yes'], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
 
@@ -244,7 +244,7 @@ describe('task-master remove-task', () => {
 			const featureId = helpers.extractTaskId(featureTask.stdout);
 
 			// Remove task from feature tag
-			const result = await helpers.taskMaster('remove-task', ['--id', featureId, '--tag', 'feature', '--force'], { cwd: testDir });
+			const result = await helpers.taskMaster('remove-task', ['--id', featureId, '--tag', 'feature', '--yes'], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
 
@@ -274,7 +274,7 @@ describe('task-master remove-task', () => {
 			await helpers.taskMaster('set-status', ['--id', doneId, '--status', 'done'], { cwd: testDir });
 
 			// Remove all tasks
-			const result = await helpers.taskMaster('remove-task', ['--id', `${pendingId},${inProgressId},${doneId}`, '--force'], { cwd: testDir });
+			const result = await helpers.taskMaster('remove-task', ['--id', `${pendingId},${inProgressId},${doneId}`, '--yes'], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
 
@@ -292,7 +292,7 @@ describe('task-master remove-task', () => {
 			await helpers.taskMaster('set-status', ['--id', taskId, '--status', 'in-progress'], { cwd: testDir });
 
 			// Remove without force (if interactive prompt is supported)
-			const result = await helpers.taskMaster('remove-task', ['--id', taskId, '--force'], { cwd: testDir });
+			const result = await helpers.taskMaster('remove-task', ['--id', taskId, '--yes'], { cwd: testDir });
 			
 			// Should succeed with force flag
 			expect(result).toHaveExitCode(0);
@@ -305,7 +305,7 @@ describe('task-master remove-task', () => {
 			const taskId = helpers.extractTaskId(task.stdout);
 
 			// Remove with quiet flag if supported
-			const result = await helpers.taskMaster('remove-task', ['--id', taskId, '--force', '-q'], { cwd: testDir });
+			const result = await helpers.taskMaster('remove-task', ['--id', taskId, '--yes', '-q'], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
 			// Output should be minimal or empty
@@ -316,7 +316,7 @@ describe('task-master remove-task', () => {
 			const taskId = helpers.extractTaskId(task.stdout);
 
 			// Remove with verbose flag if supported
-			const result = await helpers.taskMaster('remove-task', ['--id', taskId, '--force'], { cwd: testDir });
+			const result = await helpers.taskMaster('remove-task', ['--id', taskId, '--yes'], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully removed task');

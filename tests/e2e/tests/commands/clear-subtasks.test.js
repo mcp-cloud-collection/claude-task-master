@@ -131,8 +131,9 @@ describe('task-master clear-subtasks command', () => {
 		// Verify success
 		expect(result).toHaveExitCode(0);
 		expect(result.stdout).toContain('Clearing Subtasks');
-		// The success message appears in a decorative box with extra spaces
-		expect(result.stdout).toMatch(/Successfully\s+cleared\s+subtasks\s+from\s+2\s+task\(s\)/i);
+		// The success message appears in a decorative box with chalk formatting and ANSI codes
+		// Using a more flexible pattern to account for ANSI escape codes and formatting
+		expect(result.stdout).toMatch(/Successfully\s+cleared\s+subtasks\s+from\s+.*2.*\s+task\(s\)/i);
 
 		// Read updated tasks
 		const updatedTasks = JSON.parse(readFileSync(tasksPath, 'utf8'));

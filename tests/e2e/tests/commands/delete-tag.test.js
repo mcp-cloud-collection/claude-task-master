@@ -121,12 +121,12 @@ describe('delete-tag command', () => {
 			);
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Tasks Deleted: 2');
+			expect(result.stdout).toContain('│   Tasks Deleted: 2');
 			expect(result.stdout).toContain('Switched current tag to "master"');
 
 			// Verify we're on master tag
 			const showResult = await helpers.taskMaster('show', [], { cwd: testDir });
-			expect(showResult.stdout).toContain('tag: master');
+			expect(showResult.stdout).toContain('🏷️ tag: master');
 		});
 
 		// Skip this test if aliases are not supported
@@ -260,7 +260,7 @@ describe('delete-tag command', () => {
 
 			// Verify we're on master and the task is gone
 			const showResult = await helpers.taskMaster('show', [], { cwd: testDir });
-			expect(showResult.stdout).toContain('tag: master');
+			expect(showResult.stdout).toContain('🏷️ tag: master');
 		});
 
 		it('should not switch tags when deleting a non-current tag', async () => {
@@ -291,7 +291,7 @@ describe('delete-tag command', () => {
 
 			// Verify we're still on feature-a
 			const showResult = await helpers.taskMaster('show', [], { cwd: testDir });
-			expect(showResult.stdout).toContain('tag: feature-a');
+			expect(showResult.stdout).toContain('🏷️ tag: feature-a');
 		});
 	});
 
@@ -342,7 +342,7 @@ describe('delete-tag command', () => {
 
 			expect(result).toHaveExitCode(0);
 			// Check that tasks were deleted - actual count may vary depending on implementation
-			expect(result.stdout).toMatch(/Tasks Deleted: \d+/);
+			expect(result.stdout).toMatch(/│\s+Tasks Deleted:\s+\d+/);
 			expect(result.stdout).toContain('Successfully deleted tag "complex-feature"');
 		});
 
@@ -375,7 +375,7 @@ describe('delete-tag command', () => {
 			const endTime = Date.now();
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain(`Tasks Deleted: ${taskCount}`);
+			expect(result.stdout).toContain(`│   Tasks Deleted: ${taskCount}`);
 			
 			// Should complete within reasonable time (5 seconds)
 			expect(endTime - startTime).toBeLessThan(5000);
@@ -440,7 +440,7 @@ describe('delete-tag command', () => {
 			);
 
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Tasks Deleted: 0');
+			expect(result.stdout).toContain('│   Tasks Deleted: 0');
 		});
 
 		it('should handle special characters in tag names', async () => {

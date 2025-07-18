@@ -366,7 +366,7 @@ describe('task-master add-dependency', () => {
 			], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
 			// Tag context is shown in the emoji header
-			expect(result.stdout).toContain('tag: feature');
+			expect(result.stdout).toContain('🏷️ tag: feature');
 		});
 
 		it('should prevent cross-tag dependencies by default', async () => {

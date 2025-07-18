@@ -23,8 +23,20 @@ export class TestHelpers {
 			};
 
 			// When using shell: true, pass the full command as a single string
+			// Quote arguments that contain spaces
+			const quotedArgs = args.map((arg) => {
+				// If arg contains spaces and doesn't already have quotes, wrap it in quotes
+				if (
+					arg?.includes(' ') &&
+					!arg?.startsWith('"') &&
+					!arg?.startsWith("'")
+				) {
+					return `"${arg}"`;
+				}
+				return arg;
+			});
 			const fullCommand =
-				args.length > 0 ? `${command} ${args.join(' ')}` : command;
+				args.length > 0 ? `${command} ${quotedArgs.join(' ')}` : command;
 			const child = spawn(fullCommand, [], spawnOptions);
 			let stdout = '';
 			let stderr = '';

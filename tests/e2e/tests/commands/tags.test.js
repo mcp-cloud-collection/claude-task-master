@@ -94,7 +94,7 @@ describe('tags command', () => {
 			expect(result.stdout).toContain('feature-b');
 			expect(result.stdout).toContain('bugfix-123');
 			// Master should be marked as current
-			expect(result.stdout).toMatch(/●\s+master.*\(current\)/);
+			expect(result.stdout).toMatch(/●\s*master\s*\(current\)/);
 		});
 	});
 
@@ -110,8 +110,8 @@ describe('tags command', () => {
 			// List tags - master should be current
 			let result = await helpers.taskMaster('tags', [], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toMatch(/●\s+master.*\(current\)/);
-			expect(result.stdout).not.toMatch(/●\s+feature-xyz.*\(current\)/);
+			expect(result.stdout).toMatch(/●\s*master\s*\(current\)/);
+			expect(result.stdout).not.toMatch(/●\s*feature-xyz\s*\(current\)/);
 
 			// Switch to feature-xyz
 			await helpers.taskMaster('use-tag', ['feature-xyz'], { cwd: testDir });
@@ -119,8 +119,8 @@ describe('tags command', () => {
 			// List tags again - feature-xyz should be current
 			result = await helpers.taskMaster('tags', [], { cwd: testDir });
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toMatch(/●\s+feature-xyz.*\(current\)/);
-			expect(result.stdout).not.toMatch(/●\s+master.*\(current\)/);
+			expect(result.stdout).toMatch(/●\s*feature-xyz\s*\(current\)/);
+			expect(result.stdout).not.toMatch(/●\s*master\s*\(current\)/);
 		});
 
 		it('should sort tags with current tag first', async () => {
@@ -232,7 +232,7 @@ describe('tags command', () => {
 
 			expect(result).toHaveExitCode(0);
 			const emptyLine = result.stdout.split('\n').find(line => line.includes('empty-tag'));
-			expect(emptyLine).toMatch(/0\s+.*0/); // 0 tasks, 0 completed (with table formatting)
+			expect(emptyLine).toMatch(/│\s*0\s*│\s*0\s*│/); // 0 tasks, 0 completed (with table formatting)
 		});
 	});
 
@@ -426,10 +426,10 @@ describe('tags command', () => {
 			const result = await helpers.taskMaster('tags', [], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toMatch(/●\s+staging.*\(current\)/);
-			expect(result.stdout).not.toMatch(/●\s+master.*\(current\)/);
-			expect(result.stdout).not.toMatch(/●\s+dev.*\(current\)/);
-			expect(result.stdout).not.toMatch(/●\s+prod.*\(current\)/);
+			expect(result.stdout).toMatch(/●\s*staging\s*\(current\)/);
+			expect(result.stdout).not.toMatch(/●\s*master\s*\(current\)/);
+			expect(result.stdout).not.toMatch(/●\s*dev\s*\(current\)/);
+			expect(result.stdout).not.toMatch(/●\s*prod\s*\(current\)/);
 		});
 
 		// Note: Tests involving add-task are commented out due to projectRoot error in test environment

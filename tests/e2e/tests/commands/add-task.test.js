@@ -350,7 +350,7 @@ describe('add-task command', () => {
 			const showResult = await helpers.taskMaster('show', [taskId], {
 				cwd: testDir
 			});
-			expect(showResult.stdout).toContain('Priority:     │ medium');
+			expect(showResult.stdout).toMatch(/Priority:\s+│\s+medium/);
 		});
 
 		it('should warn and continue with non-existent dependency', async () => {
@@ -483,7 +483,7 @@ describe('add-task command', () => {
 				const showResult = await helpers.taskMaster('show', [taskId], {
 					cwd: testDir
 				});
-				expect(showResult.stdout).toContain(`Priority:     │ ${expected[i]}`);
+				expect(showResult.stdout).toMatch(new RegExp(`Priority:\\s+│\\s+${expected[i]}`));
 			}
 		});
 

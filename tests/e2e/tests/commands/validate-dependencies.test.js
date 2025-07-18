@@ -369,6 +369,6 @@ describe('task-master validate-dependencies command', () => {
 
 		// Should handle gracefully
 		expect(result).toHaveExitCode(0);
-		expect(result.stdout).toContain('Tasks checked: 0');
+		expect(result.stdout).toContain('│   Tasks checked: 0');
 	});
 });

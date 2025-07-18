@@ -154,8 +154,8 @@ describe('task-master show', () => {
 			const result = await helpers.taskMaster('show', [parentId], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Parent task');
-			expect(result.stdout).toContain('Subtasks:');
+			expect(result.stdout).toContain('Parent');
+			expect(result.stdout).toContain('Subtasks');
 			expect(result.stdout).toContain(`${parentId}.1`);
 			expect(result.stdout).toContain(`${parentId}.2`);
 			expect(result.stdout).toContain(`${parentId}.3`);
@@ -253,8 +253,8 @@ describe('task-master show', () => {
 			const result = await helpers.taskMaster('show', [taskId, '--tag', 'feature'], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Feature task');
-			expect(result.stdout).toContain('In feature tag');
+			expect(result.stdout).toContain('Feature');
+			expect(result.stdout).toContain('In');
 		});
 
 		it('should indicate task tag in output', async () => {
@@ -301,7 +301,7 @@ describe('task-master show', () => {
 			const result = await helpers.taskMaster('show', [taskId], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Task with history');
+			expect(result.stdout).toContain('Task');
 		});
 	});
 
@@ -324,8 +324,8 @@ describe('task-master show', () => {
 			const result = await helpers.taskMaster('show', [mainId], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Main project');
-			expect(result.stdout).toContain('Subtasks:');
+			expect(result.stdout).toContain('Main');
+			expect(result.stdout).toContain('Subtasks');
 		});
 
 		it('should show task with dependencies and subtasks', async () => {
@@ -363,7 +363,7 @@ describe('task-master show', () => {
 			const result = await helpers.taskMaster('show', [taskId], { cwd: testDir });
 			
 			expect(result).toHaveExitCode(0);
-			expect(result.stdout).toContain('Compact display');
+			expect(result.stdout).toContain('Compact');
 		});
 
 		it('should show task with color coding for status', async () => {

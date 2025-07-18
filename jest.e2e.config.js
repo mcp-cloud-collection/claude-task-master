@@ -18,8 +18,8 @@ export default {
 	],
 	testEnvironment: 'node',
 	testTimeout: 600000, // 10 minutes default (AI operations can be slow)
-	maxWorkers: 6, // Run tests in 6 parallel workers to avoid rate limits
-	maxConcurrency: 6, // Limit concurrent test execution
+	maxWorkers: 10, // Run tests in parallel workers to avoid rate limits
+	maxConcurrency: 10, // Limit concurrent test execution
 	testSequencer: '<rootDir>/tests/e2e/setup/rate-limit-sequencer.cjs', // Custom sequencer for rate limiting
 	verbose: true,
 	// Suppress console output for cleaner test results

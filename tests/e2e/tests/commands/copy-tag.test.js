@@ -73,7 +73,7 @@ describe('task-master copy-tag', () => {
 			expect(result.stdout).toContain('Successfully copied tag');
 			expect(result.stdout).toContain('feature');
 			expect(result.stdout).toContain('feature-backup');
-			expect(result.stdout).toMatch(/Tasks Copied:\s+2/);
+			expect(result.stdout).toMatch(/Tasks Copied:\s*2/);
 
 			// Verify the new tag exists
 			const tagsResult = await helpers.taskMaster('tags', [], { cwd: testDir });
@@ -162,7 +162,7 @@ describe('task-master copy-tag', () => {
 			
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully copied tag');
-			expect(result.stdout).toMatch(/Tasks Copied:\s+2/);
+			expect(result.stdout).toMatch(/Tasks Copied:\s*2/);
 
 			// Verify both tags exist
 			const tagsResult = await helpers.taskMaster('tags', [], { cwd: testDir });
@@ -179,7 +179,7 @@ describe('task-master copy-tag', () => {
 			
 			expect(result).toHaveExitCode(0);
 			expect(result.stdout).toContain('Successfully copied tag');
-			expect(result.stdout).toMatch(/Tasks Copied:\s+0/);
+			expect(result.stdout).toMatch(/Tasks Copied:\s*0/);
 
 			// Verify copy exists
 			const tagsResult = await helpers.taskMaster('tags', [], { cwd: testDir });
@@ -292,7 +292,7 @@ describe('task-master copy-tag', () => {
 			const listResult = await helpers.taskMaster('list', [], { cwd: testDir });
 			// Just verify the task is there (title may be truncated)
 			expect(listResult.stdout).toContain('Shared');
-			expect(listResult.stdout).toMatch(/Pending:\s+1/);
+			expect(listResult.stdout).toMatch(/Pending:\s*1/);
 		});
 	});
 
@@ -311,7 +311,7 @@ describe('task-master copy-tag', () => {
 			expect(result.stdout).toContain('Successfully copied tag');
 			expect(result.stdout).toContain('dev');
 			expect(result.stdout).toContain('dev-backup');
-			expect(result.stdout).toMatch(/Tasks Copied:\s+2/);
+			expect(result.stdout).toMatch(/Tasks Copied:\s*2/);
 		});
 
 		it('should handle verbose output if supported', async () => {

@@ -95,7 +95,8 @@ describe('task-master rename-tag', () => {
 
 			// Verify we're now on the renamed tag
 			const tagsResult = await helpers.taskMaster('tags', [], { cwd: testDir });
-			expect(tagsResult.stdout).toMatch(/●\s+development.*\(current\)/);
+			// Match the table format where bullet and (current) are in the same cell
+			expect(tagsResult.stdout).toMatch(/●\s*development\s*\(current\)/);
 		});
 	});
 
@@ -247,7 +248,8 @@ describe('task-master rename-tag', () => {
 
 			// Verify we're on the right tag
 			const tagsResult = await helpers.taskMaster('tags', [], { cwd: testDir });
-			expect(tagsResult.stdout).toMatch(/●\s+development.*\(current\)/);
+			// Match the table format where bullet and (current) are in the same cell
+			expect(tagsResult.stdout).toMatch(/●\s*development\s*\(current\)/);
 		});
 
 		it('should fail gracefully when renaming during operations', async () => {
