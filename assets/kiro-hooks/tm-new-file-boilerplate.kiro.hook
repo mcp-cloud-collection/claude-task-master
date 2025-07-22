@@ -1,0 +1,19 @@
+{
+  "enabled": true,
+  "name": "[TM] New File Boilerplate",
+  "description": "Create task-aware file scaffolding for any language",
+  "version": "1",
+  "when": {
+    "type": "fileCreated",
+    "patterns": [
+      "**/*.{js,ts,jsx,tsx,py,go,rs,java,cpp,c,h,hpp,cs,rb,php,swift,kt}",
+      "!**/node_modules/**",
+      "!**/vendor/**",
+      "!**/.git/**"
+    ]
+  },
+  "then": {
+    "type": "askAgent",
+    "prompt": "A new source file was created. Please:\n\n1. Check if there's a task related to creating this file or its functionality\n2. Based on the file extension and project context, generate appropriate boilerplate code:\n   - Language-specific structure (class, function, module, component, etc.)\n   - Common imports/includes for the detected language\n   - Basic documentation/comments in the language's style\n   - Comment linking to the relevant task ID if found\n3. If appropriate for the language/framework, suggest creating a corresponding test file\n4. Update the task notes to indicate the file was created"
+  }
+}
