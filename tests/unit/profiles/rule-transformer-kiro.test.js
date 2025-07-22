@@ -270,7 +270,6 @@ Use the .mdc extension for all rule files.`;
 				'/test/assets/kiro-hooks/tm-test-hook2.kiro.hook',
 				'/test/project/.kiro/hooks/tm-test-hook2.kiro.hook'
 			);
-
 		});
 
 		it('should handle case when hooks directory already exists', () => {
