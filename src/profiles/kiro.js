@@ -50,30 +50,35 @@ export const kiroProfile = createProfile({
 			to: '---\ninclusion: always\n---'
 		}
 	],
-	
+
 	// Add lifecycle hook to copy Kiro hooks
 	onPostConvert: (projectRoot, assetsDir) => {
 		const hooksSourceDir = path.join(assetsDir, 'kiro-hooks');
 		const hooksTargetDir = path.join(projectRoot, '.kiro', 'hooks');
-		
+
 		// Create hooks directory if it doesn't exist
 		if (!fs.existsSync(hooksTargetDir)) {
 			fs.mkdirSync(hooksTargetDir, { recursive: true });
 		}
-		
+
 		// Copy all .kiro.hook files
 		if (fs.existsSync(hooksSourceDir)) {
-			const hookFiles = fs.readdirSync(hooksSourceDir).filter(f => f.endsWith('.kiro.hook'));
-			
-			hookFiles.forEach(file => {
+			const hookFiles = fs
+				.readdirSync(hooksSourceDir)
+				.filter((f) => f.endsWith('.kiro.hook'));
+
+			hookFiles.forEach((file) => {
 				const sourcePath = path.join(hooksSourceDir, file);
 				const targetPath = path.join(hooksTargetDir, file);
-				
+
 				fs.copyFileSync(sourcePath, targetPath);
 			});
-			
+
 			if (hookFiles.length > 0) {
-				log('info', `[Kiro] Installed ${hookFiles.length} Taskmaster hooks in .kiro/hooks/`);
+				log(
+					'info',
+					`[Kiro] Installed ${hookFiles.length} Taskmaster hooks in .kiro/hooks/`
+				);
 			}
 		}
 	}
