@@ -1,14 +1,20 @@
 {
 	"name": "taskr",
+	"private": true,
 	"displayName": "Task Master Kanban",
 	"description": "A visual Kanban board interface for Task Master projects in VS Code",
-	"version": "1.0.0",
+	"version": "1.1.0",
 	"publisher": "DavidMaliglowka",
 	"icon": "assets/icon.png",
 	"engines": {
 		"vscode": "^1.93.0"
 	},
-	"categories": ["AI", "Visualization", "Education", "Other"],
+	"categories": [
+		"AI",
+		"Visualization",
+		"Education",
+		"Other"
+	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
@@ -42,7 +48,11 @@
 					"items": {
 						"type": "string"
 					},
-					"default": ["-y", "--package=task-master-ai", "task-master-ai"],
+					"default": [
+						"-y",
+						"--package=task-master-ai",
+						"task-master-ai"
+					],
 					"description": "An array of arguments to pass to the MCP server command."
 				},
 				"taskmaster.mcp.cwd": {
@@ -102,7 +112,11 @@
 				},
 				"taskmaster.ui.theme": {
 					"type": "string",
-					"enum": ["auto", "light", "dark"],
+					"enum": [
+						"auto",
+						"light",
+						"dark"
+					],
 					"default": "auto",
 					"description": "UI theme preference"
 				},
@@ -163,7 +177,12 @@
 				},
 				"taskmaster.debug.logLevel": {
 					"type": "string",
-					"enum": ["error", "warn", "info", "debug"],
+					"enum": [
+						"error",
+						"warn",
+						"info",
+						"debug"
+					],
 					"default": "info",
 					"description": "Logging level"
 				},

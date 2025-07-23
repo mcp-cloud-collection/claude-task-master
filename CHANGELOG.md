@@ -1,5 +1,22 @@
 # task-master-ai
 
+## 0.20.1
+
+### Patch Changes
+
+- f662654: Prevent CLAUDE.md overwrite by using Claude Code's import feature
+  - Task Master now creates its instructions in `.taskmaster/CLAUDE.md` instead of overwriting the user's `CLAUDE.md`
+  - Adds an import section to the user's CLAUDE.md that references the Task Master instructions
+  - Preserves existing user content in CLAUDE.md files
+  - Provides clean uninstall that only removes Task Master's additions
+
+  **Breaking Change**: Task Master instructions for Claude Code are now stored in `.taskmaster/CLAUDE.md` and imported into the main CLAUDE.md file. Users who previously had Task Master content directly in their CLAUDE.md will need to run `task-master rules remove claude` followed by `task-master rules add claude` to migrate to the new structure.
+
+- 7b4803a: Fixed the comprehensive taskmaster system integration via custom slash commands with proper syntax
+  - Provide claude clode with a complete set of of commands that can trigger task master events directly within Claude Code
+
+- 8209f8d: Complete VS Code extension with React-based kanban board UI. MCP integration for real-time Task Master synchronization. Professional CI/CD workflows for marketplace publishing
+
 ## 0.20.0
 
 ### Minor Changes

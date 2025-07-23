@@ -200,4 +200,4 @@ jobs:
         with:
           name: extension-test-results
           path: apps/extension/test-results
-          retention-days: 30 
+          retention-days: 30

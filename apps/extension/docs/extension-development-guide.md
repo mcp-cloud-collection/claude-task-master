@@ -138,6 +138,65 @@ When updating extension metadata, ensure these fields match between `package.jso
 }
 ```
 
+## 🤖 Automated Release Process
+
+### Changesets Workflow
+This extension uses [Changesets](https://github.com/changesets/changesets) for automated version management and publishing.
+
+#### Adding Changes
+When making changes to the extension:
+
+1. **Make your code changes**
+2. **Create a changeset**:
+   ```bash
+   # From project root
+   npx changeset add
+   ```
+3. **Select the extension package**: Choose `taskr-kanban` when prompted
+4. **Select version bump type**:
+   - `patch`: Bug fixes, minor updates
+   - `minor`: New features, backwards compatible
+   - `major`: Breaking changes
+5. **Write a summary**: Describe what changed for users
+
+#### Automated Publishing
+The automation workflow runs on pushes to `main`:
+
+1. **Version Workflow** (`.github/workflows/version.yml`):
+   - Detects when changesets exist
+   - Creates a "Version Packages" PR with updated versions and CHANGELOG
+   - When the PR is merged, automatically publishes the extension
+
+2. **Release Process** (`scripts/release.sh`):
+   - Builds the extension using the 3-file packaging system
+   - Creates VSIX package
+   - Publishes to VS Code Marketplace (if `VSCE_PAT` is set)
+   - Publishes to Open VSX Registry (if `OVSX_PAT` is set)
+   - Creates git tags for the extension version
+
+#### Required Secrets
+For automated publishing, these secrets must be set in the repository:
+
+- `VSCE_PAT`: Personal Access Token for VS Code Marketplace
+- `OVSX_PAT`: Personal Access Token for Open VSX Registry
+- `GITHUB_TOKEN`: Automatically provided by GitHub Actions
+
+#### Manual Release
+If needed, you can manually trigger a release:
+
+```bash
+# From project root
+./scripts/release.sh
+```
+
+### Extension Tagging
+The extension uses a separate tagging strategy from the main package:
+
+- **Extension tags**: `taskr-kanban@1.0.1`
+- **Main package tags**: `task-master-ai@2.1.0`
+
+This allows independent versioning and prevents conflicts in the monorepo.
+
 ## 🔍 Troubleshooting
 
 ### Dependency Conflicts
@@ -155,14 +214,32 @@ When updating extension metadata, ensure these fields match between `package.jso
 **Problem**: Extension works locally but fails when packaged
 **Check**: Ensure critical fields are synced between package files
 
+### Changeset Issues
+**Problem**: Version workflow not triggering
+**Check**: 
+1. Changeset files exist in `.changeset/`
+2. Package name in changeset matches `package.publish.json`
+3. Changes are pushed to `main` branch
+
+**Problem**: Publishing fails
+**Check**:
+1. Required secrets are set in repository settings
+2. `package.publish.json` has correct repository URL
+3. Build process completes successfully
+
 ## 📝 Version Release Checklist
 
-1. **Update version** in both `package.json` and `package.publish.json`
-2. **Update CHANGELOG.md** with new features/fixes
+### Manual Releases
+1. **Create changeset**: `npx changeset add`
+2. **Update critical fields** in both `package.json` and `package.publish.json`
 3. **Test locally** with `F5` in VS Code
-4. **Build clean package**: `pnpm run package`
-5. **Test packaged extension**: Install `.vsix` file
-6. **Publish**: Upload to marketplace or distribute `.vsix`
+4. **Commit and push** to trigger automated workflow
+
+### Automated Releases (Recommended)
+1. **Create changeset**: `npx changeset add`
+2. **Push to feature branch** and create PR
+3. **Merge PR** - this triggers version PR creation
+4. **Review and merge version PR** - this triggers automated publishing
 
 ## 🎯 Why This System?
 
@@ -171,7 +248,9 @@ When updating extension metadata, ensure these fields match between `package.jso
 - **Faster packaging**: No dependency resolution during `vsce package`
 - **Maintainable**: Clear separation of dev vs. production configs
 - **Reliable**: Consistent, conflict-free packaging process
+- **Automated**: Changesets handle versioning and publishing automatically
+- **Traceable**: Clear changelog and git tags for every release
 
 ---
 
-**Remember**: Always use `pnpm run package` → `cd vsix-build` → `vsce package --no-dependencies` for production builds! 🚀 
+**Remember**: Always use `npx changeset add` for changes, then push to trigger automated releases! 🚀 

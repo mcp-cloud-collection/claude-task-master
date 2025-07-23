@@ -24,6 +24,7 @@ import {
 } from './utils/errorHandler';
 import { getToastDuration } from './utils/notificationPreferences';
 import { parseTaskFileData } from './utils/taskFileReader';
+import { TaskMasterTask } from './utils/taskMasterApi';
 
 // Global MCP client manager instance
 let mcpClient: MCPClientManager | null = null;
@@ -39,7 +40,7 @@ interface PollingState {
 	timer?: NodeJS.Timeout;
 	isPolling: boolean;
 	interval: number;
-	lastTaskData?: any[];
+	lastTaskData?: TaskMasterTask[];
 	errorCount: number;
 	maxErrors: number;
 	// Adaptive frequency properties
@@ -55,7 +56,7 @@ interface PollingState {
 	reconnectBackoffMultiplier: number;
 	lastSuccessfulConnection?: number;
 	isOfflineMode: boolean;
-	cachedTaskData?: any[];
+	cachedTaskData?: TaskMasterTask[];
 }
 
 let pollingState: PollingState = {
@@ -351,7 +352,7 @@ function adjustPollingFrequency(): void {
 		// Low activity: reduce polling frequency with exponential backoff
 		const backoffMultiplier = Math.min(
 			4,
-			Math.pow(1.5, pollingState.consecutiveNoChanges - 3)
+			1.5 ** (pollingState.consecutiveNoChanges - 3)
 		);
 		newInterval = Math.min(
 			pollingState.maxInterval,
@@ -1031,43 +1032,65 @@ export function activate(context: vscode.ExtensionContext) {
 
 					case 'readTaskFileData':
 						console.log('📄 Reading task file data:', message.data);
-						const { requestId } = message;
-						try {
-							const { taskId, tag: tagName = 'master' } = message.data;
+						{
+							const { requestId } = message;
+							try {
+								const { taskId, tag: tagName = 'master' } = message.data;
 
-							// Get workspace folder
-							const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
-							if (!workspaceFolder) {
-								throw new Error('No workspace folder found');
-							}
+								// Get workspace folder
+								const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+								if (!workspaceFolder) {
+									throw new Error('No workspace folder found');
+								}
 
-							// Build path to tasks.json
-							const tasksJsonPath = path.join(
-								workspaceFolder.uri.fsPath,
-								'.taskmaster',
-								'tasks',
-								'tasks.json'
-							);
-							console.log('🔍 Looking for tasks.json at:', tasksJsonPath);
-
-							// Check if file exists
-							if (!fs.existsSync(tasksJsonPath)) {
-								// Try legacy location
-								const legacyPath = path.join(
+								// Build path to tasks.json
+								const tasksJsonPath = path.join(
 									workspaceFolder.uri.fsPath,
+									'.taskmaster',
 									'tasks',
 									'tasks.json'
 								);
-								console.log('🔍 Trying legacy path:', legacyPath);
-								if (!fs.existsSync(legacyPath)) {
-									throw new Error(
-										'tasks.json not found in .taskmaster/tasks/ or tasks/ directory'
+								console.log('🔍 Looking for tasks.json at:', tasksJsonPath);
+
+								// Check if file exists
+								if (!fs.existsSync(tasksJsonPath)) {
+									// Try legacy location
+									const legacyPath = path.join(
+										workspaceFolder.uri.fsPath,
+										'tasks',
+										'tasks.json'
 									);
+									console.log('🔍 Trying legacy path:', legacyPath);
+									if (!fs.existsSync(legacyPath)) {
+										throw new Error(
+											'tasks.json not found in .taskmaster/tasks/ or tasks/ directory'
+										);
+									}
+									// Use legacy path
+									const content = fs.readFileSync(legacyPath, 'utf8');
+									console.log(
+										'📖 Read legacy tasks.json, content length:',
+										content.length
+									);
+									const taskData = parseTaskFileData(
+										content,
+										taskId,
+										tagName,
+										workspaceFolder.uri.fsPath
+									);
+									console.log('✅ Parsed task data for legacy path:', taskData);
+									panel.webview.postMessage({
+										type: 'response',
+										requestId,
+										data: taskData
+									});
+									return;
 								}
-								// Use legacy path
-								const content = fs.readFileSync(legacyPath, 'utf8');
+
+								// Read and parse tasks.json
+								const content = fs.readFileSync(tasksJsonPath, 'utf8');
 								console.log(
-									'📖 Read legacy tasks.json, content length:',
+									'📖 Read tasks.json, content length:',
 									content.length
 								);
 								const taskData = parseTaskFileData(
@@ -1076,46 +1099,26 @@ export function activate(context: vscode.ExtensionContext) {
 									tagName,
 									workspaceFolder.uri.fsPath
 								);
-								console.log('✅ Parsed task data for legacy path:', taskData);
+								console.log('✅ Parsed task data:', taskData);
+
 								panel.webview.postMessage({
 									type: 'response',
 									requestId,
 									data: taskData
 								});
-								return;
+
+								console.log(`✅ Retrieved task file data for task ${taskId}`);
+							} catch (error) {
+								console.error('❌ Error reading task file data:', error);
+								panel.webview.postMessage({
+									type: 'error',
+									requestId,
+									error:
+										error instanceof Error
+											? error.message
+											: 'Failed to read task file data'
+								});
 							}
-
-							// Read and parse tasks.json
-							const content = fs.readFileSync(tasksJsonPath, 'utf8');
-							console.log(
-								'📖 Read tasks.json, content length:',
-								content.length
-							);
-							const taskData = parseTaskFileData(
-								content,
-								taskId,
-								tagName,
-								workspaceFolder.uri.fsPath
-							);
-							console.log('✅ Parsed task data:', taskData);
-
-							panel.webview.postMessage({
-								type: 'response',
-								requestId,
-								data: taskData
-							});
-
-							console.log(`✅ Retrieved task file data for task ${taskId}`);
-						} catch (error) {
-							console.error('❌ Error reading task file data:', error);
-							panel.webview.postMessage({
-								type: 'error',
-								requestId,
-								error:
-									error instanceof Error
-										? error.message
-										: 'Failed to read task file data'
-							});
 						}
 						break;
 

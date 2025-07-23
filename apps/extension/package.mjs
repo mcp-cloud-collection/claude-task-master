@@ -52,12 +52,30 @@ try {
 		}
 	}
 
-	// 5. Copy and RENAME the clean manifest
-	console.log('Copying and preparing the final package.json...');
-	fs.copySync(
-		path.resolve(__dirname, 'package.publish.json'),
-		path.resolve(packageDir, 'package.json')
-	);
+	// 5. Sync versions and prepare the final package.json
+	console.log('Syncing versions and preparing the final package.json...');
+	
+	// Read current versions
+	const devPackagePath = path.resolve(__dirname, 'package.json');
+	const publishPackagePath = path.resolve(__dirname, 'package.publish.json');
+	
+	const devPackage = JSON.parse(fs.readFileSync(devPackagePath, 'utf8'));
+	const publishPackage = JSON.parse(fs.readFileSync(publishPackagePath, 'utf8'));
+	
+	// Check if versions are in sync
+	if (devPackage.version !== publishPackage.version) {
+		console.log(`  - Version sync needed: ${publishPackage.version} → ${devPackage.version}`);
+		publishPackage.version = devPackage.version;
+		
+		// Update the source package.publish.json file
+		fs.writeFileSync(publishPackagePath, JSON.stringify(publishPackage, null, '\t') + '\n');
+		console.log(`  - Updated package.publish.json version to ${devPackage.version}`);
+	} else {
+		console.log(`  - Versions already in sync: ${devPackage.version}`);
+	}
+	
+	// Copy the (now synced) package.publish.json as package.json
+	fs.copySync(publishPackagePath, path.resolve(packageDir, 'package.json'));
 	console.log('  - Copied package.publish.json as package.json');
 
 	// 6. Copy .vscodeignore if it exists
@@ -97,13 +115,10 @@ try {
 		`cd vsix-build && pnpm exec vsce package --no-dependencies`
 	);
 
-	// Read version from package.publish.json
-	const publishPackage = JSON.parse(
-		fs.readFileSync(path.resolve(__dirname, 'package.publish.json'), 'utf8')
-	);
-	const version = publishPackage.version;
+	// Use the synced version for output
+	const finalVersion = devPackage.version;
 	console.log(
-		`\nYour extension will be packaged to: vsix-build/taskr-${version}.vsix`
+		`\nYour extension will be packaged to: vsix-build/taskr-kanban-${finalVersion}.vsix`
 	);
 } catch (error) {
 	console.error('\n❌ Packaging failed!');
