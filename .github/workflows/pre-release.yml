@@ -35,8 +35,9 @@ jobs:
       - name: Enter RC mode (if not already in RC mode)
         run: |
           # ensure we’re in the right pre-mode (tag "rc")
-          if [ ! -f .changeset/pre.json ] || ! grep -q '"tag": *"rc"' .changeset/pre.json; then
-           npx changeset pre enter rc
+          if [ ! -f .changeset/pre.json ] \
+            || [ "$(jq -r '.tag' .changeset/pre.json 2>/dev/null || echo '')" != "rc" ]; then
+            npx changeset pre enter rc
           fi
 
       - name: Version RC packages
