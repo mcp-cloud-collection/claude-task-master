@@ -1689,10 +1689,7 @@ async function displayComplexityReport(reportPath) {
 		});
 
 		const answer = await new Promise((resolve) => {
-			rl.question(
-				chalk.cyan('Generate complexity report? (y/n): '),
-				resolve
-			);
+			rl.question(chalk.cyan('Generate complexity report? (y/n): '), resolve);
 		});
 		rl.close();
 
