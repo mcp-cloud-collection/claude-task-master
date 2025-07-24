@@ -1,32 +1,39 @@
-## 🔌 New Integration
+# 🔌 New Integration
 
-### What tool/IDE is being integrated?
+## What tool/IDE is being integrated?
+
 <!-- Name and brief description -->
 
-### What can users do with it?
+## What can users do with it?
+
 <!-- Key benefits -->
 
 ## How to Enable
 
 ### Setup
+
 ```bash
 task-master rules add [name]
 # Any other setup steps
 ```
 
 ### Example Usage
+
 <!-- Show it in action -->
+
 ```bash
 # Real example
 ```
 
 ### Natural Language Hooks (if applicable)
+
 ```
 "When tests pass, mark task as done"
 # Other examples
 ```
 
 ## Contributor Checklist
+
 - [ ] Created changeset: `npm run changeset`
 - [ ] Tests pass: `npm test`
 - [ ] Format check passes: `npm run format-check`
@@ -39,7 +46,7 @@ task-master rules add [name]
 
 ---
 
-### For Maintainers
+## For Maintainers
 
 - [ ] Integration stability verified
 - [ ] Documentation comprehensive
