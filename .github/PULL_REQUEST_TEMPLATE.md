@@ -1,12 +1,12 @@
-## What type of PR is this?
+# What type of PR is this?
 <!-- Check one -->
-- [ ] 🐛 Bug fix
-- [ ] ✨ Feature
-- [ ] 🔌 Integration
-- [ ] 📝 Docs
-- [ ] 🧹 Refactor
-- [ ] Other: 
 
+ - [ ] 🐛 Bug fix
+ - [ ] ✨ Feature
+ - [ ] 🔌 Integration
+ - [ ] 📝 Docs
+ - [ ] 🧹 Refactor
+ - [ ] Other:
 ## Description
 <!-- What does this PR do? -->
 
