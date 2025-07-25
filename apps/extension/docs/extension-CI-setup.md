@@ -6,11 +6,12 @@ This document explains the CI/CD setup for the Task Master VS Code extension usi
 
 ### 1. Extension CI (`extension-ci.yml`)
 
-**Triggers:**
+#### Triggers
+
 - Push to `main` or `next` branches (only when extension files change)
 - Pull requests to `main` or `next` (only when extension files change)
 
-**What it does:**
+#### What it does
 
 - ✅ Lints and type-checks the extension code
 - 🔨 Builds the extension (`pnpm run build`)
