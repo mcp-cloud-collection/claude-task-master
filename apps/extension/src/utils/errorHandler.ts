@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { logger } from './logger';
 import {
 	shouldShowNotification,
 	getNotificationType,
@@ -322,7 +323,7 @@ export class ErrorHandler {
 				await errorDetails.recovery.action();
 				this.markErrorResolved(logEntry.id);
 			} catch (recoveryError) {
-				console.error('Error recovery failed:', recoveryError);
+				logger.error('Error recovery failed:', recoveryError);
 				logEntry.attempts++;
 				logEntry.lastAttempt = new Date();
 			}
@@ -548,10 +549,10 @@ export class ErrorHandler {
 		switch (errorDetails.severity) {
 			case ErrorSeverity.CRITICAL:
 			case ErrorSeverity.HIGH:
-				console.error(logMessage, errorDetails);
+				logger.error(logMessage, errorDetails);
 				break;
 			case ErrorSeverity.MEDIUM:
-				console.warn(logMessage, errorDetails);
+				logger.warn(logMessage, errorDetails);
 				break;
 			case ErrorSeverity.LOW:
 				console.info(logMessage, errorDetails);
@@ -634,7 +635,7 @@ ${errorDetails.context ? JSON.stringify(errorDetails.context, null, 2) : 'None'}
 			try {
 				listener(errorDetails);
 			} catch (error) {
-				console.error('Error in error listener:', error);
+				logger.error('Error in error listener:', error);
 			}
 		});
 	}

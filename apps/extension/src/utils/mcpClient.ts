@@ -1,6 +1,7 @@
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import * as vscode from 'vscode';
+import { logger } from './logger';
 
 export interface MCPConfig {
 	command: string;
@@ -23,7 +24,7 @@ export class MCPClientManager {
 	private connectionPromise: Promise<void> | null = null;
 
 	constructor(config: MCPConfig) {
-		console.log(
+		logger.log(
 			'🔍 DEBUGGING: MCPClientManager constructor called with config:',
 			config
 		);
@@ -55,11 +56,11 @@ export class MCPClientManager {
 			await this.disconnect();
 
 			// Create the transport - it will handle spawning the server process internally
-			console.log(
+			logger.log(
 				`Starting MCP server: ${this.config.command} ${this.config.args?.join(' ') || ''}`
 			);
-			console.log('🔍 DEBUGGING: Transport config cwd:', this.config.cwd);
-			console.log('🔍 DEBUGGING: Process cwd before spawn:', process.cwd());
+			logger.log('🔍 DEBUGGING: Transport config cwd:', this.config.cwd);
+			logger.log('🔍 DEBUGGING: Process cwd before spawn:', process.cwd());
 
 			// Test if the target directory and .taskmaster exist
 			const fs = require('fs');
@@ -69,19 +70,19 @@ export class MCPClientManager {
 				const taskmasterDir = path.join(targetDir, '.taskmaster');
 				const tasksFile = path.join(taskmasterDir, 'tasks', 'tasks.json');
 
-				console.log(
+				logger.log(
 					'🔍 DEBUGGING: Checking target directory:',
 					targetDir,
 					'exists:',
 					fs.existsSync(targetDir)
 				);
-				console.log(
+				logger.log(
 					'🔍 DEBUGGING: Checking .taskmaster dir:',
 					taskmasterDir,
 					'exists:',
 					fs.existsSync(taskmasterDir)
 				);
-				console.log(
+				logger.log(
 					'🔍 DEBUGGING: Checking tasks.json:',
 					tasksFile,
 					'exists:',
@@ -90,10 +91,10 @@ export class MCPClientManager {
 
 				if (fs.existsSync(tasksFile)) {
 					const stats = fs.statSync(tasksFile);
-					console.log('🔍 DEBUGGING: tasks.json size:', stats.size, 'bytes');
+					logger.log('🔍 DEBUGGING: tasks.json size:', stats.size, 'bytes');
 				}
 			} catch (error) {
-				console.log('🔍 DEBUGGING: Error checking filesystem:', error);
+				logger.log('🔍 DEBUGGING: Error checking filesystem:', error);
 			}
 
 			this.transport = new StdioClientTransport({
@@ -108,12 +109,12 @@ export class MCPClientManager {
 				}
 			});
 
-			console.log('🔍 DEBUGGING: Transport created, checking process...');
+			logger.log('🔍 DEBUGGING: Transport created, checking process...');
 
 			// Set up transport event handlers
 			this.transport.onerror = (error: Error) => {
-				console.error('❌ MCP transport error:', error);
-				console.error('Transport error details:', {
+				logger.error('❌ MCP transport error:', error);
+				logger.error('Transport error details:', {
 					message: error.message,
 					stack: error.stack,
 					code: (error as any).code,
@@ -127,7 +128,7 @@ export class MCPClientManager {
 			};
 
 			this.transport.onclose = () => {
-				console.log('🔌 MCP transport closed');
+				logger.log('🔌 MCP transport closed');
 				this.status = { isRunning: false };
 				this.client = null;
 				this.transport = null;
@@ -135,7 +136,7 @@ export class MCPClientManager {
 
 			// Add message handler like the working debug script
 			this.transport.onmessage = (message: any) => {
-				console.log('📤 MCP server message:', message);
+				logger.log('📤 MCP server message:', message);
 			};
 
 			// Create the client
@@ -152,14 +153,14 @@ export class MCPClientManager {
 			);
 
 			// Connect the client to the transport (this automatically starts the transport)
-			console.log('🔄 Attempting MCP client connection...');
-			console.log('MCP config:', {
+			logger.log('🔄 Attempting MCP client connection...');
+			logger.log('MCP config:', {
 				command: this.config.command,
 				args: this.config.args,
 				cwd: this.config.cwd
 			});
-			console.log('Current working directory:', process.cwd());
-			console.log(
+			logger.log('Current working directory:', process.cwd());
+			logger.log(
 				'VS Code workspace folders:',
 				vscode.workspace.workspaceFolders?.map((f) => f.uri.fsPath)
 			);
@@ -167,37 +168,37 @@ export class MCPClientManager {
 			// Check if process was created before connecting
 			if (this.transport && (this.transport as any).process) {
 				const proc = (this.transport as any).process;
-				console.log('📝 MCP server process PID:', proc.pid);
-				console.log('📝 Process working directory will be:', this.config.cwd);
+				logger.log('📝 MCP server process PID:', proc.pid);
+				logger.log('📝 Process working directory will be:', this.config.cwd);
 
 				proc.on('exit', (code: number, signal: string) => {
-					console.log(
+					logger.log(
 						`🔚 MCP server process exited with code ${code}, signal ${signal}`
 					);
 					if (code !== 0) {
-						console.log('❌ Non-zero exit code indicates server failure');
+						logger.log('❌ Non-zero exit code indicates server failure');
 					}
 				});
 
 				proc.on('error', (error: Error) => {
-					console.log('❌ MCP server process error:', error);
+					logger.log('❌ MCP server process error:', error);
 				});
 
 				// Listen to stderr to see server-side errors
 				if (proc.stderr) {
 					proc.stderr.on('data', (data: Buffer) => {
-						console.log('📥 MCP server stderr:', data.toString());
+						logger.log('📥 MCP server stderr:', data.toString());
 					});
 				}
 
 				// Listen to stdout for server messages
 				if (proc.stdout) {
 					proc.stdout.on('data', (data: Buffer) => {
-						console.log('📤 MCP server stdout:', data.toString());
+						logger.log('📤 MCP server stdout:', data.toString());
 					});
 				}
 			} else {
-				console.log('⚠️ No process found in transport before connection');
+				logger.log('⚠️ No process found in transport before connection');
 			}
 
 			await this.client.connect(this.transport);
@@ -208,12 +209,12 @@ export class MCPClientManager {
 				pid: this.transport.pid || undefined
 			};
 
-			console.log('MCP client connected successfully');
+			logger.log('MCP client connected successfully');
 			vscode.window.showInformationMessage(
 				'Task Master connected successfully'
 			);
 		} catch (error) {
-			console.error('Failed to connect to MCP server:', error);
+			logger.error('Failed to connect to MCP server:', error);
 			this.status = {
 				isRunning: false,
 				error: error instanceof Error ? error.message : 'Unknown error'
@@ -232,13 +233,13 @@ export class MCPClientManager {
 	 * Disconnect from the MCP server and clean up resources
 	 */
 	async disconnect(): Promise<void> {
-		console.log('Disconnecting from MCP server');
+		logger.log('Disconnecting from MCP server');
 
 		if (this.client) {
 			try {
 				await this.client.close();
 			} catch (error) {
-				console.error('Error closing MCP client:', error);
+				logger.error('Error closing MCP client:', error);
 			}
 			this.client = null;
 		}
@@ -247,7 +248,7 @@ export class MCPClientManager {
 			try {
 				await this.transport.close();
 			} catch (error) {
-				console.error('Error closing MCP transport:', error);
+				logger.error('Error closing MCP transport:', error);
 			}
 			this.transport = null;
 		}
@@ -281,7 +282,7 @@ export class MCPClientManager {
 
 			return result;
 		} catch (error) {
-			console.error(`Error calling MCP tool "${toolName}":`, error);
+			logger.error(`Error calling MCP tool "${toolName}":`, error);
 			throw error;
 		}
 	}
@@ -297,13 +298,13 @@ export class MCPClientManager {
 			}
 
 			const result = await this.client.listTools();
-			console.log(
+			logger.log(
 				'Available MCP tools:',
 				result.tools?.map((t) => t.name) || []
 			);
 			return true;
 		} catch (error) {
-			console.error('Connection test failed:', error);
+			logger.error('Connection test failed:', error);
 			return false;
 		}
 	}
@@ -328,7 +329,7 @@ export class MCPClientManager {
  * Create MCP configuration from VS Code settings
  */
 export function createMCPConfigFromSettings(): MCPConfig {
-	console.log(
+	logger.log(
 		'🔍 DEBUGGING: createMCPConfigFromSettings called at',
 		new Date().toISOString()
 	);
@@ -347,7 +348,7 @@ export function createMCPConfigFromSettings(): MCPConfig {
 	const cwd = config.get<string>('mcp.cwd', defaultCwd);
 	const env = config.get<Record<string, string>>('mcp.env');
 
-	console.log('✅ Using workspace directory:', defaultCwd);
+	logger.log('✅ Using workspace directory:', defaultCwd);
 
 	// If using default 'npx', try to find the full path on macOS/Linux
 	if (command === 'npx') {
@@ -363,7 +364,7 @@ export function createMCPConfigFromSettings(): MCPConfig {
 			try {
 				if (path === 'npx' || fs.existsSync(path)) {
 					command = path;
-					console.log(`✅ Using npx at: ${path}`);
+					logger.log(`✅ Using npx at: ${path}`);
 					break;
 				}
 			} catch (error) {

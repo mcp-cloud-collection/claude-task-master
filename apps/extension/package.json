@@ -9,12 +9,7 @@
 	"engines": {
 		"vscode": "^1.93.0"
 	},
-	"categories": [
-		"AI",
-		"Visualization",
-		"Education",
-		"Other"
-	],
+	"categories": ["AI", "Visualization", "Education", "Other"],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
@@ -48,11 +43,7 @@
 					"items": {
 						"type": "string"
 					},
-					"default": [
-						"-y",
-						"--package=task-master-ai",
-						"task-master-ai"
-					],
+					"default": ["-y", "--package=task-master-ai", "task-master-ai"],
 					"description": "An array of arguments to pass to the MCP server command."
 				},
 				"taskmaster.mcp.cwd": {
@@ -112,11 +103,7 @@
 				},
 				"taskmaster.ui.theme": {
 					"type": "string",
-					"enum": [
-						"auto",
-						"light",
-						"dark"
-					],
+					"enum": ["auto", "light", "dark"],
 					"default": "auto",
 					"description": "UI theme preference"
 				},
@@ -177,12 +164,7 @@
 				},
 				"taskmaster.debug.logLevel": {
 					"type": "string",
-					"enum": [
-						"error",
-						"warn",
-						"info",
-						"debug"
-					],
+					"enum": ["error", "warn", "info", "debug"],
 					"default": "info",
 					"description": "Logging level"
 				},
@@ -207,15 +189,15 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": false,
-		"build": "pnpm run build:js && pnpm run build:css",
+		"vscode:prepublish": "npm run build",
+		"build": "npm run build:js && npm run build:css",
 		"build:js": "node ./esbuild.js --production",
 		"build:css": "npx @tailwindcss/cli -o ./dist/index.css --minify",
-		"package": "pnpm exec node ./package.mjs",
+		"package": "npm exec node ./package.mjs",
 		"package:direct": "node ./package.mjs",
 		"debug:env": "node ./debug-env.mjs",
 		"compile": "node ./esbuild.js",
-		"watch": "pnpm run watch:js & pnpm run watch:css",
+		"watch": "npm run watch:js & npm run watch:css",
 		"watch:js": "node ./esbuild.js --watch",
 		"watch:css": "npx @tailwindcss/cli -o ./dist/index.css --watch",
 		"lint": "eslint src --ext ts,tsx",
@@ -254,8 +236,6 @@
 		"lucide-react": "^0.525.0",
 		"npm-run-all": "^4.1.5",
 		"postcss": "8.5.6",
-		"react": "19.1.0",
-		"react-dom": "19.1.0",
 		"tailwind-merge": "^3.3.1",
 		"tailwindcss": "4.1.11",
 		"typescript": "^5.8.3"

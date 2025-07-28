@@ -25,6 +25,7 @@ import {
 import { getToastDuration } from './utils/notificationPreferences';
 import { parseTaskFileData } from './utils/taskFileReader';
 import { TaskMasterTask } from './utils/taskMasterApi';
+import { logger } from './utils/logger';
 
 // Global MCP client manager instance
 let mcpClient: MCPClientManager | null = null;
@@ -82,8 +83,8 @@ let pollingState: PollingState = {
 // Initialize MCP components
 async function initializeMCPComponents(context: vscode.ExtensionContext) {
 	try {
-		console.log('🔄 Initializing MCP components...');
-		console.log(
+		logger.log('🔄 Initializing MCP components...');
+		logger.log(
 			'🔍 DEBUGGING: initializeMCPComponents started at',
 			new Date().toISOString()
 		);
@@ -95,7 +96,7 @@ async function initializeMCPComponents(context: vscode.ExtensionContext) {
 		const mcpConfig = createMCPConfigFromSettings();
 
 		// Initialize MCP client
-		console.log(
+		logger.log(
 			'🔍 DEBUGGING: About to create MCPClientManager with config:',
 			mcpConfig
 		);
@@ -110,14 +111,14 @@ async function initializeMCPComponents(context: vscode.ExtensionContext) {
 		});
 
 		// Try to connect to MCP server
-		console.log('🔗 Connecting to Task Master MCP server...');
+		logger.log('🔗 Connecting to Task Master MCP server...');
 		try {
 			await mcpClient.connect();
 
 			// Test connection
 			const connectionTest = await taskMasterApi.testConnection();
 			if (connectionTest.success && connectionTest.data) {
-				console.log('✅ Task Master MCP connection established');
+				logger.log('✅ Task Master MCP connection established');
 				vscode.window.showInformationMessage(
 					'Task Master connected successfully!'
 				);
@@ -125,8 +126,8 @@ async function initializeMCPComponents(context: vscode.ExtensionContext) {
 				throw new Error(connectionTest.error || 'Connection test failed');
 			}
 		} catch (connectionError) {
-			console.error('❌ Task Master MCP connection failed:', connectionError);
-			console.error('Connection error details:', {
+			logger.error('❌ Task Master MCP connection failed:', connectionError);
+			logger.error('Connection error details:', {
 				message:
 					connectionError instanceof Error
 						? connectionError.message
@@ -165,7 +166,7 @@ async function initializeMCPComponents(context: vscode.ExtensionContext) {
 
 			// Initialize in offline mode
 			pollingState.isOfflineMode = true;
-			console.log(
+			logger.log(
 				'📴 Starting in offline mode - some features will be unavailable'
 			);
 		}
@@ -181,7 +182,7 @@ async function startPolling(): Promise<void> {
 		return;
 	}
 
-	console.log('🔄 Starting task polling with interval:', pollingState.interval);
+	logger.log('🔄 Starting task polling with interval:', pollingState.interval);
 	pollingState.isPolling = true;
 	pollingState.errorCount = 0;
 
@@ -197,7 +198,7 @@ function stopPolling(): void {
 		return;
 	}
 
-	console.log('⏹️ Stopping task polling');
+	logger.log('⏹️ Stopping task polling');
 	pollingState.isPolling = false;
 
 	if (pollingState.timer) {
@@ -212,7 +213,7 @@ async function pollForUpdates(): Promise<void> {
 	}
 
 	try {
-		console.log('📡 Polling for task updates...');
+		logger.log('📡 Polling for task updates...');
 
 		const tasksResult = await taskMasterApi.getTasks({
 			withSubtasks: true,
@@ -223,7 +224,7 @@ async function pollForUpdates(): Promise<void> {
 			const hasChanges = detectTaskChanges(tasksResult.data);
 
 			if (hasChanges) {
-				console.log('📋 Task changes detected, notifying webviews');
+				logger.log('📋 Task changes detected, notifying webviews');
 
 				// Track change for adaptive frequency
 				pollingState.changeDetectionWindow.push(Date.now());
@@ -242,7 +243,7 @@ async function pollForUpdates(): Promise<void> {
 					});
 				});
 			} else {
-				console.log('📋 No task changes detected');
+				logger.log('📋 No task changes detected');
 				pollingState.consecutiveNoChanges++;
 			}
 
@@ -260,7 +261,7 @@ async function pollForUpdates(): Promise<void> {
 			if (pollingState.isOfflineMode) {
 				pollingState.isOfflineMode = false;
 				notifyConnectionStatus('online', 'Connected');
-				console.log('✅ Reconnected successfully from offline mode');
+				logger.log('✅ Reconnected successfully from offline mode');
 			}
 		} else {
 			throw new Error(tasksResult.error || 'Failed to fetch tasks');
@@ -291,7 +292,7 @@ function detectTaskChanges(newTasks: any[]): boolean {
 		);
 		return newTasksStr !== oldTasksStr;
 	} catch (error) {
-		console.warn('⚠️ Error comparing tasks, assuming changed:', error);
+		logger.warn('⚠️ Error comparing tasks, assuming changed:', error);
 		return true;
 	}
 }
@@ -343,11 +344,11 @@ function adjustPollingFrequency(): void {
 			pollingState.minInterval,
 			pollingState.baseInterval * 0.5
 		);
-		console.log('📈 High activity detected, increasing polling frequency');
+		logger.log('📈 High activity detected, increasing polling frequency');
 	} else if (changesPerMinute > 0.5) {
 		// Moderate activity: use base interval
 		newInterval = pollingState.baseInterval;
-		console.log('📊 Moderate activity, using base polling interval');
+		logger.log('📊 Moderate activity, using base polling interval');
 	} else if (pollingState.consecutiveNoChanges > 3) {
 		// Low activity: reduce polling frequency with exponential backoff
 		const backoffMultiplier = Math.min(
@@ -358,7 +359,7 @@ function adjustPollingFrequency(): void {
 			pollingState.maxInterval,
 			pollingState.baseInterval * backoffMultiplier
 		);
-		console.log(
+		logger.log(
 			`📉 Low activity detected (${pollingState.consecutiveNoChanges} no-change cycles), reducing polling frequency`
 		);
 	}
@@ -368,7 +369,7 @@ function adjustPollingFrequency(): void {
 		Math.abs(newInterval - pollingState.interval) > 500 &&
 		pollingState.isPolling
 	) {
-		console.log(
+		logger.log(
 			`🔄 Adjusting polling interval from ${pollingState.interval}ms to ${newInterval}ms`
 		);
 		pollingState.interval = newInterval;
@@ -388,7 +389,7 @@ function handleNetworkError(error: any): void {
 	pollingState.errorCount++;
 	pollingState.reconnectAttempts++;
 
-	console.error(
+	logger.error(
 		`❌ Network error (attempt ${pollingState.reconnectAttempts}/${pollingState.maxReconnectAttempts}):`,
 		error
 	);
@@ -410,7 +411,7 @@ function handleNetworkError(error: any): void {
 	const maxBackoffDelay = pollingState.maxInterval;
 	const finalDelay = Math.min(backoffDelay, maxBackoffDelay);
 
-	console.log(
+	logger.log(
 		`🔄 Retrying connection in ${finalDelay}ms (attempt ${pollingState.reconnectAttempts})`
 	);
 
@@ -432,7 +433,7 @@ function handleNetworkError(error: any): void {
 }
 
 function enterOfflineMode(): void {
-	console.warn('⚠️ Entering offline mode due to persistent connection failures');
+	logger.warn('⚠️ Entering offline mode due to persistent connection failures');
 
 	pollingState.isOfflineMode = true;
 	stopPolling();
@@ -462,7 +463,7 @@ function attemptReconnection(): void {
 		return;
 	}
 
-	console.log('🔄 Attempting to reconnect from offline mode...');
+	logger.log('🔄 Attempting to reconnect from offline mode...');
 
 	// Reset connection state
 	pollingState.isOfflineMode = false;
@@ -474,7 +475,7 @@ function attemptReconnection(): void {
 
 	// Try to restart polling
 	startPolling().catch((error) => {
-		console.error('Failed to reconnect:', error);
+		logger.error('Failed to reconnect:', error);
 		enterOfflineMode();
 	});
 }
@@ -509,7 +510,7 @@ async function handleExtensionError(
 		...context
 	});
 
-	console.error(`Extension Error [${operation}]:`, error);
+	logger.error(`Extension Error [${operation}]:`, error);
 	await errorHandler.handleError(
 		error instanceof Error ? error : new Error(String(error)),
 		context
@@ -527,7 +528,7 @@ async function handleMCPError(
 		context
 	);
 
-	console.error(`MCP Error [${operation}]:`, error);
+	logger.error(`MCP Error [${operation}]:`, error);
 	await errorHandler.handleError(mcpError, context);
 }
 
@@ -542,7 +543,7 @@ async function handleTaskLoadingError(
 		context
 	);
 
-	console.error(`Task Loading Error [${operation}]:`, error);
+	logger.error(`Task Loading Error [${operation}]:`, error);
 	await errorHandler.handleError(taskError, context);
 }
 
@@ -557,7 +558,7 @@ async function handleNetworkConnectionError(
 		context
 	);
 
-	console.error(`Network Error [${operation}]:`, error);
+	logger.error(`Network Error [${operation}]:`, error);
 	await errorHandler.handleError(networkError, context);
 }
 
@@ -572,16 +573,16 @@ async function handleUIError(
 		context
 	);
 
-	console.error(`UI Error [${operation}]:`, error);
+	logger.error(`UI Error [${operation}]:`, error);
 	await errorHandler.handleError(uiError, context);
 }
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-	console.log('🎉 Task Master Kanban extension is now active!');
-	console.log('🎉 Extension context:', context);
-	console.log(
+	logger.log('🎉 Task Master Kanban extension is now active!');
+	logger.log('🎉 Extension context:', context);
+	logger.log(
 		'🔍 DEBUGGING: Extension activation started at',
 		new Date().toISOString()
 	);
@@ -614,7 +615,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const showKanbanCommand = vscode.commands.registerCommand(
 		'taskr.showKanbanBoard',
 		async () => {
-			console.log('🎯 Show Kanban command executed!');
+			logger.log('🎯 Show Kanban command executed!');
 
 			// Check if panel already exists
 			const existingPanel = activeWebviewPanels.find(
@@ -668,11 +669,11 @@ export function activate(context: vscode.ExtensionContext) {
 
 			// Handle messages from webview
 			panel.webview.onDidReceiveMessage(async (message) => {
-				console.log('📨 Received message from webview:', message);
+				logger.log('📨 Received message from webview:', message);
 
 				switch (message.type) {
 					case 'ready':
-						console.log('🚀 Webview is ready!');
+						logger.log('🚀 Webview is ready!');
 						// Send initial configuration or data
 						panel.webview.postMessage({
 							type: 'init',
@@ -681,7 +682,7 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 
 					case 'getTasks':
-						console.log('📋 Getting tasks...');
+						logger.log('📋 Getting tasks...');
 						try {
 							if (!taskMasterApi) {
 								throw new Error(
@@ -707,14 +708,14 @@ export function activate(context: vscode.ExtensionContext) {
 									requestId: message.requestId,
 									data: tasksResult.data
 								});
-								console.log(
+								logger.log(
 									`✅ Retrieved ${tasksResult.data?.length || 0} tasks from Task Master`
 								);
 							} else {
 								throw new Error(tasksResult.error || 'Failed to get tasks');
 							}
 						} catch (error) {
-							console.error('❌ Error getting tasks:', error);
+							logger.error('❌ Error getting tasks:', error);
 
 							// Send error to webview instead of falling back to sample data
 							panel.webview.postMessage({
@@ -735,7 +736,7 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 
 					case 'updateTaskStatus':
-						console.log('🔄 Updating task status:', message.data);
+						logger.log('🔄 Updating task status:', message.data);
 						try {
 							if (
 								taskMasterApi &&
@@ -761,7 +762,7 @@ export function activate(context: vscode.ExtensionContext) {
 											newStatus: message.data.newStatus
 										}
 									});
-									console.log(
+									logger.log(
 										`✅ Updated task ${message.data.taskId} status to ${message.data.newStatus}`
 									);
 								} else {
@@ -775,7 +776,7 @@ export function activate(context: vscode.ExtensionContext) {
 								);
 							}
 						} catch (error) {
-							console.error('❌ Error updating task status:', error);
+							logger.error('❌ Error updating task status:', error);
 							panel.webview.postMessage({
 								type: 'error',
 								requestId: message.requestId,
@@ -788,7 +789,7 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 
 					case 'updateTask':
-						console.log('📝 Updating task content:', message.data);
+						logger.log('📝 Updating task content:', message.data);
 						try {
 							if (
 								taskMasterApi &&
@@ -816,7 +817,7 @@ export function activate(context: vscode.ExtensionContext) {
 											updates: message.data.updates
 										}
 									});
-									console.log(`✅ Updated task ${message.data.taskId} content`);
+									logger.log(`✅ Updated task ${message.data.taskId} content`);
 								} else {
 									throw new Error(
 										updateResult.error || 'Failed to update task'
@@ -828,7 +829,7 @@ export function activate(context: vscode.ExtensionContext) {
 								);
 							}
 						} catch (error) {
-							console.error('❌ Error updating task:', error);
+							logger.error('❌ Error updating task:', error);
 							panel.webview.postMessage({
 								type: 'error',
 								requestId: message.requestId,
@@ -841,7 +842,7 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 
 					case 'updateSubtask':
-						console.log('📝 Updating subtask content:', message.data);
+						logger.log('📝 Updating subtask content:', message.data);
 						try {
 							if (
 								taskMasterApi &&
@@ -868,7 +869,7 @@ export function activate(context: vscode.ExtensionContext) {
 											prompt: message.data.prompt
 										}
 									});
-									console.log(
+									logger.log(
 										`✅ Updated subtask ${message.data.taskId} content`
 									);
 								} else {
@@ -882,7 +883,7 @@ export function activate(context: vscode.ExtensionContext) {
 								);
 							}
 						} catch (error) {
-							console.error('❌ Error updating subtask:', error);
+							logger.error('❌ Error updating subtask:', error);
 							panel.webview.postMessage({
 								type: 'error',
 								requestId: message.requestId,
@@ -895,7 +896,7 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 
 					case 'addSubtask':
-						console.log('➕ Adding new subtask:', message.data);
+						logger.log('➕ Adding new subtask:', message.data);
 						try {
 							if (
 								taskMasterApi &&
@@ -921,7 +922,7 @@ export function activate(context: vscode.ExtensionContext) {
 											subtaskData: message.data.subtaskData
 										}
 									});
-									console.log(
+									logger.log(
 										`✅ Added subtask to task ${message.data.parentTaskId}`
 									);
 								} else {
@@ -933,7 +934,7 @@ export function activate(context: vscode.ExtensionContext) {
 								);
 							}
 						} catch (error) {
-							console.error('❌ Error adding subtask:', error);
+							logger.error('❌ Error adding subtask:', error);
 							panel.webview.postMessage({
 								type: 'error',
 								requestId: message.requestId,
@@ -946,7 +947,7 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 
 					case 'startPolling':
-						console.log('🔄 Manual start polling requested');
+						logger.log('🔄 Manual start polling requested');
 						await startPolling();
 						panel.webview.postMessage({
 							type: 'pollingStarted',
@@ -956,7 +957,7 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 
 					case 'stopPolling':
-						console.log('⏹️ Manual stop polling requested');
+						logger.log('⏹️ Manual stop polling requested');
 						stopPolling();
 						panel.webview.postMessage({
 							type: 'pollingStopped',
@@ -966,7 +967,7 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 
 					case 'getPollingStatus':
-						console.log('📊 Polling status requested');
+						logger.log('📊 Polling status requested');
 						panel.webview.postMessage({
 							type: 'pollingStatus',
 							requestId: message.requestId,
@@ -980,7 +981,7 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 
 					case 'attemptReconnection':
-						console.log('🔄 Manual reconnection requested');
+						logger.log('🔄 Manual reconnection requested');
 						if (pollingState.isOfflineMode) {
 							attemptReconnection();
 							panel.webview.postMessage({
@@ -999,7 +1000,7 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 
 					case 'getNetworkStatus':
-						console.log('📊 Network status requested');
+						logger.log('📊 Network status requested');
 						panel.webview.postMessage({
 							type: 'networkStatus',
 							requestId: message.requestId,
@@ -1014,7 +1015,7 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 
 					case 'reactError':
-						console.log('🔥 React error reported from webview:', message.data);
+						logger.log('🔥 React error reported from webview:', message.data);
 						try {
 							await handleUIError(
 								new Error(message.data.message),
@@ -1026,12 +1027,12 @@ export function activate(context: vscode.ExtensionContext) {
 								}
 							);
 						} catch (error) {
-							console.error('Failed to handle React error:', error);
+							logger.error('Failed to handle React error:', error);
 						}
 						break;
 
 					case 'readTaskFileData':
-						console.log('📄 Reading task file data:', message.data);
+						logger.log('📄 Reading task file data:', message.data);
 						{
 							const { requestId } = message;
 							try {
@@ -1050,7 +1051,7 @@ export function activate(context: vscode.ExtensionContext) {
 									'tasks',
 									'tasks.json'
 								);
-								console.log('🔍 Looking for tasks.json at:', tasksJsonPath);
+								logger.log('🔍 Looking for tasks.json at:', tasksJsonPath);
 
 								// Check if file exists
 								if (!fs.existsSync(tasksJsonPath)) {
@@ -1060,7 +1061,7 @@ export function activate(context: vscode.ExtensionContext) {
 										'tasks',
 										'tasks.json'
 									);
-									console.log('🔍 Trying legacy path:', legacyPath);
+									logger.log('🔍 Trying legacy path:', legacyPath);
 									if (!fs.existsSync(legacyPath)) {
 										throw new Error(
 											'tasks.json not found in .taskmaster/tasks/ or tasks/ directory'
@@ -1068,7 +1069,7 @@ export function activate(context: vscode.ExtensionContext) {
 									}
 									// Use legacy path
 									const content = fs.readFileSync(legacyPath, 'utf8');
-									console.log(
+									logger.log(
 										'📖 Read legacy tasks.json, content length:',
 										content.length
 									);
@@ -1078,7 +1079,7 @@ export function activate(context: vscode.ExtensionContext) {
 										tagName,
 										workspaceFolder.uri.fsPath
 									);
-									console.log('✅ Parsed task data for legacy path:', taskData);
+									logger.log('✅ Parsed task data for legacy path:', taskData);
 									panel.webview.postMessage({
 										type: 'response',
 										requestId,
@@ -1089,7 +1090,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 								// Read and parse tasks.json
 								const content = fs.readFileSync(tasksJsonPath, 'utf8');
-								console.log(
+								logger.log(
 									'📖 Read tasks.json, content length:',
 									content.length
 								);
@@ -1099,7 +1100,7 @@ export function activate(context: vscode.ExtensionContext) {
 									tagName,
 									workspaceFolder.uri.fsPath
 								);
-								console.log('✅ Parsed task data:', taskData);
+								logger.log('✅ Parsed task data:', taskData);
 
 								panel.webview.postMessage({
 									type: 'response',
@@ -1107,9 +1108,9 @@ export function activate(context: vscode.ExtensionContext) {
 									data: taskData
 								});
 
-								console.log(`✅ Retrieved task file data for task ${taskId}`);
+								logger.log(`✅ Retrieved task file data for task ${taskId}`);
 							} catch (error) {
-								console.error('❌ Error reading task file data:', error);
+								logger.error('❌ Error reading task file data:', error);
 								panel.webview.postMessage({
 									type: 'error',
 									requestId,
@@ -1123,7 +1124,7 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 
 					case 'mcpRequest':
-						console.log('📊 MCP Request:', message);
+						logger.log('📊 MCP Request:', message);
 						const { requestId: mcpRequestId, tool, parameters } = message;
 						try {
 							if (!taskMasterApi) {
@@ -1140,7 +1141,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 							switch (tool) {
 								case 'complexity_report':
-									console.log('📊 Calling complexity_report MCP tool');
+									logger.log('📊 Calling complexity_report MCP tool');
 									try {
 										// Use the private callMCPTool method via type assertion to access it
 										const mcpResult = await (taskMasterApi as any).callMCPTool(
@@ -1164,7 +1165,7 @@ export function activate(context: vscode.ExtensionContext) {
 									break;
 
 								case 'analyze_project_complexity':
-									console.log('🧮 Calling analyze_project_complexity MCP tool');
+									logger.log('🧮 Calling analyze_project_complexity MCP tool');
 									try {
 										// Use the private callMCPTool method via type assertion to access it
 										const mcpResult = await (taskMasterApi as any).callMCPTool(
@@ -1197,14 +1198,14 @@ export function activate(context: vscode.ExtensionContext) {
 									requestId: mcpRequestId,
 									data: result.data
 								});
-								console.log(`✅ MCP tool ${tool} executed successfully`);
+								logger.log(`✅ MCP tool ${tool} executed successfully`);
 							} else {
 								throw new Error(
 									result.error || `Failed to execute MCP tool: ${tool}`
 								);
 							}
 						} catch (error) {
-							console.error(`❌ Error executing MCP tool ${tool}:`, error);
+							logger.error(`❌ Error executing MCP tool ${tool}:`, error);
 							panel.webview.postMessage({
 								type: 'error',
 								requestId: mcpRequestId,
@@ -1217,7 +1218,7 @@ export function activate(context: vscode.ExtensionContext) {
 						break;
 
 					default:
-						console.log('❓ Unknown message type:', message.type);
+						logger.log('❓ Unknown message type:', message.type);
 				}
 			});
 
@@ -1228,7 +1229,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const checkConnectionCommand = vscode.commands.registerCommand(
 		'taskr.checkConnection',
 		async () => {
-			console.log('🔗 Check connection command executed!');
+			logger.log('🔗 Check connection command executed!');
 			vscode.window.showInformationMessage('Check connection command works!');
 		}
 	);
@@ -1236,7 +1237,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const reconnectCommand = vscode.commands.registerCommand(
 		'taskr.reconnect',
 		async () => {
-			console.log('🔄 Reconnect command executed!');
+			logger.log('🔄 Reconnect command executed!');
 			vscode.window.showInformationMessage('Reconnect command works!');
 		}
 	);
@@ -1244,7 +1245,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const openSettingsCommand = vscode.commands.registerCommand(
 		'taskr.openSettings',
 		() => {
-			console.log('⚙️ Open settings command executed!');
+			logger.log('⚙️ Open settings command executed!');
 			vscode.commands.executeCommand(
 				'workbench.action.openSettings',
 				'@ext:taskr taskmaster'
@@ -1259,7 +1260,7 @@ export function activate(context: vscode.ExtensionContext) {
 		openSettingsCommand
 	);
 
-	console.log('✅ All commands registered successfully!');
+	logger.log('✅ All commands registered successfully!');
 }
 
 // Generate webview HTML content
@@ -1393,7 +1394,7 @@ function getSampleTasks() {
 
 // This method is called when your extension is deactivated
 export function deactivate() {
-	console.log('👋 Task Master Kanban extension deactivated');
+	logger.log('👋 Task Master Kanban extension deactivated');
 
 	// Stop polling
 	stopPolling();

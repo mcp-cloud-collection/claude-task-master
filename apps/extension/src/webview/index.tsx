@@ -648,14 +648,21 @@ const TaskEditModal: React.FC<{
 
 		// Only include changed fields
 		const updates: TaskUpdates = {};
-		if (formData.title !== task.title) {updates.title = formData.title;}
-		if (formData.description !== task.description)
-			{updates.description = formData.description;}
-		if (formData.details !== task.details) {updates.details = formData.details;}
-		if (formData.priority !== task.priority)
-			{updates.priority = formData.priority;}
-		if (formData.testStrategy !== task.testStrategy)
-			{updates.testStrategy = formData.testStrategy;}
+		if (formData.title !== task.title) {
+			updates.title = formData.title;
+		}
+		if (formData.description !== task.description) {
+			updates.description = formData.description;
+		}
+		if (formData.details !== task.details) {
+			updates.details = formData.details;
+		}
+		if (formData.priority !== task.priority) {
+			updates.priority = formData.priority;
+		}
+		if (formData.testStrategy !== task.testStrategy) {
+			updates.testStrategy = formData.testStrategy;
+		}
 		if (
 			JSON.stringify(formData.dependencies) !==
 			JSON.stringify(task.dependencies)
@@ -874,8 +881,9 @@ const TaskCard: React.FC<{
 // Main Kanban Board Component
 const TaskMasterKanban: React.FC = () => {
 	const context = useContext(VSCodeContext);
-	if (!context)
-		{throw new Error('TaskMasterKanban must be used within VSCodeContext');}
+	if (!context) {
+		throw new Error('TaskMasterKanban must be used within VSCodeContext');
+	}
 
 	const { state, dispatch, sendMessage, availableHeight } = context;
 	const {
@@ -984,14 +992,18 @@ const TaskMasterKanban: React.FC = () => {
 			dispatch({ type: 'SET_USER_INTERACTING', payload: false });
 		}, 1000); // 1 second delay to ensure smooth completion
 
-		if (!over) {return;}
+		if (!over) {
+			return;
+		}
 
 		const taskId = active.id as string;
 		const newStatus = over.id as TaskMasterTask['status'];
 
 		// Find the task that was moved
 		const task = tasks.find((t) => t.id === taskId);
-		if (!task || task.status === newStatus) {return;}
+		if (!task || task.status === newStatus) {
+			return;
+		}
 
 		console.log(`🔄 Moving task ${taskId} from ${task.status} to ${newStatus}`);
 
@@ -1382,7 +1394,9 @@ const App: React.FC = () => {
 
 	// Handle messages from extension
 	useEffect(() => {
-		if (!vscode) {return;}
+		if (!vscode) {
+			return;
+		}
 
 		const handleMessage = (event: MessageEvent) => {
 			const message: WebviewMessage = event.data;
@@ -1526,13 +1540,16 @@ const App: React.FC = () => {
 
 					// Map error severity to toast type
 					let toastType: ToastNotification['type'] = 'error';
-					if (errorData.severity === 'low') {toastType = 'info';}
-					else if (errorData.severity === 'medium') {toastType = 'warning';}
-					else if (
+					if (errorData.severity === 'low') {
+						toastType = 'info';
+					} else if (errorData.severity === 'medium') {
+						toastType = 'warning';
+					} else if (
 						errorData.severity === 'high' ||
 						errorData.severity === 'critical'
-					)
-						{toastType = 'error';}
+					) {
+						toastType = 'error';
+					}
 
 					// Create appropriate toast based on error category
 					const title =

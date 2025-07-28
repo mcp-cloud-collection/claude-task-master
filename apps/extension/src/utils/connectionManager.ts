@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { MCPClientManager, MCPConfig, MCPServerStatus } from './mcpClient';
+import { logger } from './logger';
 
 export interface ConnectionEvent {
 	type: 'connected' | 'disconnected' | 'error' | 'reconnecting';
@@ -82,7 +83,7 @@ export class ConnectionManager {
 
 			this.logEvent({ type: 'connected', timestamp: new Date() });
 
-			console.log('Connection manager: Successfully connected');
+			logger.log('Connection manager: Successfully connected');
 		} catch (error) {
 			this.logEvent({
 				type: 'error',
@@ -216,11 +217,11 @@ export class ConnectionManager {
 
 			// Attempt reconnection if connection seems lost
 			if (this.health.consecutiveFailures >= 3 && !this.isReconnecting) {
-				console.log(
+				logger.log(
 					'Multiple consecutive failures detected, attempting reconnection...'
 				);
 				this.reconnectWithBackoff().catch((err) => {
-					console.error('Reconnection failed:', err);
+					logger.error('Reconnection failed:', err);
 				});
 			}
 
@@ -242,7 +243,7 @@ export class ConnectionManager {
 		try {
 			await this.connect();
 		} catch (error) {
-			console.error('Failed to connect with new configuration:', error);
+			logger.error('Failed to connect with new configuration:', error);
 		}
 	}
 
@@ -256,7 +257,7 @@ export class ConnectionManager {
 			try {
 				await this.testConnection();
 			} catch (error) {
-				console.error('Health check failed:', error);
+				logger.error('Health check failed:', error);
 			}
 		}, 15000); // Check every 15 seconds
 	}
@@ -303,7 +304,7 @@ export class ConnectionManager {
 			this.maxBackoffMs
 		);
 
-		console.log(
+		logger.log(
 			`Attempting reconnection ${this.reconnectAttempts}/${this.maxReconnectAttempts} in ${backoffMs}ms...`
 		);
 
@@ -312,7 +313,7 @@ export class ConnectionManager {
 		try {
 			await this.connect();
 		} catch (error) {
-			console.error(
+			logger.error(
 				`Reconnection attempt ${this.reconnectAttempts} failed:`,
 				error
 			);

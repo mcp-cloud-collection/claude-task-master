@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { ErrorCategory, ErrorSeverity, NotificationType } from './errorHandler';
+import { logger } from './logger';
 
 export interface NotificationPreferences {
 	// Global notification toggles
@@ -240,9 +241,7 @@ export class NotificationPreferencesManager {
 			vscode.ConfigurationTarget.Global
 		);
 
-		console.log(
-			'Task Master Kanban notification preferences reset to defaults'
-		);
+		logger.log('Task Master Kanban notification preferences reset to defaults');
 	}
 
 	/**

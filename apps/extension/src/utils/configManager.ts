@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { MCPConfig } from './mcpClient';
+import { logger } from './logger';
 
 export interface TaskMasterConfig {
 	mcp: MCPServerConfig;
@@ -469,7 +470,7 @@ export class ConfigManager {
 	private setupConfigWatcher(): void {
 		vscode.workspace.onDidChangeConfiguration((event) => {
 			if (event.affectsConfiguration('taskmaster')) {
-				console.log('Task Master configuration changed, reloading...');
+				logger.log('Task Master configuration changed, reloading...');
 				this.config = this.loadConfig();
 				this.notifyConfigChange();
 			}
@@ -499,7 +500,7 @@ export class ConfigManager {
 			try {
 				listener(this.config);
 			} catch (error) {
-				console.error('Error in configuration change listener:', error);
+				logger.error('Error in configuration change listener:', error);
 			}
 		});
 	}

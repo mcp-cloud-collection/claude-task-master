@@ -54,26 +54,35 @@ try {
 
 	// 5. Sync versions and prepare the final package.json
 	console.log('Syncing versions and preparing the final package.json...');
-	
+
 	// Read current versions
 	const devPackagePath = path.resolve(__dirname, 'package.json');
 	const publishPackagePath = path.resolve(__dirname, 'package.publish.json');
-	
+
 	const devPackage = JSON.parse(fs.readFileSync(devPackagePath, 'utf8'));
-	const publishPackage = JSON.parse(fs.readFileSync(publishPackagePath, 'utf8'));
-	
+	const publishPackage = JSON.parse(
+		fs.readFileSync(publishPackagePath, 'utf8')
+	);
+
 	// Check if versions are in sync
 	if (devPackage.version !== publishPackage.version) {
-		console.log(`  - Version sync needed: ${publishPackage.version} → ${devPackage.version}`);
+		console.log(
+			`  - Version sync needed: ${publishPackage.version} → ${devPackage.version}`
+		);
 		publishPackage.version = devPackage.version;
-		
+
 		// Update the source package.publish.json file
-		fs.writeFileSync(publishPackagePath, JSON.stringify(publishPackage, null, '\t') + '\n');
-		console.log(`  - Updated package.publish.json version to ${devPackage.version}`);
+		fs.writeFileSync(
+			publishPackagePath,
+			JSON.stringify(publishPackage, null, '\t') + '\n'
+		);
+		console.log(
+			`  - Updated package.publish.json version to ${devPackage.version}`
+		);
 	} else {
 		console.log(`  - Versions already in sync: ${devPackage.version}`);
 	}
-	
+
 	// Copy the (now synced) package.publish.json as package.json
 	fs.copySync(publishPackagePath, path.resolve(packageDir, 'package.json'));
 	console.log('  - Copied package.publish.json as package.json');

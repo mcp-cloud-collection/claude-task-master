@@ -69,8 +69,8 @@ async function main() {
 		bundle: true,
 		format: 'cjs',
 		minify: production,
-		sourcemap: !production,
-		sourcesContent: false,
+		sourcemap: !production ? 'inline' : false,
+		sourcesContent: !production,
 		platform: 'node',
 		outdir: 'dist',
 		external: ['vscode'],
@@ -90,8 +90,8 @@ async function main() {
 		format: 'iife',
 		globalName: 'App',
 		minify: production,
-		sourcemap: !production,
-		sourcesContent: false,
+		sourcemap: !production ? 'inline' : false,
+		sourcesContent: !production,
 		platform: 'browser',
 		outdir: 'dist',
 		logLevel: 'silent',
@@ -99,6 +99,13 @@ async function main() {
 		jsx: 'automatic',
 		jsxImportSource: 'react',
 		external: ['*.css'],
+		// Bundle React with webview since it's not available in the runtime
+		// This prevents the multiple React instances issue
+		// Ensure React is resolved from the workspace root to avoid duplicates
+		alias: {
+			react: path.resolve(__dirname, '../../node_modules/react'),
+			'react-dom': path.resolve(__dirname, '../../node_modules/react-dom')
+		},
 		define: {
 			'process.env.NODE_ENV': production ? '"production"' : '"development"',
 			global: 'globalThis'

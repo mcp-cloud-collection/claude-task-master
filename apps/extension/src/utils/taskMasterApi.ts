@@ -1,5 +1,6 @@
 import * as vscode from 'vscode';
 import { MCPClientManager } from './mcpClient';
+import { logger } from './logger';
 
 // Task Master MCP API response types
 export interface MCPTaskResponse {
@@ -155,7 +156,7 @@ export class TaskMasterApi {
 			this.initializeBackgroundRefresh();
 		}
 
-		console.log('TaskMasterApi: Initialized with enhanced caching:', {
+		logger.log('TaskMasterApi: Initialized with enhanced caching:', {
 			cacheDuration: this.config.cacheDuration,
 			maxSize: this.config.cache?.maxSize,
 			backgroundRefresh: this.config.cache?.enableBackgroundRefresh,
@@ -200,7 +201,7 @@ export class TaskMasterApi {
 				mcpArgs.tag = options.tag;
 			}
 
-			console.log('TaskMasterApi: Calling get_tasks with args:', mcpArgs);
+			logger.log('TaskMasterApi: Calling get_tasks with args:', mcpArgs);
 
 			// Call the MCP tool
 			const mcpResponse = await this.callMCPTool('get_tasks', mcpArgs);
@@ -217,7 +218,7 @@ export class TaskMasterApi {
 				requestDuration: Date.now() - startTime
 			};
 		} catch (error) {
-			console.error('TaskMasterApi: Error getting tasks:', error);
+			logger.error('TaskMasterApi: Error getting tasks:', error);
 
 			return {
 				success: false,
@@ -247,7 +248,7 @@ export class TaskMasterApi {
 				projectRoot: options?.projectRoot || this.getWorkspaceRoot()
 			};
 
-			console.log('TaskMasterApi: Calling set_task_status with args:', mcpArgs);
+			logger.log('TaskMasterApi: Calling set_task_status with args:', mcpArgs);
 
 			await this.callMCPTool('set_task_status', mcpArgs);
 
@@ -260,7 +261,7 @@ export class TaskMasterApi {
 				requestDuration: Date.now() - startTime
 			};
 		} catch (error) {
-			console.error('TaskMasterApi: Error updating task status:', error);
+			logger.error('TaskMasterApi: Error updating task status:', error);
 
 			return {
 				success: false,
@@ -331,7 +332,7 @@ export class TaskMasterApi {
 				mcpArgs.research = options.research;
 			}
 
-			console.log('TaskMasterApi: Calling update_task with args:', mcpArgs);
+			logger.log('TaskMasterApi: Calling update_task with args:', mcpArgs);
 
 			await this.callMCPTool('update_task', mcpArgs);
 
@@ -344,7 +345,7 @@ export class TaskMasterApi {
 				requestDuration: Date.now() - startTime
 			};
 		} catch (error) {
-			console.error('TaskMasterApi: Error updating task:', error);
+			logger.error('TaskMasterApi: Error updating task:', error);
 
 			return {
 				success: false,
@@ -380,7 +381,7 @@ export class TaskMasterApi {
 				mcpArgs.research = options.research;
 			}
 
-			console.log('TaskMasterApi: Calling update_subtask with args:', mcpArgs);
+			logger.log('TaskMasterApi: Calling update_subtask with args:', mcpArgs);
 
 			await this.callMCPTool('update_subtask', mcpArgs);
 
@@ -393,7 +394,7 @@ export class TaskMasterApi {
 				requestDuration: Date.now() - startTime
 			};
 		} catch (error) {
-			console.error('TaskMasterApi: Error updating subtask:', error);
+			logger.error('TaskMasterApi: Error updating subtask:', error);
 
 			return {
 				success: false,
@@ -439,7 +440,7 @@ export class TaskMasterApi {
 				mcpArgs.status = subtaskData.status;
 			}
 
-			console.log('TaskMasterApi: Calling add_subtask with args:', mcpArgs);
+			logger.log('TaskMasterApi: Calling add_subtask with args:', mcpArgs);
 
 			await this.callMCPTool('add_subtask', mcpArgs);
 
@@ -452,7 +453,7 @@ export class TaskMasterApi {
 				requestDuration: Date.now() - startTime
 			};
 		} catch (error) {
-			console.error('TaskMasterApi: Error adding subtask:', error);
+			logger.error('TaskMasterApi: Error adding subtask:', error);
 
 			return {
 				success: false,
@@ -489,7 +490,7 @@ export class TaskMasterApi {
 				requestDuration: Date.now() - startTime
 			};
 		} catch (error) {
-			console.error('TaskMasterApi: Connection test failed:', error);
+			logger.error('TaskMasterApi: Connection test failed:', error);
 
 			return {
 				success: false,
@@ -529,7 +530,7 @@ export class TaskMasterApi {
 			this.performBackgroundRefresh();
 		}, interval);
 
-		console.log(
+		logger.log(
 			`TaskMasterApi: Background refresh initialized with ${interval}ms interval`
 		);
 	}
@@ -542,7 +543,7 @@ export class TaskMasterApi {
 			return;
 		}
 
-		console.log('TaskMasterApi: Starting background cache refresh');
+		logger.log('TaskMasterApi: Starting background cache refresh');
 		const startTime = Date.now();
 
 		// Find frequently accessed entries that are close to expiration
@@ -565,7 +566,7 @@ export class TaskMasterApi {
 				const optionsMatch = key.match(/get_tasks_(.+)/);
 				if (optionsMatch) {
 					const options = JSON.parse(optionsMatch[1]);
-					console.log(`TaskMasterApi: Background refreshing cache key: ${key}`);
+					logger.log(`TaskMasterApi: Background refreshing cache key: ${key}`);
 
 					// Perform the refresh (this will update the cache)
 					await this.getTasks(options);
@@ -573,7 +574,7 @@ export class TaskMasterApi {
 					this.cacheAnalytics.refreshes++;
 				}
 			} catch (error) {
-				console.warn(
+				logger.warn(
 					`TaskMasterApi: Background refresh failed for key ${key}:`,
 					error
 				);
@@ -581,7 +582,7 @@ export class TaskMasterApi {
 		}
 
 		const duration = Date.now() - startTime;
-		console.log(
+		logger.log(
 			`TaskMasterApi: Background refresh completed in ${duration}ms, refreshed ${refreshedCount} entries`
 		);
 	}
@@ -633,7 +634,7 @@ export class TaskMasterApi {
 
 		if (evictedCount > 0) {
 			this.cacheAnalytics.evictions += evictedCount;
-			console.log(
+			logger.log(
 				`TaskMasterApi: Evicted ${evictedCount} cache entries matching pattern: ${pattern}`
 			);
 		}
@@ -661,14 +662,14 @@ export class TaskMasterApi {
 				}
 
 				const accessTime = Date.now() - startTime;
-				console.log(
+				logger.log(
 					`TaskMasterApi: Cache hit for ${key} (${accessTime}ms, ${cached.accessCount} accesses)`
 				);
 				return cached.data;
 			} else {
 				// Remove expired entry
 				this.cache.delete(key);
-				console.log(`TaskMasterApi: Cache entry expired and removed: ${key}`);
+				logger.log(`TaskMasterApi: Cache entry expired and removed: ${key}`);
 			}
 		}
 
@@ -676,7 +677,7 @@ export class TaskMasterApi {
 			this.cacheAnalytics.misses++;
 		}
 
-		console.log(`TaskMasterApi: Cache miss for ${key}`);
+		logger.log(`TaskMasterApi: Cache miss for ${key}`);
 		return null;
 	}
 
@@ -709,7 +710,7 @@ export class TaskMasterApi {
 		}
 
 		this.cache.set(key, entry);
-		console.log(
+		logger.log(
 			`TaskMasterApi: Cached data for ${key} (size: ${dataSize} bytes, TTL: ${entry.ttl || this.config.cacheDuration}ms)`
 		);
 
@@ -733,7 +734,7 @@ export class TaskMasterApi {
 		}
 
 		if (entries.length > 0) {
-			console.log(`TaskMasterApi: Evicted ${entries.length} LRU cache entries`);
+			logger.log(`TaskMasterApi: Evicted ${entries.length} LRU cache entries`);
 		}
 	}
 
@@ -755,7 +756,7 @@ export class TaskMasterApi {
 		// This is a simple implementation - in a more sophisticated system,
 		// we might prefetch related tasks, subtasks, or dependency data
 		if (key.includes('get_tasks') && Array.isArray(data)) {
-			console.log(
+			logger.log(
 				`TaskMasterApi: Scheduled prefetch for ${data.length} tasks related to ${key}`
 			);
 			// Future enhancement: prefetch individual task details, related dependencies, etc.
@@ -771,7 +772,7 @@ export class TaskMasterApi {
 			this.backgroundRefreshTimer = undefined;
 		}
 		this.clearCache();
-		console.log('TaskMasterApi: Destroyed and cleaned up resources');
+		logger.log('TaskMasterApi: Destroyed and cleaned up resources');
 	}
 
 	/**
@@ -786,7 +787,7 @@ export class TaskMasterApi {
 		for (let attempt = 1; attempt <= this.config.retryAttempts; attempt++) {
 			try {
 				const rawResponse = await this.mcpClient.callTool(toolName, args);
-				console.log(
+				logger.log(
 					`🔍 DEBUGGING: Raw MCP response for ${toolName}:`,
 					JSON.stringify(rawResponse, null, 2)
 				);
@@ -802,30 +803,30 @@ export class TaskMasterApi {
 					if (contentItem.type === 'text' && contentItem.text) {
 						try {
 							const parsedData = JSON.parse(contentItem.text);
-							console.log(
+							logger.log(
 								`🔍 DEBUGGING: Parsed MCP data for ${toolName}:`,
 								parsedData
 							);
 							return parsedData;
 						} catch (parseError) {
-							console.error(
+							logger.error(
 								`TaskMasterApi: Failed to parse MCP response text for ${toolName}:`,
 								parseError
 							);
-							console.error(`TaskMasterApi: Raw text was:`, contentItem.text);
+							logger.error(`TaskMasterApi: Raw text was:`, contentItem.text);
 							return rawResponse; // Fall back to original response
 						}
 					}
 				}
 
 				// If not in expected format, return as-is
-				console.warn(
+				logger.warn(
 					`TaskMasterApi: Unexpected MCP response format for ${toolName}, returning raw response`
 				);
 				return rawResponse;
 			} catch (error) {
 				lastError = error instanceof Error ? error : new Error('Unknown error');
-				console.warn(
+				logger.warn(
 					`TaskMasterApi: Attempt ${attempt}/${this.config.retryAttempts} failed for ${toolName}:`,
 					lastError.message
 				);
@@ -856,7 +857,7 @@ export class TaskMasterApi {
 			// Validate response structure
 			const validationResult = this.validateMCPResponse(mcpResponse);
 			if (!validationResult.isValid) {
-				console.warn(
+				logger.warn(
 					'TaskMasterApi: MCP response validation failed:',
 					validationResult.errors
 				);
@@ -864,7 +865,7 @@ export class TaskMasterApi {
 			}
 
 			const tasks = mcpResponse.data.tasks || [];
-			console.log(
+			logger.log(
 				`TaskMasterApi: Transforming ${tasks.length} tasks from MCP response`
 			);
 
@@ -892,7 +893,7 @@ export class TaskMasterApi {
 						error: errorMsg,
 						task: tasks[i]
 					});
-					console.error(
+					logger.error(
 						`TaskMasterApi: Failed to transform task at index ${i}:`,
 						errorMsg,
 						tasks[i]
@@ -902,7 +903,7 @@ export class TaskMasterApi {
 
 			// Log transformation summary
 			const transformDuration = Date.now() - transformStartTime;
-			console.log(
+			logger.log(
 				`TaskMasterApi: Transformation completed in ${transformDuration}ms`,
 				{
 					totalTasks: tasks.length,
@@ -917,7 +918,7 @@ export class TaskMasterApi {
 
 			return transformedTasks;
 		} catch (error) {
-			console.error(
+			logger.error(
 				'TaskMasterApi: Critical error during response transformation:',
 				error
 			);
@@ -972,7 +973,7 @@ export class TaskMasterApi {
 	 */
 	private transformSingleTask(task: any, index: number): TaskMasterTask | null {
 		if (!task || typeof task !== 'object') {
-			console.warn(
+			logger.warn(
 				`TaskMasterApi: Task at index ${index} is not a valid object:`,
 				task
 			);
@@ -1045,7 +1046,7 @@ export class TaskMasterApi {
 				dependencies.length > 0 ||
 				complexityScore !== undefined
 			) {
-				console.log(
+				logger.log(
 					`TaskMasterApi: Successfully transformed complex task ${taskId}:`,
 					{
 						subtaskCount: subtasks.length,
@@ -1059,7 +1060,7 @@ export class TaskMasterApi {
 
 			return transformedTask;
 		} catch (error) {
-			console.error(
+			logger.error(
 				`TaskMasterApi: Error transforming task at index ${index}:`,
 				error,
 				task
@@ -1074,14 +1075,14 @@ export class TaskMasterApi {
 	private validateAndNormalizeId(id: any, fallbackIndex: number): string {
 		if (id === null || id === undefined) {
 			const generatedId = `generated_${fallbackIndex}_${Date.now()}`;
-			console.warn(`TaskMasterApi: Task missing ID, generated: ${generatedId}`);
+			logger.warn(`TaskMasterApi: Task missing ID, generated: ${generatedId}`);
 			return generatedId;
 		}
 
 		const stringId = String(id).trim();
 		if (stringId === '') {
 			const generatedId = `empty_${fallbackIndex}_${Date.now()}`;
-			console.warn(
+			logger.warn(
 				`TaskMasterApi: Task has empty ID, generated: ${generatedId}`
 			);
 			return generatedId;
@@ -1103,7 +1104,7 @@ export class TaskMasterApi {
 		}
 
 		if (typeof value !== 'string') {
-			console.warn(
+			logger.warn(
 				`TaskMasterApi: ${fieldName} is not a string, converting:`,
 				value
 			);
@@ -1127,7 +1128,7 @@ export class TaskMasterApi {
 		}
 
 		if (!Array.isArray(dependencies)) {
-			console.warn(
+			logger.warn(
 				`TaskMasterApi: Dependencies for task ${taskId} is not an array:`,
 				dependencies
 			);
@@ -1138,7 +1139,7 @@ export class TaskMasterApi {
 		for (let i = 0; i < dependencies.length; i++) {
 			const dep = dependencies[i];
 			if (dep === null || dep === undefined) {
-				console.warn(
+				logger.warn(
 					`TaskMasterApi: Null dependency at index ${i} for task ${taskId}`
 				);
 				continue;
@@ -1146,7 +1147,7 @@ export class TaskMasterApi {
 
 			const stringDep = String(dep).trim();
 			if (stringDep === '') {
-				console.warn(
+				logger.warn(
 					`TaskMasterApi: Empty dependency at index ${i} for task ${taskId}`
 				);
 				continue;
@@ -1154,7 +1155,7 @@ export class TaskMasterApi {
 
 			// Check for self-dependency
 			if (stringDep === taskId) {
-				console.warn(
+				logger.warn(
 					`TaskMasterApi: Self-dependency detected for task ${taskId}, skipping`
 				);
 				continue;
@@ -1185,7 +1186,7 @@ export class TaskMasterApi {
 		}
 
 		if (!Array.isArray(subtasks)) {
-			console.warn(
+			logger.warn(
 				`TaskMasterApi: Subtasks for task ${parentTaskId} is not an array:`,
 				subtasks
 			);
@@ -1197,7 +1198,7 @@ export class TaskMasterApi {
 			try {
 				const subtask = subtasks[i];
 				if (!subtask || typeof subtask !== 'object') {
-					console.warn(
+					logger.warn(
 						`TaskMasterApi: Invalid subtask at index ${i} for task ${parentTaskId}:`,
 						subtask
 					);
@@ -1233,7 +1234,7 @@ export class TaskMasterApi {
 
 				validSubtasks.push(transformedSubtask);
 			} catch (error) {
-				console.error(
+				logger.error(
 					`TaskMasterApi: Error transforming subtask at index ${i} for task ${parentTaskId}:`,
 					error
 				);
@@ -1285,7 +1286,7 @@ export class TaskMasterApi {
 		const result = statusMap[normalized] || 'pending';
 
 		if (original && original !== result) {
-			console.log(
+			logger.log(
 				`TaskMasterApi: Normalized status '${original}' -> '${result}'`
 			);
 		}
@@ -1330,7 +1331,7 @@ export class TaskMasterApi {
 		}
 
 		if (original && original !== result) {
-			console.log(
+			logger.log(
 				`TaskMasterApi: Normalized priority '${original}' -> '${result}'`
 			);
 		}

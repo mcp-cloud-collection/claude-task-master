@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import { logger } from './logger';
 
 export interface TaskFileData {
 	details?: string;
@@ -85,7 +86,7 @@ export async function readTaskFileData(
 			return { details: undefined, testStrategy: undefined };
 		}
 	} catch (error) {
-		console.error('Error reading task file data:', error);
+		logger.error('Error reading task file data:', error);
 		return { details: undefined, testStrategy: undefined };
 	}
 }
@@ -103,21 +104,21 @@ export function findTaskById(
 	// Check if this is a subtask ID with dotted notation (e.g., "1.2")
 	if (taskId.includes('.')) {
 		const [parentId, subtaskId] = taskId.split('.');
-		console.log('🔍 Looking for subtask:', { parentId, subtaskId, taskId });
+		logger.log('🔍 Looking for subtask:', { parentId, subtaskId, taskId });
 
 		// Find the parent task first
 		const parentTask = tasks.find((task) => String(task.id) === parentId);
 		if (!parentTask || !parentTask.subtasks) {
-			console.log('❌ Parent task not found or has no subtasks:', parentId);
+			logger.log('❌ Parent task not found or has no subtasks:', parentId);
 			return undefined;
 		}
 
-		console.log(
+		logger.log(
 			'📋 Parent task found with',
 			parentTask.subtasks.length,
 			'subtasks'
 		);
-		console.log(
+		logger.log(
 			'🔍 Subtask IDs in parent:',
 			parentTask.subtasks.map((st) => st.id)
 		);
@@ -127,9 +128,9 @@ export function findTaskById(
 			(st) => String(st.id) === subtaskId
 		);
 		if (subtask) {
-			console.log('✅ Subtask found:', subtask.id);
+			logger.log('✅ Subtask found:', subtask.id);
 		} else {
-			console.log('❌ Subtask not found:', subtaskId);
+			logger.log('❌ Subtask not found:', subtaskId);
 		}
 		return subtask;
 	}
@@ -159,7 +160,7 @@ export function parseTaskFileData(
 	tagName: string,
 	workspacePath?: string
 ): TaskFileData {
-	console.log('🔍 parseTaskFileData called with:', {
+	logger.log('🔍 parseTaskFileData called with:', {
 		taskId,
 		tagName,
 		contentLength: content.length
@@ -167,17 +168,17 @@ export function parseTaskFileData(
 
 	try {
 		const tasksJson: TasksJsonStructure = JSON.parse(content);
-		console.log('📊 Available tags:', Object.keys(tasksJson));
+		logger.log('📊 Available tags:', Object.keys(tasksJson));
 
 		// Get the tag data
 		const tagData = tasksJson[tagName];
 		if (!tagData || !tagData.tasks) {
-			console.log('❌ Tag not found or no tasks in tag:', tagName);
+			logger.log('❌ Tag not found or no tasks in tag:', tagName);
 			return { details: undefined, testStrategy: undefined };
 		}
 
-		console.log('📋 Tag found with', tagData.tasks.length, 'tasks');
-		console.log(
+		logger.log('📋 Tag found with', tagData.tasks.length, 'tasks');
+		logger.log(
 			'🔍 Available task IDs:',
 			tagData.tasks.map((t) => t.id)
 		);
@@ -185,18 +186,18 @@ export function parseTaskFileData(
 		// Find the task
 		const task = findTaskById(tagData.tasks, taskId);
 		if (!task) {
-			console.log('❌ Task not found:', taskId);
+			logger.log('❌ Task not found:', taskId);
 			return { details: undefined, testStrategy: undefined };
 		}
 
-		console.log('✅ Task found:', task.id);
-		console.log(
+		logger.log('✅ Task found:', task.id);
+		logger.log(
 			'📝 Task has details:',
 			!!task.details,
 			'length:',
 			task.details?.length
 		);
-		console.log(
+		logger.log(
 			'🧪 Task has testStrategy:',
 			!!task.testStrategy,
 			'length:',
@@ -208,7 +209,7 @@ export function parseTaskFileData(
 			testStrategy: task.testStrategy
 		};
 	} catch (error) {
-		console.error('❌ Error parsing tasks.json:', error);
+		logger.error('❌ Error parsing tasks.json:', error);
 		return { details: undefined, testStrategy: undefined };
 	}
 }

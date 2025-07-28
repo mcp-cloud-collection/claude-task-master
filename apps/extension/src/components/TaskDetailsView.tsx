@@ -261,8 +261,9 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 	onNavigateToTask
 }) => {
 	const context = useContext(VSCodeContext);
-	if (!context)
-		{throw new Error('TaskDetailsView must be used within VSCodeContext');}
+	if (!context) {
+		throw new Error('TaskDetailsView must be used within VSCodeContext');
+	}
 
 	const { state, sendMessage } = context;
 	const { tasks } = state;
@@ -372,7 +373,9 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 
 	// Handle running complexity analysis for a task
 	const handleRunComplexityAnalysis = useCallback(async () => {
-		if (!currentTask) {return;}
+		if (!currentTask) {
+			return;
+		}
 
 		setIsLoadingComplexity(true);
 		try {
@@ -416,7 +419,9 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 
 	// Function to fetch task file data (implementation details and test strategy only)
 	const fetchTaskFileData = async () => {
-		if (!currentTask?.id) {return;}
+		if (!currentTask?.id) {
+			return;
+		}
 
 		setIsLoadingTaskFileData(true);
 		setTaskFileDataError(null);
@@ -543,7 +548,9 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 
 	// Handle AI Actions
 	const handleRegenerate = async () => {
-		if (!currentTask || !prompt.trim()) {return;}
+		if (!currentTask || !prompt.trim()) {
+			return;
+		}
 
 		setIsRegenerating(true);
 		try {
@@ -584,7 +591,9 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 	};
 
 	const handleAppend = async () => {
-		if (!currentTask || !prompt.trim()) {return;}
+		if (!currentTask || !prompt.trim()) {
+			return;
+		}
 
 		setIsAppending(true);
 		try {
@@ -626,7 +635,9 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 
 	// Handle adding a new subtask
 	const handleAddSubtask = async () => {
-		if (!currentTask || !newSubtaskTitle.trim() || isSubtask) {return;}
+		if (!currentTask || !newSubtaskTitle.trim() || isSubtask) {
+			return;
+		}
 
 		setIsSubmittingSubtask(true);
 		try {
@@ -672,7 +683,9 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 
 	// Handle status change
 	const handleStatusChange = async (newStatus: TaskMasterTask['status']) => {
-		if (!currentTask) {return;}
+		if (!currentTask) {
+			return;
+		}
 
 		try {
 			await sendMessage({
