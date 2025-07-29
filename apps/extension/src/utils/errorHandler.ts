@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import { logger } from './logger';
 import {
-	shouldShowNotification,
 	getNotificationType,
-	getToastDuration
+	getToastDuration,
+	shouldShowNotification
 } from './notificationPreferences';
 
 export enum ErrorSeverity {
@@ -169,7 +169,7 @@ export abstract class TaskMasterError extends Error {
 export class MCPConnectionError extends TaskMasterError {
 	constructor(
 		message: string,
-		code: string = 'MCP_CONNECTION_FAILED',
+		code = 'MCP_CONNECTION_FAILED',
 		context?: Record<string, any>,
 		recovery?: {
 			automatic: boolean;
@@ -195,7 +195,7 @@ export class MCPConnectionError extends TaskMasterError {
 export class ConfigurationError extends TaskMasterError {
 	constructor(
 		message: string,
-		code: string = 'CONFIGURATION_INVALID',
+		code = 'CONFIGURATION_INVALID',
 		context?: Record<string, any>
 	) {
 		super(
@@ -215,7 +215,7 @@ export class ConfigurationError extends TaskMasterError {
 export class TaskLoadingError extends TaskMasterError {
 	constructor(
 		message: string,
-		code: string = 'TASK_LOADING_FAILED',
+		code = 'TASK_LOADING_FAILED',
 		context?: Record<string, any>,
 		recovery?: {
 			automatic: boolean;
@@ -241,7 +241,7 @@ export class TaskLoadingError extends TaskMasterError {
 export class UIRenderingError extends TaskMasterError {
 	constructor(
 		message: string,
-		code: string = 'UI_RENDERING_FAILED',
+		code = 'UI_RENDERING_FAILED',
 		context?: Record<string, any>
 	) {
 		super(
@@ -261,7 +261,7 @@ export class UIRenderingError extends TaskMasterError {
 export class NetworkError extends TaskMasterError {
 	constructor(
 		message: string,
-		code: string = 'NETWORK_ERROR',
+		code = 'NETWORK_ERROR',
 		context?: Record<string, any>,
 		recovery?: {
 			automatic: boolean;

@@ -1,6 +1,10 @@
 import * as vscode from 'vscode';
-import { MCPClientManager, MCPConfig, MCPServerStatus } from './mcpClient';
 import { logger } from './logger';
+import {
+	MCPClientManager,
+	type MCPConfig,
+	type MCPServerStatus
+} from './mcpClient';
 
 export interface ConnectionEvent {
 	type: 'connected' | 'disconnected' | 'error' | 'reconnecting';
@@ -135,7 +139,7 @@ export class ConnectionManager {
 	/**
 	 * Get recent connection events
 	 */
-	getEvents(limit: number = 10): ConnectionEvent[] {
+	getEvents(limit = 10): ConnectionEvent[] {
 		return this.connectionEvents.slice(-limit);
 	}
 
@@ -300,7 +304,7 @@ export class ConnectionManager {
 		this.reconnectAttempts++;
 
 		const backoffMs = Math.min(
-			this.reconnectBackoffMs * Math.pow(2, this.reconnectAttempts - 1),
+			this.reconnectBackoffMs * 2 ** (this.reconnectAttempts - 1),
 			this.maxBackoffMs
 		);
 

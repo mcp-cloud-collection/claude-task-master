@@ -1,6 +1,5 @@
 'use client';
 
-import React from 'react';
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import {
@@ -15,6 +14,7 @@ import {
 	useSensors
 } from '@dnd-kit/core';
 import type { DragEndEvent } from '@dnd-kit/core';
+import type React from 'react';
 import type { ReactNode } from 'react';
 
 export type { DragEndEvent } from '@dnd-kit/core';

@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
-import { MCPConfig } from './mcpClient';
 import { logger } from './logger';
+import type { MCPConfig } from './mcpClient';
 
 export interface TaskMasterConfig {
 	mcp: MCPServerConfig;

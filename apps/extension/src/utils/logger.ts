@@ -1,10 +1,22 @@
 import * as vscode from 'vscode';
 
 /**
+ * Logger interface for dependency injection
+ */
+export interface ILogger {
+	log(message: string, ...args: any[]): void;
+	error(message: string, ...args: any[]): void;
+	warn(message: string, ...args: any[]): void;
+	debug(message: string, ...args: any[]): void;
+	show(): void;
+	dispose(): void;
+}
+
+/**
  * Logger that outputs to VS Code's output channel instead of console
  * This prevents interference with MCP stdio communication
  */
-export class ExtensionLogger {
+export class ExtensionLogger implements ILogger {
 	private static instance: ExtensionLogger;
 	private outputChannel: vscode.OutputChannel;
 	private debugMode: boolean;
@@ -23,7 +35,9 @@ export class ExtensionLogger {
 	}
 
 	log(message: string, ...args: any[]): void {
-		if (!this.debugMode) return;
+		if (!this.debugMode) {
+			return;
+		}
 		const timestamp = new Date().toISOString();
 		const formattedMessage = this.formatMessage(message, args);
 		this.outputChannel.appendLine(`[${timestamp}] ${formattedMessage}`);
@@ -36,14 +50,18 @@ export class ExtensionLogger {
 	}
 
 	warn(message: string, ...args: any[]): void {
-		if (!this.debugMode) return;
+		if (!this.debugMode) {
+			return;
+		}
 		const timestamp = new Date().toISOString();
 		const formattedMessage = this.formatMessage(message, args);
 		this.outputChannel.appendLine(`[${timestamp}] WARN: ${formattedMessage}`);
 	}
 
 	debug(message: string, ...args: any[]): void {
-		if (!this.debugMode) return;
+		if (!this.debugMode) {
+			return;
+		}
 		const timestamp = new Date().toISOString();
 		const formattedMessage = this.formatMessage(message, args);
 		this.outputChannel.appendLine(`[${timestamp}] DEBUG: ${formattedMessage}`);
