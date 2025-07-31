@@ -47,46 +47,92 @@ export const useTaskDetails = ({
 
 	// Find the current task
 	useEffect(() => {
-		console.log('🔍 TaskDetailsView: Looking for task:', taskId);
-		console.log('🔍 TaskDetailsView: Available tasks:', tasks);
-
 		const { isSubtask: isSub, parentId, subtaskIndex } = parseTaskId(taskId);
 
 		if (isSub) {
 			const parent = tasks.find((t) => t.id === parentId);
 			if (parent && parent.subtasks && parent.subtasks[subtaskIndex]) {
 				const subtask = parent.subtasks[subtaskIndex];
-				console.log('✅ TaskDetailsView: Found subtask:', subtask);
 				setCurrentTask(subtask);
 				setParentTask(parent);
-				// Use subtask's own details and testStrategy
-				setTaskFileData({
-					details: subtask.details || '',
-					testStrategy: subtask.testStrategy || ''
-				});
 			} else {
-				console.error('❌ TaskDetailsView: Subtask not found');
 				setCurrentTask(null);
 				setParentTask(null);
 			}
 		} else {
 			const task = tasks.find((t) => t.id === taskId);
 			if (task) {
-				console.log('✅ TaskDetailsView: Found task:', task);
 				setCurrentTask(task);
 				setParentTask(null);
-				// Use task's own details and testStrategy
-				setTaskFileData({
-					details: task.details || '',
-					testStrategy: task.testStrategy || ''
-				});
 			} else {
-				console.error('❌ TaskDetailsView: Task not found');
 				setCurrentTask(null);
 				setParentTask(null);
 			}
 		}
 	}, [taskId, tasks]);
+
+	// Fetch full task details including details and testStrategy
+	useEffect(() => {
+		const fetchTaskDetails = async () => {
+			if (!currentTask) return;
+
+			try {
+				// Use the parent task ID for MCP call since get_task returns parent with subtasks
+				const taskIdToFetch =
+					isSubtask && parentTask ? parentTask.id : currentTask.id;
+
+				const result = await sendMessage({
+					type: 'mcpRequest',
+					tool: 'get_task',
+					params: {
+						id: taskIdToFetch
+					}
+				});
+
+				// Parse the MCP response - it comes as content[0].text JSON string
+				let fullTaskData = null;
+				if (result?.data?.content?.[0]?.text) {
+					try {
+						const parsed = JSON.parse(result.data.content[0].text);
+						fullTaskData = parsed.data;
+					} catch (e) {
+						console.error('Failed to parse MCP response:', e);
+					}
+				} else if (result?.data?.data) {
+					// Fallback if response structure is different
+					fullTaskData = result.data.data;
+				}
+
+				if (fullTaskData) {
+					if (isSubtask && fullTaskData.subtasks) {
+						// Find the specific subtask
+						const subtaskData = fullTaskData.subtasks.find(
+							(st: any) =>
+								st.id === currentTask.id ||
+								st.id === parseInt(currentTask.id as any)
+						);
+						if (subtaskData) {
+							setTaskFileData({
+								details: subtaskData.details || '',
+								testStrategy: subtaskData.testStrategy || ''
+							});
+						}
+					} else {
+						// Use the main task data
+						setTaskFileData({
+							details: fullTaskData.details || '',
+							testStrategy: fullTaskData.testStrategy || ''
+						});
+					}
+				}
+			} catch (error) {
+				console.error('❌ Failed to fetch task details:', error);
+				setTaskFileDataError('Failed to load task details');
+			}
+		};
+
+		fetchTaskDetails();
+	}, [currentTask, isSubtask, parentTask, sendMessage]);
 
 	// Fetch complexity score
 	const fetchComplexity = useCallback(async () => {

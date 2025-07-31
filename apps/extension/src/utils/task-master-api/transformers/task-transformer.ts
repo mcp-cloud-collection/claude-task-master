@@ -375,6 +375,11 @@ export class TaskTransformer {
 						undefined,
 						`subtask details for parent ${parentTaskId}`
 					),
+					testStrategy: this.validateAndNormalizeString(
+						subtask.testStrategy,
+						undefined,
+						`subtask testStrategy for parent ${parentTaskId}`
+					),
 					dependencies: subtask.dependencies || []
 				};
 

@@ -151,11 +151,6 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 						defaultExpanded={false}
 					/>
 
-					{(() => {
-						console.log(taskFileData);
-						return null;
-					})()}
-
 					{/* Test Strategy */}
 					<DetailsSection
 						title="Test Strategy"

@@ -60,6 +60,7 @@ export interface TaskMasterTask {
 		description?: string;
 		status: string;
 		details?: string;
+		testStrategy?: string;
 		dependencies?: Array<number | string>;
 	}>;
 }
