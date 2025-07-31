@@ -58,7 +58,7 @@ export class SidebarWebviewManager implements vscode.WebviewViewProvider {
 			vscode.Uri.joinPath(this.extensionUri, 'dist', 'sidebar.js')
 		);
 		const styleUri = webview.asWebviewUri(
-			vscode.Uri.joinPath(this.extensionUri, 'dist', 'sidebar.css')
+			vscode.Uri.joinPath(this.extensionUri, 'dist', 'index.css')
 		);
 		const nonce = this.getNonce();
 

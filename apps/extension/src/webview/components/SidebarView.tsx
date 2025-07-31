@@ -5,11 +5,13 @@ interface SidebarViewProps {
 	initialConnectionStatus?: boolean;
 }
 
+// Acquire VS Code API only once globally to avoid "already acquired" error
+const vscode = window.acquireVsCodeApi ? window.acquireVsCodeApi() : null;
+
 export const SidebarView: React.FC<SidebarViewProps> = ({
 	initialConnectionStatus = false
 }) => {
 	const [isConnected, setIsConnected] = useState(initialConnectionStatus);
-	const vscode = window.acquireVsCodeApi ? window.acquireVsCodeApi() : null;
 
 	useEffect(() => {
 		const handleMessage = (event: MessageEvent) => {
@@ -20,7 +22,9 @@ export const SidebarView: React.FC<SidebarViewProps> = ({
 		};
 
 		window.addEventListener('message', handleMessage);
-		return () => window.removeEventListener('message', handleMessage);
+		return () => {
+			window.removeEventListener('message', handleMessage);
+		};
 	}, []);
 
 	const handleOpenBoard = () => {
@@ -42,16 +46,6 @@ export const SidebarView: React.FC<SidebarViewProps> = ({
 				>
 					Open Kanban Board
 				</button>
-
-				<div
-					className={`mt-5 p-2.5 bg-vscode-editor-background rounded text-xs ${
-						isConnected
-							? 'border-l-[3px] border-vscode-testing-iconPassed'
-							: 'border-l-[3px] border-vscode-testing-iconFailed'
-					}`}
-				>
-					Status: {isConnected ? 'Connected' : 'Disconnected'}
-				</div>
 			</div>
 		</div>
 	);

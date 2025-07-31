@@ -1,14 +1,16 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { SidebarView } from './components/SidebarView';
-import './index.css';
 
-// Mount the React app
-const root = ReactDOM.createRoot(
-	document.getElementById('root') as HTMLElement
-);
-root.render(
-	<React.StrictMode>
-		<SidebarView />
-	</React.StrictMode>
-);
+const rootElement = document.getElementById('root');
+
+if (!rootElement) {
+	console.error('Sidebar: Root element not found');
+} else {
+	const root = ReactDOM.createRoot(rootElement);
+	root.render(
+		<React.StrictMode>
+			<SidebarView />
+		</React.StrictMode>
+	);
+}

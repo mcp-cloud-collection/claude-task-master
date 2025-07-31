@@ -30,13 +30,7 @@ try {
 	fs.ensureDirSync(targetDistDir);
 
 	// Only copy the files we need (exclude .map files)
-	const filesToCopy = [
-		'extension.js',
-		'index.js',
-		'index.css',
-		'sidebar.js',
-		'sidebar.css'
-	];
+	const filesToCopy = ['extension.js', 'index.js', 'index.css', 'sidebar.js'];
 	for (const file of filesToCopy) {
 		const srcFile = path.resolve(distDir, file);
 		const destFile = path.resolve(targetDistDir, file);
