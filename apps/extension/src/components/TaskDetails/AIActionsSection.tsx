@@ -5,6 +5,10 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { CollapsibleSection } from '@/components/ui/CollapsibleSection';
 import { Wand2, Loader2, PlusCircle } from 'lucide-react';
+import {
+	useUpdateTask,
+	useUpdateSubtask
+} from '../../webview/hooks/useTaskQueries';
 import type { TaskMasterTask } from '../../webview/types';
 
 interface AIActionsSectionProps {
@@ -27,42 +31,33 @@ export const AIActionsSection: React.FC<AIActionsSectionProps> = ({
 	onAppendingChange
 }) => {
 	const [prompt, setPrompt] = useState('');
-	const [isRegenerating, setIsRegenerating] = useState(false);
-	const [isAppending, setIsAppending] = useState(false);
+	const updateTask = useUpdateTask();
+	const updateSubtask = useUpdateSubtask();
 
 	const handleRegenerate = async () => {
 		if (!currentTask || !prompt.trim()) {
 			return;
 		}
 
-		setIsRegenerating(true);
 		try {
 			if (isSubtask && parentTask) {
-				await sendMessage({
-					type: 'updateSubtask',
-					data: {
-						taskId: `${parentTask.id}.${currentTask.id}`,
-						prompt: prompt,
-						options: { research: false }
-					}
+				await updateSubtask.mutateAsync({
+					taskId: `${parentTask.id}.${currentTask.id}`,
+					prompt: prompt,
+					options: { research: false }
 				});
 			} else {
-				await sendMessage({
-					type: 'updateTask',
-					data: {
-						taskId: currentTask.id,
-						updates: { description: prompt },
-						options: { append: false, research: false }
-					}
+				await updateTask.mutateAsync({
+					taskId: currentTask.id,
+					updates: { description: prompt },
+					options: { append: false, research: false }
 				});
 			}
 
+			setPrompt('');
 			refreshComplexityAfterAI();
 		} catch (error) {
 			console.error('❌ TaskDetailsView: Failed to regenerate task:', error);
-		} finally {
-			setIsRegenerating(false);
-			setPrompt('');
 		}
 	};
 
@@ -71,36 +66,31 @@ export const AIActionsSection: React.FC<AIActionsSectionProps> = ({
 			return;
 		}
 
-		setIsAppending(true);
 		try {
 			if (isSubtask && parentTask) {
-				await sendMessage({
-					type: 'updateSubtask',
-					data: {
-						taskId: `${parentTask.id}.${currentTask.id}`,
-						prompt: prompt,
-						options: { research: false }
-					}
+				await updateSubtask.mutateAsync({
+					taskId: `${parentTask.id}.${currentTask.id}`,
+					prompt: prompt,
+					options: { research: false }
 				});
 			} else {
-				await sendMessage({
-					type: 'updateTask',
-					data: {
-						taskId: currentTask.id,
-						updates: { description: prompt },
-						options: { append: true, research: false }
-					}
+				await updateTask.mutateAsync({
+					taskId: currentTask.id,
+					updates: { description: prompt },
+					options: { append: true, research: false }
 				});
 			}
 
+			setPrompt('');
 			refreshComplexityAfterAI();
 		} catch (error) {
 			console.error('❌ TaskDetailsView: Failed to append to task:', error);
-		} finally {
-			setIsAppending(false);
-			setPrompt('');
 		}
 	};
+
+	// Track loading states
+	const isRegenerating = updateTask.isPending || updateSubtask.isPending;
+	const isAppending = updateTask.isPending || updateSubtask.isPending;
 
 	return (
 		<CollapsibleSection

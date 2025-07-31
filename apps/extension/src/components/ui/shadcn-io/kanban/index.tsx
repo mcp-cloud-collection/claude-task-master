@@ -141,6 +141,7 @@ export type KanbanProviderProps = {
 	children: ReactNode;
 	onDragEnd: (event: DragEndEvent) => void;
 	onDragStart?: (event: DragEndEvent) => void;
+	onDragCancel?: () => void;
 	className?: string;
 	dragOverlay?: ReactNode;
 };
@@ -149,6 +150,7 @@ export const KanbanProvider = ({
 	children,
 	onDragEnd,
 	onDragStart,
+	onDragCancel,
 	className,
 	dragOverlay
 }: KanbanProviderProps) => {
@@ -170,6 +172,7 @@ export const KanbanProvider = ({
 			collisionDetection={rectIntersection}
 			onDragEnd={onDragEnd}
 			onDragStart={onDragStart}
+			onDragCancel={onDragCancel}
 		>
 			<div
 				className={cn(

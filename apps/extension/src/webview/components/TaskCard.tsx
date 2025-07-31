@@ -26,12 +26,9 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 	return (
 		<KanbanCard
 			id={task.id}
-			feature={{
-				id: task.id,
-				title: task.title,
-				column: task.status
-			}}
-			dragging={dragging}
+			name={task.title}
+			index={0} // Index is not used in our implementation
+			parent={task.status}
 			className="cursor-pointer p-3 transition-shadow hover:shadow-md bg-vscode-editor-background border-vscode-border group"
 			onClick={handleCardClick}
 		>

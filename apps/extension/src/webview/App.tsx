@@ -4,6 +4,7 @@
 
 import React, { useReducer, useState, useEffect, useRef } from 'react';
 import { VSCodeContext } from './contexts/VSCodeContext';
+import { QueryProvider } from './providers/QueryProvider';
 import { TaskMasterKanban } from './components/TaskMasterKanban';
 import TaskDetailsView from '@/components/TaskDetailsView';
 import { ConfigView } from '@/components/ConfigView';
@@ -46,21 +47,7 @@ export const App: React.FC = () => {
 		// Notify extension that webview is ready
 		vscode.postMessage({ type: 'ready' });
 
-		// Request initial tasks data
-		sendMessage({ type: 'getTasks' })
-			.then((tasksData) => {
-				console.log('📋 Initial tasks loaded:', tasksData);
-				dispatch({ type: 'SET_TASKS', payload: tasksData });
-			})
-			.catch((error) => {
-				console.error('❌ Failed to load initial tasks:', error);
-				dispatch({
-					type: 'SET_ERROR',
-					payload: `Failed to load tasks: ${error.message}`
-				});
-			});
-
-		// Request tags data
+		// React Query will handle task fetching, so we only need to load tags data
 		sendMessage({ type: 'getTags' })
 			.then((tagsData) => {
 				if (tagsData?.tags && tagsData?.currentTag) {
@@ -93,58 +80,64 @@ export const App: React.FC = () => {
 	};
 
 	return (
-		<VSCodeContext.Provider value={contextValue}>
-			<ErrorBoundary
-				onError={(error) => {
-					// Handle React errors and show appropriate toast
-					dispatch({
-						type: 'ADD_TOAST',
-						payload: createToast(
-							'error',
-							'Component Error',
-							`A React component crashed: ${error.message}`,
-							10000
-						)
-					});
-				}}
-			>
-				{/* Conditional rendering for different views */}
-				{(() => {
-					console.log(
-						'🎯 App render - currentView:',
-						state.currentView,
-						'selectedTaskId:',
-						state.selectedTaskId
-					);
-
-					if (state.currentView === 'config') {
-						return (
-							<ConfigView
-								sendMessage={sendMessage}
-								onNavigateBack={() => dispatch({ type: 'NAVIGATE_TO_KANBAN' })}
-							/>
+		<QueryProvider>
+			<VSCodeContext.Provider value={contextValue}>
+				<ErrorBoundary
+					onError={(error) => {
+						// Handle React errors and show appropriate toast
+						dispatch({
+							type: 'ADD_TOAST',
+							payload: createToast(
+								'error',
+								'Component Error',
+								`A React component crashed: ${error.message}`,
+								10000
+							)
+						});
+					}}
+				>
+					{/* Conditional rendering for different views */}
+					{(() => {
+						console.log(
+							'🎯 App render - currentView:',
+							state.currentView,
+							'selectedTaskId:',
+							state.selectedTaskId
 						);
-					}
 
-					if (state.currentView === 'task-details' && state.selectedTaskId) {
-						return (
-							<TaskDetailsView
-								taskId={state.selectedTaskId}
-								onNavigateBack={() => dispatch({ type: 'NAVIGATE_TO_KANBAN' })}
-								onNavigateToTask={(taskId: string) =>
-									dispatch({ type: 'NAVIGATE_TO_TASK', payload: taskId })
-								}
-							/>
-						);
-					}
+						if (state.currentView === 'config') {
+							return (
+								<ConfigView
+									sendMessage={sendMessage}
+									onNavigateBack={() =>
+										dispatch({ type: 'NAVIGATE_TO_KANBAN' })
+									}
+								/>
+							);
+						}
 
-					return <TaskMasterKanban />;
-				})()}
-				<ToastContainer
-					notifications={state.toastNotifications}
-					onDismiss={(id) => dispatch({ type: 'REMOVE_TOAST', payload: id })}
-				/>
-			</ErrorBoundary>
-		</VSCodeContext.Provider>
+						if (state.currentView === 'task-details' && state.selectedTaskId) {
+							return (
+								<TaskDetailsView
+									taskId={state.selectedTaskId}
+									onNavigateBack={() =>
+										dispatch({ type: 'NAVIGATE_TO_KANBAN' })
+									}
+									onNavigateToTask={(taskId: string) =>
+										dispatch({ type: 'NAVIGATE_TO_TASK', payload: taskId })
+									}
+								/>
+							);
+						}
+
+						return <TaskMasterKanban />;
+					})()}
+					<ToastContainer
+						notifications={state.toastNotifications}
+						onDismiss={(id) => dispatch({ type: 'REMOVE_TOAST', payload: id })}
+					/>
+				</ErrorBoundary>
+			</VSCodeContext.Provider>
+		</QueryProvider>
 	);
 };

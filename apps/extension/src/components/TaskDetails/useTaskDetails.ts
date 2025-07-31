@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useMemo } from 'react';
+import { useTaskDetails as useTaskDetailsQuery } from '../../webview/hooks/useTaskQueries';
 import type { TaskMasterTask } from '../../webview/types';
 
 interface TaskFileData {
@@ -17,162 +18,96 @@ export const useTaskDetails = ({
 	sendMessage,
 	tasks
 }: UseTaskDetailsProps) => {
-	const [taskFileData, setTaskFileData] = useState<TaskFileData>({});
-	const [taskFileDataError, setTaskFileDataError] = useState<string | null>(
-		null
-	);
-	const [complexity, setComplexity] = useState<any>(null);
-	const [currentTask, setCurrentTask] = useState<TaskMasterTask | null>(null);
-	const [parentTask, setParentTask] = useState<TaskMasterTask | null>(null);
-
-	// Determine if this is a subtask
-	const isSubtask = taskId.includes('.');
-
 	// Parse task ID to determine if it's a subtask (e.g., "13.2")
-	const parseTaskId = (id: string) => {
-		const parts = id.split('.');
+	const { isSubtask, parentId, subtaskIndex, taskIdForFetch } = useMemo(() => {
+		const parts = taskId.split('.');
 		if (parts.length === 2) {
 			return {
 				isSubtask: true,
 				parentId: parts[0],
-				subtaskIndex: parseInt(parts[1]) - 1 // Convert to 0-based index
+				subtaskIndex: parseInt(parts[1]) - 1, // Convert to 0-based index
+				taskIdForFetch: parts[0] // Always fetch parent task for subtasks
 			};
 		}
 		return {
 			isSubtask: false,
-			parentId: id,
-			subtaskIndex: -1
+			parentId: taskId,
+			subtaskIndex: -1,
+			taskIdForFetch: taskId
 		};
-	};
+	}, [taskId]);
 
-	// Find the current task
-	useEffect(() => {
-		const { isSubtask: isSub, parentId, subtaskIndex } = parseTaskId(taskId);
+	// Use React Query to fetch full task details
+	const { data: fullTaskData, error: taskDetailsError } =
+		useTaskDetailsQuery(taskIdForFetch);
 
-		if (isSub) {
+	// Find current task from local state for immediate display
+	const { currentTask, parentTask } = useMemo(() => {
+		if (isSubtask) {
 			const parent = tasks.find((t) => t.id === parentId);
 			if (parent && parent.subtasks && parent.subtasks[subtaskIndex]) {
 				const subtask = parent.subtasks[subtaskIndex];
-				setCurrentTask(subtask);
-				setParentTask(parent);
-			} else {
-				setCurrentTask(null);
-				setParentTask(null);
+				return { currentTask: subtask, parentTask: parent };
 			}
 		} else {
 			const task = tasks.find((t) => t.id === taskId);
 			if (task) {
-				setCurrentTask(task);
-				setParentTask(null);
-			} else {
-				setCurrentTask(null);
-				setParentTask(null);
+				return { currentTask: task, parentTask: null };
 			}
 		}
-	}, [taskId, tasks]);
+		return { currentTask: null, parentTask: null };
+	}, [taskId, tasks, isSubtask, parentId, subtaskIndex]);
 
-	// Fetch full task details including details and testStrategy
-	useEffect(() => {
-		const fetchTaskDetails = async () => {
-			if (!currentTask) return;
+	// Merge full task data from React Query with local state
+	const mergedCurrentTask = useMemo(() => {
+		if (!currentTask || !fullTaskData) return currentTask;
 
-			try {
-				// Use the parent task ID for MCP call since get_task returns parent with subtasks
-				const taskIdToFetch =
-					isSubtask && parentTask ? parentTask.id : currentTask.id;
-
-				const result = await sendMessage({
-					type: 'mcpRequest',
-					tool: 'get_task',
-					params: {
-						id: taskIdToFetch
-					}
-				});
-
-				// Parse the MCP response - it comes as content[0].text JSON string
-				let fullTaskData = null;
-				if (result?.data?.content?.[0]?.text) {
-					try {
-						const parsed = JSON.parse(result.data.content[0].text);
-						fullTaskData = parsed.data;
-					} catch (e) {
-						console.error('Failed to parse MCP response:', e);
-					}
-				} else if (result?.data?.data) {
-					// Fallback if response structure is different
-					fullTaskData = result.data.data;
-				}
-
-				if (fullTaskData) {
-					if (isSubtask && fullTaskData.subtasks) {
-						// Find the specific subtask
-						const subtaskData = fullTaskData.subtasks.find(
-							(st: any) =>
-								st.id === currentTask.id ||
-								st.id === parseInt(currentTask.id as any)
-						);
-						if (subtaskData) {
-							setTaskFileData({
-								details: subtaskData.details || '',
-								testStrategy: subtaskData.testStrategy || ''
-							});
-						}
-					} else {
-						// Use the main task data
-						setTaskFileData({
-							details: fullTaskData.details || '',
-							testStrategy: fullTaskData.testStrategy || ''
-						});
-					}
-				}
-			} catch (error) {
-				console.error('❌ Failed to fetch task details:', error);
-				setTaskFileDataError('Failed to load task details');
+		if (isSubtask && fullTaskData.subtasks) {
+			// Find the specific subtask in the full data
+			const subtaskData = fullTaskData.subtasks.find(
+				(st: any) =>
+					st.id === currentTask.id || st.id === parseInt(currentTask.id as any)
+			);
+			if (subtaskData) {
+				return { ...currentTask, ...subtaskData };
 			}
+		} else if (!isSubtask) {
+			// Merge parent task data
+			return { ...currentTask, ...fullTaskData };
+		}
+
+		return currentTask;
+	}, [currentTask, fullTaskData, isSubtask]);
+
+	// Extract task file data
+	const taskFileData: TaskFileData = useMemo(() => {
+		if (!mergedCurrentTask) return {};
+		return {
+			details: mergedCurrentTask.details || '',
+			testStrategy: mergedCurrentTask.testStrategy || ''
 		};
+	}, [mergedCurrentTask]);
 
-		fetchTaskDetails();
-	}, [currentTask, isSubtask, parentTask, sendMessage]);
-
-	// Fetch complexity score
-	const fetchComplexity = useCallback(async () => {
-		if (!currentTask) return;
-
-		// First check if the task already has a complexity score
-		if (currentTask.complexityScore !== undefined) {
-			setComplexity({ score: currentTask.complexityScore });
-			return;
+	// Get complexity score
+	const complexity = useMemo(() => {
+		if (mergedCurrentTask?.complexityScore !== undefined) {
+			return { score: mergedCurrentTask.complexityScore };
 		}
+		return null;
+	}, [mergedCurrentTask]);
 
-		try {
-			const result = await sendMessage({
-				type: 'getComplexity',
-				data: { taskId: currentTask.id }
-			});
-			if (result) {
-				setComplexity(result);
-			}
-		} catch (error) {
-			console.error('❌ TaskDetailsView: Failed to fetch complexity:', error);
-		}
-	}, [currentTask, sendMessage]);
-
-	useEffect(() => {
-		fetchComplexity();
-	}, [fetchComplexity]);
-
+	// Function to refresh data after AI operations
 	const refreshComplexityAfterAI = () => {
-		setTimeout(() => {
-			fetchComplexity();
-		}, 2000);
+		// React Query will automatically refetch when mutations invalidate the query
+		// No need for manual refresh
 	};
 
 	return {
-		currentTask,
+		currentTask: mergedCurrentTask,
 		parentTask,
 		isSubtask,
 		taskFileData,
-		taskFileDataError,
+		taskFileDataError: taskDetailsError ? 'Failed to load task details' : null,
 		complexity,
 		refreshComplexityAfterAI
 	};

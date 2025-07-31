@@ -174,9 +174,66 @@ export class WebviewManager {
 					break;
 
 				case 'updateTask':
-					// Handle task content updates
-					await this.repository.updateContent(data.taskId, data.updates);
-					response = { success: true };
+					// Handle task content updates with MCP
+					if (this.mcpClient) {
+						try {
+							const { taskId, updates, options = {} } = data;
+
+							// Use the update_task MCP tool
+							const result = await this.mcpClient.callTool('update_task', {
+								id: taskId,
+								prompt: updates.description || '',
+								append: options.append || false,
+								research: options.research || false,
+								projectRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+							});
+
+							// Refresh tasks after update
+							await this.repository.refresh();
+							const updatedTasks = await this.repository.getAll();
+							this.broadcast('tasksUpdated', {
+								tasks: updatedTasks,
+								source: 'task-update'
+							});
+							response = { success: true };
+						} catch (error) {
+							this.logger.error('Failed to update task via MCP:', error);
+							throw error;
+						}
+					} else {
+						throw new Error('MCP client not initialized');
+					}
+					break;
+
+				case 'updateSubtask':
+					// Handle subtask content updates with MCP
+					if (this.mcpClient) {
+						try {
+							const { taskId, prompt, options = {} } = data;
+
+							// Use the update_subtask MCP tool
+							const result = await this.mcpClient.callTool('update_subtask', {
+								id: taskId,
+								prompt: prompt,
+								research: options.research || false,
+								projectRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+							});
+
+							// Refresh tasks after update
+							await this.repository.refresh();
+							const updatedTasks = await this.repository.getAll();
+							this.broadcast('tasksUpdated', {
+								tasks: updatedTasks,
+								source: 'task-update'
+							});
+							response = { success: true };
+						} catch (error) {
+							this.logger.error('Failed to update subtask via MCP:', error);
+							throw error;
+						}
+					} else {
+						throw new Error('MCP client not initialized');
+					}
 					break;
 
 				case 'getComplexity':

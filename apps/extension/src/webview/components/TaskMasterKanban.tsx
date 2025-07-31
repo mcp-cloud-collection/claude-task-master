@@ -2,7 +2,7 @@
  * Main Kanban Board Component
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
 	type DragEndEvent,
 	KanbanBoard,
@@ -16,21 +16,42 @@ import { PollingStatus } from './PollingStatus';
 import { TagDropdown } from './TagDropdown';
 import { EmptyState } from './EmptyState';
 import { useVSCodeContext } from '../contexts/VSCodeContext';
+import {
+	useTasks,
+	useUpdateTaskStatus,
+	useUpdateTask
+} from '../hooks/useTaskQueries';
 import { kanbanStatuses, HEADER_HEIGHT } from '../constants';
 import type { TaskMasterTask, TaskUpdates } from '../types';
 
 export const TaskMasterKanban: React.FC = () => {
 	const { state, dispatch, sendMessage, availableHeight } = useVSCodeContext();
 	const {
-		tasks,
-		loading,
-		error,
+		loading: legacyLoading,
+		error: legacyError,
 		editingTask,
 		polling,
 		currentTag,
 		availableTags
 	} = state;
 	const [activeTask, setActiveTask] = useState<TaskMasterTask | null>(null);
+
+	// Use React Query to fetch tasks
+	const {
+		data: serverTasks = [],
+		isLoading,
+		error
+	} = useTasks({ tag: currentTag });
+	const updateTaskStatus = useUpdateTaskStatus();
+	const updateTask = useUpdateTask();
+
+	// Temporary state only for active drag operations
+	const [tempReorderedTasks, setTempReorderedTasks] = useState<
+		TaskMasterTask[] | null
+	>(null);
+
+	// Use temp tasks only if actively set, otherwise use server tasks
+	const tasks = tempReorderedTasks ?? serverTasks;
 
 	// Calculate header height for proper kanban board sizing
 	const kanbanHeight = availableHeight - HEADER_HEIGHT;
@@ -60,21 +81,11 @@ export const TaskMasterKanban: React.FC = () => {
 	const handleUpdateTask = async (taskId: string, updates: TaskUpdates) => {
 		console.log(`🔄 Updating task ${taskId} content:`, updates);
 
-		// Optimistic update
-		dispatch({
-			type: 'UPDATE_TASK_CONTENT',
-			payload: { taskId, updates }
-		});
-
 		try {
-			// Send update to extension
-			await sendMessage({
-				type: 'updateTask',
-				data: {
-					taskId,
-					updates,
-					options: { append: false, research: false }
-				}
+			await updateTask.mutateAsync({
+				taskId,
+				updates,
+				options: { append: false, research: false }
 			});
 
 			console.log(`✅ Task ${taskId} content updated successfully`);
@@ -86,26 +97,6 @@ export const TaskMasterKanban: React.FC = () => {
 			});
 		} catch (error) {
 			console.error(`❌ Failed to update task ${taskId}:`, error);
-
-			// Revert the optimistic update on error
-			const originalTask = editingTask?.editData;
-			if (originalTask) {
-				dispatch({
-					type: 'UPDATE_TASK_CONTENT',
-					payload: {
-						taskId,
-						updates: {
-							title: originalTask.title,
-							description: originalTask.description,
-							details: originalTask.details,
-							priority: originalTask.priority,
-							testStrategy: originalTask.testStrategy,
-							dependencies: originalTask.dependencies
-						}
-					}
-				});
-			}
-
 			dispatch({
 				type: 'SET_ERROR',
 				payload: `Failed to update task: ${error}`
@@ -115,57 +106,71 @@ export const TaskMasterKanban: React.FC = () => {
 
 	// Handle drag start
 	const handleDragStart = useCallback(
-		(taskId: string) => {
+		(event: DragEndEvent) => {
+			const taskId = event.active.id as string;
 			const task = tasks.find((t) => t.id === taskId);
 			if (task) {
 				setActiveTask(task);
-				dispatch({ type: 'SET_USER_INTERACTING', payload: true });
 			}
 		},
-		[tasks, dispatch]
+		[tasks]
 	);
+
+	// Handle drag cancel
+	const handleDragCancel = useCallback(() => {
+		setActiveTask(null);
+		// Clear any temporary state
+		setTempReorderedTasks(null);
+	}, []);
 
 	// Handle drag end
 	const handleDragEnd = useCallback(
 		async (event: DragEndEvent) => {
-			dispatch({ type: 'SET_USER_INTERACTING', payload: false });
+			const { active, over } = event;
+
+			// Reset active task
 			setActiveTask(null);
 
-			const { active, over } = event;
-			if (!over || active.id === over.id) return;
+			if (!over || active.id === over.id) {
+				// Clear any temp state if drag was cancelled
+				setTempReorderedTasks(null);
+				return;
+			}
 
 			const taskId = active.id as string;
 			const newStatus = over.id as TaskMasterTask['status'];
 
 			// Find the task
 			const task = tasks.find((t) => t.id === taskId);
-			if (!task || task.status === newStatus) return;
+			if (!task || task.status === newStatus) {
+				// Clear temp state if no change needed
+				setTempReorderedTasks(null);
+				return;
+			}
 
-			// Optimistic update
-			dispatch({
-				type: 'UPDATE_TASK_STATUS',
-				payload: { taskId, newStatus }
-			});
+			// Create the optimistically reordered tasks
+			const reorderedTasks = tasks.map((t) =>
+				t.id === taskId ? { ...t, status: newStatus } : t
+			);
+
+			// Set temporary state to show immediate visual feedback
+			setTempReorderedTasks(reorderedTasks);
 
 			try {
-				// Send update to extension
-				await sendMessage({
-					type: 'updateTaskStatus',
-					data: { taskId, newStatus }
-				});
+				// Update on server - React Query will handle optimistic updates
+				await updateTaskStatus.mutateAsync({ taskId, newStatus });
+				// Clear temp state after mutation starts successfully
+				setTempReorderedTasks(null);
 			} catch (error) {
-				// Revert on error
-				dispatch({
-					type: 'UPDATE_TASK_STATUS',
-					payload: { taskId, newStatus: task.status }
-				});
+				// On error, clear temp state - React Query will revert optimistic update
+				setTempReorderedTasks(null);
 				dispatch({
 					type: 'SET_ERROR',
 					payload: `Failed to update task status: ${error}`
 				});
 			}
 		},
-		[tasks, sendMessage, dispatch]
+		[tasks, updateTaskStatus, dispatch]
 	);
 
 	// Handle retry connection
@@ -178,21 +183,21 @@ export const TaskMasterKanban: React.FC = () => {
 		async (tagName: string) => {
 			console.log('Switching to tag:', tagName);
 			await sendMessage({ type: 'switchTag', data: { tagName } });
-			// After switching tags, fetch the new tasks for that specific tag
-			const tasksData = await sendMessage({
-				type: 'getTasks',
-				data: { tag: tagName }
+			dispatch({
+				type: 'SET_TAG_DATA',
+				payload: { currentTag: tagName, availableTags }
 			});
-			console.log('Received new tasks for tag', tagName, ':', {
-				tasksData,
-				isArray: Array.isArray(tasksData),
-				count: Array.isArray(tasksData) ? tasksData.length : 'not an array'
-			});
-			dispatch({ type: 'SET_TASKS', payload: tasksData });
-			console.log('Dispatched SET_TASKS');
 		},
-		[sendMessage, dispatch]
+		[sendMessage, dispatch, availableTags]
 	);
+
+	// Use React Query loading state
+	const loading = isLoading || legacyLoading;
+	const displayError = error
+		? error instanceof Error
+			? error.message
+			: String(error)
+		: legacyError;
 
 	if (loading) {
 		return (
@@ -208,10 +213,10 @@ export const TaskMasterKanban: React.FC = () => {
 		);
 	}
 
-	if (error) {
+	if (displayError) {
 		return (
 			<div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4 m-4">
-				<p className="text-red-400 text-sm">Error: {error}</p>
+				<p className="text-red-400 text-sm">Error: {displayError}</p>
 				<button
 					onClick={() => dispatch({ type: 'CLEAR_ERROR' })}
 					className="mt-2 text-sm text-red-400 hover:text-red-300 underline"
@@ -228,7 +233,7 @@ export const TaskMasterKanban: React.FC = () => {
 				<div className="flex-shrink-0 p-4 bg-vscode-sidebar-background border-b border-vscode-border">
 					<div className="flex items-center justify-between">
 						<h1 className="text-lg font-semibold text-vscode-foreground">
-							Task Master Kanban
+							TaskMaster Kanban
 						</h1>
 						<div className="flex items-center gap-4">
 							<TagDropdown
@@ -250,7 +255,7 @@ export const TaskMasterKanban: React.FC = () => {
 							<button
 								onClick={() => dispatch({ type: 'NAVIGATE_TO_CONFIG' })}
 								className="p-1.5 rounded hover:bg-vscode-button-hoverBackground transition-colors"
-								title="Task Master Configuration"
+								title="TaskMaster Configuration"
 							>
 								<svg
 									className="w-4 h-4 text-vscode-foreground/70"
@@ -286,6 +291,7 @@ export const TaskMasterKanban: React.FC = () => {
 						<KanbanProvider
 							onDragStart={handleDragStart}
 							onDragEnd={handleDragEnd}
+							onDragCancel={handleDragCancel}
 							className="kanban-container w-full h-full overflow-x-auto overflow-y-hidden"
 							dragOverlay={
 								activeTask ? <TaskCard task={activeTask} dragging /> : null
@@ -300,7 +306,6 @@ export const TaskMasterKanban: React.FC = () => {
 										<KanbanBoard
 											key={status.id}
 											id={status.id}
-											title={status.name}
 											className={`
 												w-80 flex flex-col
 												border border-vscode-border/30
@@ -309,7 +314,7 @@ export const TaskMasterKanban: React.FC = () => {
 											`}
 										>
 											<KanbanHeader
-												name={`${status.name} (${statusTasks.length})`}
+												name={`${status.title} (${statusTasks.length})`}
 												color={status.color}
 												className="px-3 py-3 text-sm font-medium flex-shrink-0 border-b border-vscode-border/30"
 											/>
@@ -325,7 +330,7 @@ export const TaskMasterKanban: React.FC = () => {
 													maxHeight: `${kanbanHeight - 80}px`
 												}}
 											>
-												<KanbanCards column={status.id}>
+												<KanbanCards>
 													{statusTasks.map((task) => (
 														<TaskCard
 															key={task.id}
