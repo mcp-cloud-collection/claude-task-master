@@ -127,7 +127,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({ currentTag }) => {
 						>
 							<ExternalLink className="w-4 h-4" />
 							<span className="text-sm font-medium">
-								View Task Master Documentation
+								View TaskMaster Documentation
 							</span>
 						</a>
 					</div>

@@ -22,7 +22,7 @@ export class ExtensionLogger implements ILogger {
 	private debugMode: boolean;
 
 	private constructor() {
-		this.outputChannel = vscode.window.createOutputChannel('Task Master');
+		this.outputChannel = vscode.window.createOutputChannel('TaskMaster');
 		const config = vscode.workspace.getConfiguration('taskmaster');
 		this.debugMode = config.get<boolean>('debug.enableLogging', true);
 	}

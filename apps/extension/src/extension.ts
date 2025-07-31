@@ -1,5 +1,5 @@
 /**
- * Task Master Extension - Simplified Architecture
+ * TaskMaster Extension - Simplified Architecture
  * Only using patterns where they add real value
  */
 
@@ -32,7 +32,7 @@ export async function activate(context: vscode.ExtensionContext) {
 	try {
 		// Initialize logger (needed to prevent MCP stdio issues)
 		logger = ExtensionLogger.getInstance();
-		logger.log('🎉 Task Master Extension activating...');
+		logger.log('🎉 TaskMaster Extension activating...');
 
 		// Simple event emitter for webview communication
 		events = new EventEmitter();
@@ -46,7 +46,7 @@ export async function activate(context: vscode.ExtensionContext) {
 		// Repository with caching (actually useful for performance)
 		repository = new TaskRepository(api, logger);
 
-		// Config service for Task Master config.json
+		// Config service for TaskMaster config.json
 		configService = new ConfigService(logger);
 
 		// Polling service with strategy pattern (makes sense for different polling behaviors)
@@ -91,18 +91,18 @@ export async function activate(context: vscode.ExtensionContext) {
 			webviewManager.broadcast('tasksUpdated', { tasks, source: 'polling' });
 		});
 
-		logger.log('✅ Task Master Extension activated');
+		logger.log('✅ TaskMaster Extension activated');
 	} catch (error) {
 		logger?.error('Failed to activate', error);
 		vscode.window.showErrorMessage(
-			`Failed to activate Task Master: ${error instanceof Error ? error.message : 'Unknown error'}`
+			`Failed to activate TaskMaster: ${error instanceof Error ? error.message : 'Unknown error'}`
 		);
 	}
 }
 
 async function initializeConnection() {
 	try {
-		logger.log('🔗 Connecting to Task Master...');
+		logger.log('🔗 Connecting to TaskMaster...');
 
 		// Notify webviews that we're connecting
 		if (webviewManager) {
@@ -117,8 +117,8 @@ async function initializeConnection() {
 		const testResult = await api.testConnection();
 
 		if (testResult.success) {
-			logger.log('✅ Connected to Task Master');
-			vscode.window.showInformationMessage('Task Master connected!');
+			logger.log('✅ Connected to TaskMaster');
+			vscode.window.showInformationMessage('TaskMaster connected!');
 
 			// Notify webviews that we're connected
 			if (webviewManager) {
@@ -157,7 +157,7 @@ function handleConnectionError(error: any) {
 	if (message.includes('ENOENT') && message.includes('npx')) {
 		vscode.window
 			.showWarningMessage(
-				'Task Master: npx not found. Please ensure Node.js is installed.',
+				'TaskMaster: npx not found. Please ensure Node.js is installed.',
 				'Open Settings'
 			)
 			.then((action) => {
@@ -170,7 +170,7 @@ function handleConnectionError(error: any) {
 			});
 	} else {
 		vscode.window.showWarningMessage(
-			`Task Master connection failed: ${message}`
+			`TaskMaster connection failed: ${message}`
 		);
 	}
 }
@@ -211,7 +211,7 @@ function registerCommands(context: vscode.ExtensionContext) {
 }
 
 export function deactivate() {
-	logger?.log('👋 Task Master Extension deactivating...');
+	logger?.log('👋 TaskMaster Extension deactivating...');
 	pollingService?.stop();
 	webviewManager?.dispose();
 	api?.destroy();

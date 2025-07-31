@@ -94,7 +94,7 @@ export class ErrorHandler {
 		switch (context.severity) {
 			case ErrorSeverity.CRITICAL:
 				vscode.window
-					.showErrorMessage(`Task Master: ${context.message}`, ...actions)
+					.showErrorMessage(`TaskMaster: ${context.message}`, ...actions)
 					.then((action) => {
 						if (action) {
 							this.handleUserAction(action, context);
@@ -106,7 +106,7 @@ export class ErrorHandler {
 				if (context.category === ErrorCategory.MCP_CONNECTION) {
 					vscode.window
 						.showWarningMessage(
-							`Task Master: ${context.message}`,
+							`TaskMaster: ${context.message}`,
 							'Retry',
 							'Settings'
 						)
@@ -118,7 +118,7 @@ export class ErrorHandler {
 							}
 						});
 				} else {
-					vscode.window.showWarningMessage(`Task Master: ${context.message}`);
+					vscode.window.showWarningMessage(`TaskMaster: ${context.message}`);
 				}
 				break;
 
@@ -130,7 +130,7 @@ export class ErrorHandler {
 					)
 				) {
 					vscode.window.showInformationMessage(
-						`Task Master: ${context.message}`
+						`TaskMaster: ${context.message}`
 					);
 				}
 				break;

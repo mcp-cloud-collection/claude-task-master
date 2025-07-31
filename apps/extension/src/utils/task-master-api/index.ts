@@ -1,5 +1,5 @@
 /**
- * Task Master API
+ * TaskMaster API
  * Main API class that coordinates all modules
  */
 
@@ -105,7 +105,7 @@ export class TaskMasterApi {
 	}
 
 	/**
-	 * Get tasks from Task Master
+	 * Get tasks from TaskMaster
 	 */
 	async getTasks(
 		options?: GetTasksOptions

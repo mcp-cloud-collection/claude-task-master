@@ -37,7 +37,7 @@ export class WebviewManager {
 	async createOrShowPanel(): Promise<void> {
 		// Find existing panel
 		const existing = Array.from(this.panels).find(
-			(p) => p.title === 'Task Master Kanban'
+			(p) => p.title === 'TaskMaster Kanban'
 		);
 		if (existing) {
 			existing.reveal();
@@ -47,7 +47,7 @@ export class WebviewManager {
 		// Create new panel
 		const panel = vscode.window.createWebviewPanel(
 			'taskrKanban',
-			'Task Master Kanban',
+			'TaskMaster Kanban',
 			vscode.ViewColumn.One,
 			{
 				enableScripts: true,
@@ -87,7 +87,7 @@ export class WebviewManager {
 		});
 
 		this.events.emit('webview:opened');
-		vscode.window.showInformationMessage('Task Master Kanban opened!');
+		vscode.window.showInformationMessage('TaskMaster Kanban opened!');
 	}
 
 	broadcast(type: string, data: any): void {
@@ -360,7 +360,7 @@ export class WebviewManager {
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src ${webview.cspSource} https:; script-src 'nonce-${nonce}'; style-src ${webview.cspSource} 'unsafe-inline';">
 	<link href="${styleUri}" rel="stylesheet">
-	<title>Task Master Kanban</title>
+	<title>TaskMaster Kanban</title>
 </head>
 <body>
 	<div id="root"></div>

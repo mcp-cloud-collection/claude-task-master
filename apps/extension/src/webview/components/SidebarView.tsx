@@ -33,7 +33,7 @@ export const SidebarView: React.FC<SidebarViewProps> = ({
 				<TaskMasterLogo className="w-20 h-20 mx-auto mb-5 opacity-80 text-vscode-foreground" />
 
 				<h2 className="text-xl font-semibold mb-6 text-vscode-foreground">
-					Task Master
+					TaskMaster
 				</h2>
 
 				<button

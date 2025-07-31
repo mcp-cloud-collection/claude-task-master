@@ -1,6 +1,6 @@
 /**
- * Task Master API Types
- * All type definitions for the Task Master API
+ * TaskMaster API Types
+ * All type definitions for the TaskMaster API
  */
 
 // MCP Response Types

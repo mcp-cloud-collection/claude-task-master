@@ -124,7 +124,7 @@ export class MCPClientManager {
 				});
 				this.status = { isRunning: false, error: error.message };
 				vscode.window.showErrorMessage(
-					`Task Master MCP transport error: ${error.message}`
+					`TaskMaster MCP transport error: ${error.message}`
 				);
 			};
 
@@ -346,11 +346,7 @@ export function createMCPConfigFromSettings(): MCPConfig {
 	const config = vscode.workspace.getConfiguration('taskmaster');
 
 	let command = config.get<string>('mcp.command', 'npx');
-	const args = config.get<string[]>('mcp.args', [
-		'-y',
-		'--package=task-master-ai',
-		'task-master-ai'
-	]);
+	const args = config.get<string[]>('mcp.args', ['task-master-ai']);
 
 	// Use proper VS Code workspace detection
 	const defaultCwd =

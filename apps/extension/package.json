@@ -1,8 +1,8 @@
 {
 	"name": "extension",
 	"private": true,
-	"displayName": "Task Master",
-	"description": "A visual Kanban board interface for Task Master projects in VS Code",
+	"displayName": "TaskMaster",
+	"description": "A visual Kanban board interface for TaskMaster projects in VS Code",
 	"version": "1.1.0",
 	"publisher": "Hamster",
 	"icon": "assets/icon.png",
@@ -16,7 +16,7 @@
 			"activitybar": [
 				{
 					"id": "taskmaster",
-					"title": "Task Master",
+					"title": "TaskMaster",
 					"icon": "assets/sidebar-icon.svg"
 				}
 			]
@@ -25,7 +25,7 @@
 			"taskmaster": [
 				{
 					"id": "taskmaster.welcome",
-					"name": "Task Master",
+					"name": "TaskMaster",
 					"type": "webview"
 				}
 			]
@@ -33,20 +33,20 @@
 		"commands": [
 			{
 				"command": "tm.showKanbanBoard",
-				"title": "Task Master: Show Board",
+				"title": "TaskMaster: Show Board",
 				"icon": "$(checklist)"
 			},
 			{
 				"command": "tm.checkConnection",
-				"title": "Task Master: Check Connection"
+				"title": "TaskMaster: Check Connection"
 			},
 			{
 				"command": "tm.reconnect",
-				"title": "Task Master: Reconnect"
+				"title": "TaskMaster: Reconnect"
 			},
 			{
 				"command": "tm.openSettings",
-				"title": "Task Master: Open Settings"
+				"title": "TaskMaster: Open Settings"
 			}
 		],
 		"menus": {
@@ -59,7 +59,7 @@
 			]
 		},
 		"configuration": {
-			"title": "Task Master Kanban",
+			"title": "TaskMaster Kanban",
 			"properties": {
 				"taskmaster.mcp.command": {
 					"type": "string",
@@ -71,16 +71,16 @@
 					"items": {
 						"type": "string"
 					},
-					"default": ["-y", "--package=task-master-ai", "task-master-ai"],
+					"default": ["task-master-ai"],
 					"description": "An array of arguments to pass to the MCP server command."
 				},
 				"taskmaster.mcp.cwd": {
 					"type": "string",
-					"description": "Working directory for the Task Master MCP server (defaults to workspace root)"
+					"description": "Working directory for the TaskMaster MCP server (defaults to workspace root)"
 				},
 				"taskmaster.mcp.env": {
 					"type": "object",
-					"description": "Environment variables for the Task Master MCP server"
+					"description": "Environment variables for the TaskMaster MCP server"
 				},
 				"taskmaster.mcp.timeout": {
 					"type": "number",

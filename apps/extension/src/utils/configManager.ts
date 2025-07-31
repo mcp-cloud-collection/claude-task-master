@@ -430,7 +430,7 @@ export class ConfigManager {
 		return {
 			mcp: {
 				command: 'npx',
-				args: ['-y', '--package=task-master-ai', 'task-master-ai'],
+				args: ['task-master-ai'],
 				cwd: vscode.workspace.rootPath || '',
 				env: undefined,
 				timeout: 30000,

@@ -1,8 +1,8 @@
-# Official Task Master AI Extension
+# Official TaskMaster AI Extension
 
-Transform your [Task Master AI](https://github.com/TaskMasterEYJ/task-master-ai) projects into a beautiful, interactive Kanban board directly in VS Code. Drag, drop, and manage your tasks with ease while maintaining real-time synchronization with your Task Master project files.
+Transform your [TaskMaster AI](https://github.com/TaskMasterEYJ/task-master-ai) projects into a beautiful, interactive Kanban board directly in VS Code. Drag, drop, and manage your tasks with ease while maintaining real-time synchronization with your TaskMaster project files.
 
-![Task Master AI Kanban](https://img.shields.io/badge/VS%20Code-Extension-blue)
+![TaskMaster AI Kanban](https://img.shields.io/badge/VS%20Code-Extension-blue)
 ![Free](https://img.shields.io/badge/Price-Free-brightgreen)
 ![Version](https://img.shields.io/badge/Version-1.0.0-blue)
 
@@ -10,7 +10,7 @@ Transform your [Task Master AI](https://github.com/TaskMasterEYJ/task-master-ai)
 
 ### 🎯 **Visual Task Management**
 - **Drag & Drop Kanban Board** - Intuitive task management with visual columns
-- **Real-time Synchronization** - Changes sync instantly with your Task Master project files
+- **Real-time Synchronization** - Changes sync instantly with your TaskMaster project files
 - **Status Columns** - To Do, In Progress, Review, Done, and Deferred
 - **Task Details View** - View and edit implementation details, test strategies, and notes
 
@@ -19,7 +19,7 @@ Transform your [Task Master AI](https://github.com/TaskMasterEYJ/task-master-ai)
 ### 🤖 **AI-Powered Features**
 - **Task Content Generation** - Regenerate task descriptions using AI
 - **Smart Task Updates** - Append findings and progress notes automatically
-- **MCP Integration** - Seamless connection to Task Master AI via Model Context Protocol
+- **MCP Integration** - Seamless connection to TaskMaster AI via Model Context Protocol
 - **Intelligent Caching** - Smart performance optimization with background refresh
 
 ![Task Details](assets/screenshots/task-details.png)
@@ -35,7 +35,7 @@ Transform your [Task Master AI](https://github.com/TaskMasterEYJ/task-master-ai)
 ### Prerequisites
 
 1. **VS Code** 1.90.0 or higher
-2. **Node.js** 18.0 or higher (for Task Master MCP server)
+2. **Node.js** 18.0 or higher (for TaskMaster MCP server)
 
 ### Install the Extension
 
@@ -45,21 +45,21 @@ Transform your [Task Master AI](https://github.com/TaskMasterEYJ/task-master-ai)
 
 ## 🚀 Quick Start
 
-### 1. **Initialize Task Master Project**
-If you don't have a Task Master project yet:
+### 1. **Initialize TaskMaster Project**
+If you don't have a TaskMaster project yet:
 ```bash
 cd your-project
    npx task-master-ai init
    ```
 
 ### 2. **Open Kanban Board**
-- **Command Palette** (Ctrl+Shift+P): `Task Master Kanban: Show Board`
+- **Command Palette** (Ctrl+Shift+P): `TaskMaster Kanban: Show Board`
 - **Or** the extension automatically activates when you have a `.taskmaster` folder in your workspace
 
 ### 3. **MCP Server Setup**
-The extension automatically handles the Task Master MCP server connection:
+The extension automatically handles the TaskMaster MCP server connection:
 - **No manual installation required** - The extension spawns the MCP server automatically
-- **Uses npx by default** - Automatically downloads Task Master AI when needed
+- **Uses npx by default** - Automatically downloads TaskMaster AI when needed
 - **Configurable** - You can customize the MCP server command in settings if needed
 
 ### 4. **Start Managing Tasks**
@@ -90,7 +90,7 @@ The extension automatically handles the Task Master MCP server connection:
 
 ### **AI-Powered Task Management**
 
-The extension integrates seamlessly with Task Master AI via MCP to provide:
+The extension integrates seamlessly with TaskMaster AI via MCP to provide:
 - **Smart Task Generation** - AI creates detailed implementation plans
 - **Progress Tracking** - Append timestamped notes and findings
 - **Content Enhancement** - Regenerate task descriptions for clarity
@@ -98,7 +98,7 @@ The extension integrates seamlessly with Task Master AI via MCP to provide:
 
 ## ⚙️ Configuration
 
-Access settings via **File → Preferences → Settings** and search for "Task Master":
+Access settings via **File → Preferences → Settings** and search for "TaskMaster":
 
 ### **MCP Connection Settings**
 - **MCP Server Command** - Path to task-master-ai executable (default: `npx`)
@@ -121,7 +121,7 @@ Access settings via **File → Preferences → Settings** and search for "Task M
 1. Ensure Node.js 18+ is installed
 2. Check workspace contains `.taskmaster` folder
 3. Restart VS Code
-4. Check Output panel (View → Output → Task Master Kanban)
+4. Check Output panel (View → Output → TaskMaster Kanban)
 
 ### **MCP Connection Issues**
 1. **Command not found**: Ensure Node.js and npx are in your PATH
@@ -132,7 +132,7 @@ Access settings via **File → Preferences → Settings** and search for "Task M
 ### **Tasks Not Updating**
 1. Check MCP connection status in status bar
 2. Verify `.taskmaster/tasks/tasks.json` exists
-3. Try manual refresh: `Task Master Kanban: Check Connection`
+3. Try manual refresh: `TaskMaster Kanban: Check Connection`
 4. Review error logs in Output panel
 
 ### **Performance Issues**
@@ -144,7 +144,7 @@ Access settings via **File → Preferences → Settings** and search for "Task M
 ## 🆘 Support & Resources
 
 ### **Getting Help**
-- 📖 **Documentation**: [Task Master AI Docs](https://github.com/eyaltoledano/claude-task-master)
+- 📖 **Documentation**: [TaskMaster AI Docs](https://github.com/eyaltoledano/claude-task-master)
 - 🐛 **Report Issues**: [GitHub Issues](https://github.com/eyaltoledano/claude-task-master/issues)
 - 💬 **Discussions**: [GitHub Discussions](https://github.com/eyaltoledano/claude-task-master/discussions)
 
@@ -173,9 +173,9 @@ Access settings via **File → Preferences → Settings** and search for "Task M
 
 ---
 
-## 🏆 Why Task Master Kanban?
+## 🏆 Why TaskMaster Kanban?
 
-✅ **Visual workflow management** for your Task Master projects  
+✅ **Visual workflow management** for your TaskMaster projects  
 ✅ **AI-powered task enhancement** built right in  
 ✅ **Real-time synchronization** keeps everything in sync  
 ✅ **Native VS Code integration** feels like part of the editor  

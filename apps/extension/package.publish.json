@@ -1,7 +1,7 @@
 {
 	"name": "task-master",
-	"displayName": "Task Master",
-	"description": "A visual Kanban board interface for Task Master projects in VS Code",
+	"displayName": "TaskMaster",
+	"description": "A visual Kanban board interface for TaskMaster projects in VS Code",
 	"version": "1.0.0",
 	"publisher": "Hamster",
 	"icon": "assets/icon.png",
@@ -54,23 +54,23 @@
 		"commands": [
 			{
 				"command": "tm.showKanbanBoard",
-				"title": "Task Master: Show Board"
+				"title": "TaskMaster: Show Board"
 			},
 			{
 				"command": "tm.checkConnection",
-				"title": "Task Master: Check Connection"
+				"title": "TaskMaster: Check Connection"
 			},
 			{
 				"command": "tm.reconnect",
-				"title": "Task Master: Reconnect"
+				"title": "TaskMaster: Reconnect"
 			},
 			{
 				"command": "tm.openSettings",
-				"title": "Task Master: Open Settings"
+				"title": "TaskMaster: Open Settings"
 			}
 		],
 		"configuration": {
-			"title": "Task Master Kanban",
+			"title": "TaskMaster Kanban",
 			"properties": {
 				"taskmaster.mcp.command": {
 					"type": "string",
