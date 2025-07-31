@@ -5,9 +5,7 @@
 import React, { useReducer, useState, useEffect, useRef } from 'react';
 import { VSCodeContext } from './contexts/VSCodeContext';
 import { QueryProvider } from './providers/QueryProvider';
-import { TaskMasterKanban } from './components/TaskMasterKanban';
-import TaskDetailsView from '@/components/TaskDetailsView';
-import { ConfigView } from '@/components/ConfigView';
+import { AppContent } from './components/AppContent';
 import { ToastContainer } from './components/ToastContainer';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { appReducer, initialState } from './reducers/appReducer';
@@ -96,42 +94,7 @@ export const App: React.FC = () => {
 						});
 					}}
 				>
-					{/* Conditional rendering for different views */}
-					{(() => {
-						console.log(
-							'🎯 App render - currentView:',
-							state.currentView,
-							'selectedTaskId:',
-							state.selectedTaskId
-						);
-
-						if (state.currentView === 'config') {
-							return (
-								<ConfigView
-									sendMessage={sendMessage}
-									onNavigateBack={() =>
-										dispatch({ type: 'NAVIGATE_TO_KANBAN' })
-									}
-								/>
-							);
-						}
-
-						if (state.currentView === 'task-details' && state.selectedTaskId) {
-							return (
-								<TaskDetailsView
-									taskId={state.selectedTaskId}
-									onNavigateBack={() =>
-										dispatch({ type: 'NAVIGATE_TO_KANBAN' })
-									}
-									onNavigateToTask={(taskId: string) =>
-										dispatch({ type: 'NAVIGATE_TO_TASK', payload: taskId })
-									}
-								/>
-							);
-						}
-
-						return <TaskMasterKanban />;
-					})()}
+					<AppContent />
 					<ToastContainer
 						notifications={state.toastNotifications}
 						onDismiss={(id) => dispatch({ type: 'REMOVE_TOAST', payload: id })}

@@ -31,6 +31,9 @@ export const AIActionsSection: React.FC<AIActionsSectionProps> = ({
 	onAppendingChange
 }) => {
 	const [prompt, setPrompt] = useState('');
+	const [lastAction, setLastAction] = useState<'regenerate' | 'append' | null>(
+		null
+	);
 	const updateTask = useUpdateTask();
 	const updateSubtask = useUpdateSubtask();
 
@@ -38,6 +41,9 @@ export const AIActionsSection: React.FC<AIActionsSectionProps> = ({
 		if (!currentTask || !prompt.trim()) {
 			return;
 		}
+
+		setLastAction('regenerate');
+		onRegeneratingChange?.(true);
 
 		try {
 			if (isSubtask && parentTask) {
@@ -58,6 +64,9 @@ export const AIActionsSection: React.FC<AIActionsSectionProps> = ({
 			refreshComplexityAfterAI();
 		} catch (error) {
 			console.error('❌ TaskDetailsView: Failed to regenerate task:', error);
+		} finally {
+			setLastAction(null);
+			onRegeneratingChange?.(false);
 		}
 	};
 
@@ -65,6 +74,9 @@ export const AIActionsSection: React.FC<AIActionsSectionProps> = ({
 		if (!currentTask || !prompt.trim()) {
 			return;
 		}
+
+		setLastAction('append');
+		onAppendingChange?.(true);
 
 		try {
 			if (isSubtask && parentTask) {
@@ -85,12 +97,16 @@ export const AIActionsSection: React.FC<AIActionsSectionProps> = ({
 			refreshComplexityAfterAI();
 		} catch (error) {
 			console.error('❌ TaskDetailsView: Failed to append to task:', error);
+		} finally {
+			setLastAction(null);
+			onAppendingChange?.(false);
 		}
 	};
 
-	// Track loading states
-	const isRegenerating = updateTask.isPending || updateSubtask.isPending;
-	const isAppending = updateTask.isPending || updateSubtask.isPending;
+	// Track loading states based on the last action
+	const isLoading = updateTask.isPending || updateSubtask.isPending;
+	const isRegenerating = isLoading && lastAction === 'regenerate';
+	const isAppending = isLoading && lastAction === 'append';
 
 	return (
 		<CollapsibleSection
@@ -180,7 +196,7 @@ export const AIActionsSection: React.FC<AIActionsSectionProps> = ({
 							</p>
 							<p>
 								<strong>Append:</strong> Adds new content to the existing task
-								description based on your prompt
+								implementation details based on your prompt
 							</p>
 						</>
 					)}

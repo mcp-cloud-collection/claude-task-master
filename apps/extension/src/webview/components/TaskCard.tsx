@@ -53,9 +53,25 @@ export const TaskCard: React.FC<TaskCardProps> = ({
 						#{task.id}
 					</span>
 					{task.dependencies && task.dependencies.length > 0 && (
-						<span className="text-vscode-foreground/50 flex-shrink-0 ml-2">
-							Deps: {task.dependencies.length}
-						</span>
+						<div className="flex items-center gap-1 text-vscode-foreground/50 flex-shrink-0 ml-2">
+							<span>Deps:</span>
+							<div className="flex items-center gap-1">
+								{task.dependencies.map((depId, index) => (
+									<React.Fragment key={depId}>
+										<button
+											className="font-mono hover:text-vscode-link-activeForeground hover:underline transition-colors"
+											onClick={(e) => {
+												e.stopPropagation();
+												onViewDetails?.(depId);
+											}}
+										>
+											#{depId}
+										</button>
+										{index < task.dependencies!.length - 1 && <span>,</span>}
+									</React.Fragment>
+								))}
+							</div>
+						</div>
 					)}
 				</div>
 			</div>

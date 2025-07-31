@@ -20,7 +20,9 @@ export const useTaskDetails = ({
 }: UseTaskDetailsProps) => {
 	// Parse task ID to determine if it's a subtask (e.g., "13.2")
 	const { isSubtask, parentId, subtaskIndex, taskIdForFetch } = useMemo(() => {
-		const parts = taskId.split('.');
+		// Ensure taskId is a string
+		const taskIdStr = String(taskId);
+		const parts = taskIdStr.split('.');
 		if (parts.length === 2) {
 			return {
 				isSubtask: true,
@@ -31,9 +33,9 @@ export const useTaskDetails = ({
 		}
 		return {
 			isSubtask: false,
-			parentId: taskId,
+			parentId: taskIdStr,
 			subtaskIndex: -1,
-			taskIdForFetch: taskId
+			taskIdForFetch: taskIdStr
 		};
 	}, [taskId]);
 
@@ -50,7 +52,7 @@ export const useTaskDetails = ({
 				return { currentTask: subtask, parentTask: parent };
 			}
 		} else {
-			const task = tasks.find((t) => t.id === taskId);
+			const task = tasks.find((t) => t.id === String(taskId));
 			if (task) {
 				return { currentTask: task, parentTask: null };
 			}

@@ -3,6 +3,8 @@
  */
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { RefreshCw } from 'lucide-react';
 import {
 	type DragEndEvent,
 	KanbanBoard,
@@ -19,15 +21,16 @@ import { useVSCodeContext } from '../contexts/VSCodeContext';
 import {
 	useTasks,
 	useUpdateTaskStatus,
-	useUpdateTask
+	useUpdateTask,
+	taskKeys
 } from '../hooks/useTaskQueries';
 import { kanbanStatuses, HEADER_HEIGHT } from '../constants';
 import type { TaskMasterTask, TaskUpdates } from '../types';
 
 export const TaskMasterKanban: React.FC = () => {
 	const { state, dispatch, sendMessage, availableHeight } = useVSCodeContext();
+	const queryClient = useQueryClient();
 	const {
-		loading: legacyLoading,
 		error: legacyError,
 		editingTask,
 		polling,
@@ -35,15 +38,27 @@ export const TaskMasterKanban: React.FC = () => {
 		availableTags
 	} = state;
 	const [activeTask, setActiveTask] = useState<TaskMasterTask | null>(null);
+	const [isRefreshing, setIsRefreshing] = useState(false);
 
 	// Use React Query to fetch tasks
 	const {
 		data: serverTasks = [],
 		isLoading,
-		error
+		error,
+		isFetching,
+		isSuccess
 	} = useTasks({ tag: currentTag });
 	const updateTaskStatus = useUpdateTaskStatus();
 	const updateTask = useUpdateTask();
+
+	// Debug logging
+	console.log('🔍 TaskMasterKanban Query State:', {
+		isLoading,
+		isFetching,
+		isSuccess,
+		tasksCount: serverTasks?.length,
+		error
+	});
 
 	// Temporary state only for active drag operations
 	const [tempReorderedTasks, setTempReorderedTasks] = useState<
@@ -178,6 +193,18 @@ export const TaskMasterKanban: React.FC = () => {
 		sendMessage({ type: 'retryConnection' });
 	}, [sendMessage]);
 
+	// Handle refresh
+	const handleRefresh = useCallback(async () => {
+		setIsRefreshing(true);
+		try {
+			// Invalidate all task queries
+			await queryClient.invalidateQueries({ queryKey: taskKeys.all });
+		} finally {
+			// Reset after a short delay to show the animation
+			setTimeout(() => setIsRefreshing(false), 500);
+		}
+	}, [queryClient]);
+
 	// Handle tag switching
 	const handleTagSwitch = useCallback(
 		async (tagName: string) => {
@@ -192,14 +219,13 @@ export const TaskMasterKanban: React.FC = () => {
 	);
 
 	// Use React Query loading state
-	const loading = isLoading || legacyLoading;
 	const displayError = error
 		? error instanceof Error
 			? error.message
 			: String(error)
 		: legacyError;
 
-	if (loading) {
+	if (isLoading) {
 		return (
 			<div
 				className="flex items-center justify-center"
@@ -243,6 +269,16 @@ export const TaskMasterKanban: React.FC = () => {
 								sendMessage={sendMessage}
 								dispatch={dispatch}
 							/>
+							<button
+								onClick={handleRefresh}
+								disabled={isRefreshing}
+								className="p-1.5 rounded hover:bg-vscode-button-hoverBackground transition-colors"
+								title="Refresh tasks"
+							>
+								<RefreshCw
+									className={`w-4 h-4 text-vscode-foreground/70 ${isRefreshing ? 'animate-spin' : ''}`}
+								/>
+							</button>
 							<PollingStatus polling={polling} onRetry={handleRetry} />
 							<div className="flex items-center gap-2">
 								<div

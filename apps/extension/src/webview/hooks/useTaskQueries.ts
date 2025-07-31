@@ -19,6 +19,7 @@ export function useTasks(options?: { tag?: string; status?: string }) {
 	return useQuery({
 		queryKey: taskKeys.list(options || {}),
 		queryFn: async () => {
+			console.log('🔍 Fetching tasks with options:', options);
 			const response = await sendMessage({
 				type: 'getTasks',
 				data: {
@@ -26,8 +27,10 @@ export function useTasks(options?: { tag?: string; status?: string }) {
 					withSubtasks: true
 				}
 			});
+			console.log('📋 Tasks fetched:', response);
 			return response as TaskMasterTask[];
-		}
+		},
+		staleTime: 0 // Consider data stale immediately
 	});
 }
 
@@ -141,17 +144,36 @@ export function useUpdateTask() {
 			updates: TaskUpdates | { description: string };
 			options?: { append?: boolean; research?: boolean };
 		}) => {
-			await sendMessage({
+			console.log('🔄 Updating task:', taskId, updates, options);
+
+			const response = await sendMessage({
 				type: 'updateTask',
 				data: { taskId, updates, options }
 			});
+
+			console.log('📥 Update task response:', response);
+
+			// Check for error in response
+			if (response && typeof response === 'object' && 'error' in response) {
+				throw new Error(response.error || 'Failed to update task');
+			}
+
+			return response;
 		},
-		onSuccess: (_, variables) => {
-			// Invalidate the specific task and all lists
-			queryClient.invalidateQueries({
-				queryKey: taskKeys.detail(variables.taskId)
+		onSuccess: async (data, variables) => {
+			console.log('✅ Task update successful, invalidating all task queries');
+			console.log('Response data:', data);
+			console.log('Task ID:', variables.taskId);
+
+			// Invalidate ALL task-related queries (same as handleRefresh)
+			await queryClient.invalidateQueries({
+				queryKey: taskKeys.all
 			});
-			queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+
+			console.log(
+				'🔄 All task queries invalidated for task:',
+				variables.taskId
+			);
 		}
 	});
 }
@@ -171,19 +193,37 @@ export function useUpdateSubtask() {
 			prompt: string;
 			options?: { research?: boolean };
 		}) => {
-			await sendMessage({
+			console.log('🔄 Updating subtask:', taskId, prompt, options);
+
+			const response = await sendMessage({
 				type: 'updateSubtask',
 				data: { taskId, prompt, options }
 			});
+
+			console.log('📥 Update subtask response:', response);
+
+			// Check for error in response
+			if (response && typeof response === 'object' && 'error' in response) {
+				throw new Error(response.error || 'Failed to update subtask');
+			}
+
+			return response;
 		},
-		onSuccess: (_, variables) => {
-			// Extract parent task ID from subtask ID (e.g., "1.2" -> "1")
-			const parentTaskId = variables.taskId.split('.')[0];
-			// Invalidate the parent task details and all lists
-			queryClient.invalidateQueries({
-				queryKey: taskKeys.detail(parentTaskId)
+		onSuccess: async (data, variables) => {
+			console.log(
+				'✅ Subtask update successful, invalidating all task queries'
+			);
+			console.log('Subtask ID:', variables.taskId);
+
+			// Invalidate ALL task-related queries (same as handleRefresh)
+			await queryClient.invalidateQueries({
+				queryKey: taskKeys.all
 			});
-			queryClient.invalidateQueries({ queryKey: taskKeys.lists() });
+
+			console.log(
+				'🔄 All task queries invalidated for subtask:',
+				variables.taskId
+			);
 		}
 	});
 }

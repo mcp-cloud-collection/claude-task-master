@@ -96,23 +96,6 @@ export const useVSCodeMessages = (
 					dispatch({ type: 'SET_TASKS', payload: message.data });
 					break;
 
-				case 'tasksUpdated':
-					console.log('📋 Tasks updated:', message.data);
-					// Extract tasks from the data object
-					const tasks = message.data?.tasks || message.data;
-					if (Array.isArray(tasks)) {
-						dispatch({ type: 'SET_TASKS', payload: tasks });
-					}
-					break;
-
-				case 'taskStatusUpdated':
-					console.log('✅ Task status updated:', message);
-					break;
-
-				case 'taskUpdated':
-					console.log('✅ Task content updated:', message);
-					break;
-
 				case 'pollingStatus':
 					dispatch({
 						type: 'SET_POLLING_STATUS',

@@ -180,21 +180,14 @@ export class WebviewManager {
 							const { taskId, updates, options = {} } = data;
 
 							// Use the update_task MCP tool
-							const result = await this.mcpClient.callTool('update_task', {
-								id: taskId,
+							await this.mcpClient.callTool('update_task', {
+								id: String(taskId),
 								prompt: updates.description || '',
 								append: options.append || false,
 								research: options.research || false,
 								projectRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
 							});
 
-							// Refresh tasks after update
-							await this.repository.refresh();
-							const updatedTasks = await this.repository.getAll();
-							this.broadcast('tasksUpdated', {
-								tasks: updatedTasks,
-								source: 'task-update'
-							});
 							response = { success: true };
 						} catch (error) {
 							this.logger.error('Failed to update task via MCP:', error);
@@ -212,20 +205,13 @@ export class WebviewManager {
 							const { taskId, prompt, options = {} } = data;
 
 							// Use the update_subtask MCP tool
-							const result = await this.mcpClient.callTool('update_subtask', {
-								id: taskId,
+							await this.mcpClient.callTool('update_subtask', {
+								id: String(taskId),
 								prompt: prompt,
 								research: options.research || false,
 								projectRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
 							});
 
-							// Refresh tasks after update
-							await this.repository.refresh();
-							const updatedTasks = await this.repository.getAll();
-							this.broadcast('tasksUpdated', {
-								tasks: updatedTasks,
-								source: 'task-update'
-							});
 							response = { success: true };
 						} catch (error) {
 							this.logger.error('Failed to update subtask via MCP:', error);

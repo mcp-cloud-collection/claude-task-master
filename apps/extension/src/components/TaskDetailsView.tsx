@@ -1,6 +1,8 @@
 import type React from 'react';
-import { useContext } from 'react';
+import { useContext, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
+import { useQueryClient } from '@tanstack/react-query';
+import { RefreshCw } from 'lucide-react';
 import {
 	Breadcrumb,
 	BreadcrumbItem,
@@ -14,6 +16,7 @@ import { SubtasksSection } from './TaskDetails/SubtasksSection';
 import { TaskMetadataSidebar } from './TaskDetails/TaskMetadataSidebar';
 import { DetailsSection } from './TaskDetails/DetailsSection';
 import { useTaskDetails } from './TaskDetails/useTaskDetails';
+import { useTasks, taskKeys } from '../webview/hooks/useTaskQueries';
 import type { TaskMasterTask } from '../webview/types';
 
 interface TaskDetailsViewProps {
@@ -33,7 +36,12 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 	}
 
 	const { state, sendMessage } = context;
-	const { tasks } = state;
+	const { currentTag } = state;
+	const queryClient = useQueryClient();
+	const [isRefreshing, setIsRefreshing] = useState(false);
+
+	// Use React Query to fetch all tasks
+	const { data: allTasks = [] } = useTasks({ tag: currentTag });
 
 	const {
 		currentTask,
@@ -43,7 +51,7 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 		taskFileDataError,
 		complexity,
 		refreshComplexityAfterAI
-	} = useTaskDetails({ taskId, sendMessage, tasks });
+	} = useTaskDetails({ taskId, sendMessage, tasks: allTasks });
 
 	const handleStatusChange = async (newStatus: TaskMasterTask['status']) => {
 		if (!currentTask) return;
@@ -68,6 +76,17 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 		onNavigateToTask(depId);
 	};
 
+	const handleRefresh = useCallback(async () => {
+		setIsRefreshing(true);
+		try {
+			// Invalidate all task queries
+			await queryClient.invalidateQueries({ queryKey: taskKeys.all });
+		} finally {
+			// Reset after a short delay to show the animation
+			setTimeout(() => setIsRefreshing(false), 500);
+		}
+	}, [queryClient]);
+
 	if (!currentTask) {
 		return (
 			<div className="flex items-center justify-center h-full">
@@ -89,37 +108,49 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 				{/* Left column - Main content (2/3 width) */}
 				<div className="md:col-span-2 space-y-6">
 					{/* Breadcrumb navigation */}
-					<Breadcrumb>
-						<BreadcrumbList>
-							<BreadcrumbItem>
-								<BreadcrumbLink
-									onClick={onNavigateBack}
-									className="cursor-pointer hover:text-vscode-foreground text-link"
-								>
-									Kanban Board
-								</BreadcrumbLink>
-							</BreadcrumbItem>
-							{isSubtask && parentTask && (
-								<>
-									<BreadcrumbSeparator />
-									<BreadcrumbItem>
-										<BreadcrumbLink
-											onClick={() => onNavigateToTask(parentTask.id)}
-											className="cursor-pointer hover:text-vscode-foreground"
-										>
-											{parentTask.title}
-										</BreadcrumbLink>
-									</BreadcrumbItem>
-								</>
-							)}
-							<BreadcrumbSeparator />
-							<BreadcrumbItem>
-								<span className="text-vscode-foreground">
-									{currentTask.title}
-								</span>
-							</BreadcrumbItem>
-						</BreadcrumbList>
-					</Breadcrumb>
+					<div className="flex items-center justify-between">
+						<Breadcrumb>
+							<BreadcrumbList>
+								<BreadcrumbItem>
+									<BreadcrumbLink
+										onClick={onNavigateBack}
+										className="cursor-pointer hover:text-vscode-foreground text-link"
+									>
+										Kanban Board
+									</BreadcrumbLink>
+								</BreadcrumbItem>
+								{isSubtask && parentTask && (
+									<>
+										<BreadcrumbSeparator />
+										<BreadcrumbItem>
+											<BreadcrumbLink
+												onClick={() => onNavigateToTask(parentTask.id)}
+												className="cursor-pointer hover:text-vscode-foreground"
+											>
+												{parentTask.title}
+											</BreadcrumbLink>
+										</BreadcrumbItem>
+									</>
+								)}
+								<BreadcrumbSeparator />
+								<BreadcrumbItem>
+									<span className="text-vscode-foreground">
+										{currentTask.title}
+									</span>
+								</BreadcrumbItem>
+							</BreadcrumbList>
+						</Breadcrumb>
+						<button
+							onClick={handleRefresh}
+							disabled={isRefreshing}
+							className="p-1.5 rounded hover:bg-vscode-button-hoverBackground transition-colors"
+							title="Refresh task details"
+						>
+							<RefreshCw
+								className={`w-4 h-4 text-vscode-foreground/70 ${isRefreshing ? 'animate-spin' : ''}`}
+							/>
+						</button>
+					</div>
 
 					{/* Task title */}
 					<h1 className="text-2xl font-bold tracking-tight text-vscode-foreground">
@@ -172,7 +203,7 @@ export const TaskDetailsView: React.FC<TaskDetailsViewProps> = ({
 				{/* Right column - Metadata (1/3 width) */}
 				<TaskMetadataSidebar
 					currentTask={currentTask}
-					tasks={tasks}
+					tasks={allTasks}
 					complexity={complexity}
 					isSubtask={isSubtask}
 					sendMessage={sendMessage}

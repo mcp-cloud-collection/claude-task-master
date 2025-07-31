@@ -176,7 +176,7 @@ export class TaskMasterApi {
 
 		try {
 			const mcpArgs: Record<string, unknown> = {
-				id: taskId,
+				id: String(taskId),
 				status: status,
 				projectRoot: options?.projectRoot || this.getWorkspaceRoot()
 			};
@@ -238,7 +238,7 @@ export class TaskMasterApi {
 			const prompt = `Update task with the following changes:\n${updateFields.join('\n')}`;
 
 			const mcpArgs: Record<string, unknown> = {
-				id: taskId,
+				id: String(taskId),
 				prompt: prompt,
 				projectRoot: options?.projectRoot || this.getWorkspaceRoot()
 			};
@@ -284,7 +284,7 @@ export class TaskMasterApi {
 
 		try {
 			const mcpArgs: Record<string, unknown> = {
-				id: taskId,
+				id: String(taskId),
 				prompt: prompt,
 				projectRoot: options?.projectRoot || this.getWorkspaceRoot()
 			};
@@ -327,7 +327,7 @@ export class TaskMasterApi {
 
 		try {
 			const mcpArgs: Record<string, unknown> = {
-				id: parentTaskId,
+				id: String(parentTaskId),
 				title: subtaskData.title,
 				projectRoot: options?.projectRoot || this.getWorkspaceRoot()
 			};

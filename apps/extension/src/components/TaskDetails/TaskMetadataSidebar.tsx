@@ -256,7 +256,10 @@ export const TaskMetadataSidebar: React.FC<TaskMetadataSidebarProps> = ({
 							</h4>
 							<div className="space-y-2">
 								{currentTask.dependencies.map((depId) => {
-									const depTask = tasks.find((t) => t.id === depId);
+									// Convert both to string for comparison since depId might be string or number
+									const depTask = tasks.find(
+										(t) => String(t.id) === String(depId)
+									);
 									const fullTitle = `Task ${depId}: ${depTask?.title || 'Unknown Task'}`;
 									const truncatedTitle =
 										fullTitle.length > 40
