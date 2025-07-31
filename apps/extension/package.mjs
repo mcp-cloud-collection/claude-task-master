@@ -30,7 +30,13 @@ try {
 	fs.ensureDirSync(targetDistDir);
 
 	// Only copy the files we need (exclude .map files)
-	const filesToCopy = ['extension.js', 'index.js', 'index.css'];
+	const filesToCopy = [
+		'extension.js',
+		'index.js',
+		'index.css',
+		'sidebar.js',
+		'sidebar.css'
+	];
 	for (const file of filesToCopy) {
 		const srcFile = path.resolve(distDir, file);
 		const destFile = path.resolve(targetDistDir, file);
@@ -127,7 +133,7 @@ try {
 	// Use the synced version for output
 	const finalVersion = devPackage.version;
 	console.log(
-		`\nYour extension will be packaged to: vsix-build/taskr-kanban-${finalVersion}.vsix`
+		`\nYour extension will be packaged to: vsix-build/task-master-${finalVersion}.vsix`
 	);
 } catch (error) {
 	console.error('\n❌ Packaging failed!');

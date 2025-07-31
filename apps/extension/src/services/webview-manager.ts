@@ -58,6 +58,20 @@ export class WebviewManager {
 			}
 		);
 
+		// Set the icon for the webview tab
+		panel.iconPath = {
+			light: vscode.Uri.joinPath(
+				this.context.extensionUri,
+				'assets',
+				'icon-light.svg'
+			),
+			dark: vscode.Uri.joinPath(
+				this.context.extensionUri,
+				'assets',
+				'icon-dark.svg'
+			)
+		};
+
 		this.panels.add(panel);
 		panel.webview.html = this.getWebviewContent(panel.webview);
 
@@ -122,7 +136,11 @@ export class WebviewManager {
 					return;
 
 				case 'getTasks':
-					response = await this.repository.getAll();
+					// Pass options to getAll including tag if specified
+					response = await this.repository.getAll({
+						tag: data?.tag,
+						withSubtasks: data?.withSubtasks ?? true
+					});
 					break;
 
 				case 'updateTaskStatus':
@@ -279,9 +297,9 @@ export class WebviewManager {
 								name: data.tagName,
 								projectRoot: vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
 							});
-							// Clear cache and refresh tasks for the new tag
+							// Clear cache and fetch tasks for the new tag
 							await this.repository.refresh();
-							const tasks = await this.repository.getAll();
+							const tasks = await this.repository.getAll({ tag: data.tagName });
 							this.broadcast('tasksUpdated', { tasks, source: 'tag-switch' });
 							response = { success: true };
 						} catch (error) {
@@ -292,6 +310,13 @@ export class WebviewManager {
 						throw new Error('Tag name not provided');
 					}
 					break;
+
+				case 'openExternal':
+					// Open external URL
+					if (message.url) {
+						vscode.env.openExternal(vscode.Uri.parse(message.url));
+					}
+					return;
 
 				default:
 					throw new Error(`Unknown message type: ${type}`);

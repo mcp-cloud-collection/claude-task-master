@@ -109,7 +109,7 @@ The automation ensures these fields stay in sync between `package.json` and `pac
 ```json
 {
   "version": "1.0.2",                    // ✅ AUTO-SYNCED
-  "publisher": "DavidMaliglowka",        // ⚠️ MUST MATCH MANUALLY
+  "publisher": "Hamster",        // ⚠️ MUST MATCH MANUALLY
   "displayName": "taskr: Task Master Kanban", // ⚠️ MUST MATCH MANUALLY
   "description": "...",                  // ⚠️ MUST MATCH MANUALLY
   "engines": { "vscode": "^1.93.0" },   // ⚠️ MUST MATCH MANUALLY

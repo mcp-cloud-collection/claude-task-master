@@ -14,6 +14,7 @@ import { TaskCard } from './TaskCard';
 import { TaskEditModal } from './TaskEditModal';
 import { PollingStatus } from './PollingStatus';
 import { TagDropdown } from './TagDropdown';
+import { EmptyState } from './EmptyState';
 import { useVSCodeContext } from '../contexts/VSCodeContext';
 import { kanbanStatuses, HEADER_HEIGHT } from '../constants';
 import type { TaskMasterTask, TaskUpdates } from '../types';
@@ -177,8 +178,11 @@ export const TaskMasterKanban: React.FC = () => {
 		async (tagName: string) => {
 			console.log('Switching to tag:', tagName);
 			await sendMessage({ type: 'switchTag', data: { tagName } });
-			// After switching tags, fetch the new tasks
-			const tasksData = await sendMessage({ type: 'getTasks' });
+			// After switching tags, fetch the new tasks for that specific tag
+			const tasksData = await sendMessage({
+				type: 'getTasks',
+				data: { tag: tagName }
+			});
 			console.log('Received new tasks for tag', tagName, ':', {
 				tasksData,
 				isArray: Array.isArray(tasksData),
@@ -276,72 +280,76 @@ export const TaskMasterKanban: React.FC = () => {
 					className="flex-1 px-4 py-4 overflow-hidden"
 					style={{ height: `${kanbanHeight}px` }}
 				>
-					<KanbanProvider
-						onDragStart={handleDragStart}
-						onDragEnd={handleDragEnd}
-						className="kanban-container w-full h-full overflow-x-auto overflow-y-hidden"
-						dragOverlay={
-							activeTask ? <TaskCard task={activeTask} dragging /> : null
-						}
-					>
-						<div className="flex gap-4 h-full min-w-fit">
-							{kanbanStatuses.map((status) => {
-								const statusTasks = tasksByStatus[status.id] || [];
-								const hasScrollbar = statusTasks.length > 4;
+					{tasks.length === 0 ? (
+						<EmptyState currentTag={currentTag} />
+					) : (
+						<KanbanProvider
+							onDragStart={handleDragStart}
+							onDragEnd={handleDragEnd}
+							className="kanban-container w-full h-full overflow-x-auto overflow-y-hidden"
+							dragOverlay={
+								activeTask ? <TaskCard task={activeTask} dragging /> : null
+							}
+						>
+							<div className="flex gap-4 h-full min-w-fit">
+								{kanbanStatuses.map((status) => {
+									const statusTasks = tasksByStatus[status.id] || [];
+									const hasScrollbar = statusTasks.length > 4;
 
-								return (
-									<KanbanBoard
-										key={status.id}
-										id={status.id}
-										title={status.name}
-										className={`
-											w-80 flex flex-col
-											border border-vscode-border/30
-											rounded-lg
-											bg-vscode-sidebar-background/50
-										`}
-									>
-										<KanbanHeader
-											name={`${status.name} (${statusTasks.length})`}
-											color={status.color}
-											className="px-3 py-3 text-sm font-medium flex-shrink-0 border-b border-vscode-border/30"
-										/>
-										<div
+									return (
+										<KanbanBoard
+											key={status.id}
+											id={status.id}
+											title={status.name}
 											className={`
-												flex flex-col gap-2 
-												overflow-y-auto overflow-x-hidden
-												p-2
-												scrollbar-thin scrollbar-track-transparent
-												${hasScrollbar ? 'pr-1' : ''}
+												w-80 flex flex-col
+												border border-vscode-border/30
+												rounded-lg
+												bg-vscode-sidebar-background/50
 											`}
-											style={{
-												maxHeight: `${kanbanHeight - 80}px`
-											}}
 										>
-											<KanbanCards column={status.id}>
-												{statusTasks.map((task) => (
-													<TaskCard
-														key={task.id}
-														task={task}
-														onViewDetails={(taskId) => {
-															console.log(
-																'🔍 Navigating to task details:',
-																taskId
-															);
-															dispatch({
-																type: 'NAVIGATE_TO_TASK',
-																payload: taskId
-															});
-														}}
-													/>
-												))}
-											</KanbanCards>
-										</div>
-									</KanbanBoard>
-								);
-							})}
-						</div>
-					</KanbanProvider>
+											<KanbanHeader
+												name={`${status.name} (${statusTasks.length})`}
+												color={status.color}
+												className="px-3 py-3 text-sm font-medium flex-shrink-0 border-b border-vscode-border/30"
+											/>
+											<div
+												className={`
+													flex flex-col gap-2 
+													overflow-y-auto overflow-x-hidden
+													p-2
+													scrollbar-thin scrollbar-track-transparent
+													${hasScrollbar ? 'pr-1' : ''}
+												`}
+												style={{
+													maxHeight: `${kanbanHeight - 80}px`
+												}}
+											>
+												<KanbanCards column={status.id}>
+													{statusTasks.map((task) => (
+														<TaskCard
+															key={task.id}
+															task={task}
+															onViewDetails={(taskId) => {
+																console.log(
+																	'🔍 Navigating to task details:',
+																	taskId
+																);
+																dispatch({
+																	type: 'NAVIGATE_TO_TASK',
+																	payload: taskId
+																});
+															}}
+														/>
+													))}
+												</KanbanCards>
+											</div>
+										</KanbanBoard>
+									);
+								})}
+							</div>
+						</KanbanProvider>
+					)}
 				</div>
 			</div>
 

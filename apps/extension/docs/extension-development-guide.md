@@ -102,7 +102,7 @@ When updating extension metadata, ensure these fields match between `package.jso
 ```json
 {
   "version": "1.0.1",                    // ⚠️ MUST MATCH
-  "publisher": "DavidMaliglowka",        // ⚠️ MUST MATCH  
+  "publisher": "Hamster",        // ⚠️ MUST MATCH  
   "displayName": "taskr: Task Master Kanban", // ⚠️ MUST MATCH
   "description": "A visual Kanban board...",  // ⚠️ MUST MATCH
 }

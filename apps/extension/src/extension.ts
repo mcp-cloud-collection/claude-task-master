@@ -16,6 +16,7 @@ import {
 	createMCPConfigFromSettings
 } from './utils/mcpClient';
 import { TaskMasterApi } from './utils/task-master-api';
+import { SidebarWebviewManager } from './services/sidebar-webview-manager';
 
 let logger: ExtensionLogger;
 let mcpClient: MCPClientManager;
@@ -25,6 +26,7 @@ let pollingService: PollingService;
 let webviewManager: WebviewManager;
 let events: EventEmitter;
 let configService: ConfigService;
+let sidebarManager: SidebarWebviewManager;
 
 export async function activate(context: vscode.ExtensionContext) {
 	try {
@@ -57,12 +59,16 @@ export async function activate(context: vscode.ExtensionContext) {
 		webviewManager = new WebviewManager(context, repository, events, logger);
 		webviewManager.setConfigService(configService);
 
+		// Sidebar webview manager
+		sidebarManager = new SidebarWebviewManager(context.extensionUri);
+
 		// Initialize connection
 		await initializeConnection();
 
 		// Set MCP client and API after connection
 		webviewManager.setMCPClient(mcpClient);
 		webviewManager.setApi(api);
+		sidebarManager.setApi(api);
 
 		// Register commands
 		registerCommands(context);
@@ -121,6 +127,9 @@ async function initializeConnection() {
 					status: 'Connected'
 				});
 			}
+			if (sidebarManager) {
+				sidebarManager.updateConnectionStatus();
+			}
 		} else {
 			throw new Error(testResult.error || 'Connection test failed');
 		}
@@ -133,6 +142,9 @@ async function initializeConnection() {
 				isConnected: false,
 				status: 'Disconnected'
 			});
+		}
+		if (sidebarManager) {
+			sidebarManager.updateConnectionStatus();
 		}
 
 		handleConnectionError(error);
@@ -166,26 +178,35 @@ function handleConnectionError(error: any) {
 function registerCommands(context: vscode.ExtensionContext) {
 	// Main command
 	context.subscriptions.push(
-		vscode.commands.registerCommand('taskr.showKanbanBoard', async () => {
+		vscode.commands.registerCommand('tm.showKanbanBoard', async () => {
 			await webviewManager.createOrShowPanel();
 		})
 	);
 
 	// Utility commands
 	context.subscriptions.push(
-		vscode.commands.registerCommand('taskr.refreshTasks', async () => {
+		vscode.commands.registerCommand('tm.refreshTasks', async () => {
 			await repository.refresh();
 			vscode.window.showInformationMessage('Tasks refreshed!');
 		})
 	);
 
 	context.subscriptions.push(
-		vscode.commands.registerCommand('taskr.openSettings', () => {
+		vscode.commands.registerCommand('tm.openSettings', () => {
 			vscode.commands.executeCommand(
 				'workbench.action.openSettings',
 				'@ext:taskr taskmaster'
 			);
 		})
+	);
+
+	// Register sidebar view provider
+
+	context.subscriptions.push(
+		vscode.window.registerWebviewViewProvider(
+			'taskmaster.welcome',
+			sidebarManager
+		)
 	);
 }
 

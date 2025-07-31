@@ -1,10 +1,10 @@
 {
-	"name": "taskr",
+	"name": "extension",
 	"private": true,
-	"displayName": "Task Master Kanban",
+	"displayName": "Task Master",
 	"description": "A visual Kanban board interface for Task Master projects in VS Code",
 	"version": "1.1.0",
-	"publisher": "DavidMaliglowka",
+	"publisher": "Hamster",
 	"icon": "assets/icon.png",
 	"engines": {
 		"vscode": "^1.93.0"
@@ -12,24 +12,52 @@
 	"categories": ["AI", "Visualization", "Education", "Other"],
 	"main": "./dist/extension.js",
 	"contributes": {
+		"viewsContainers": {
+			"activitybar": [
+				{
+					"id": "taskmaster",
+					"title": "Task Master",
+					"icon": "assets/sidebar-icon.svg"
+				}
+			]
+		},
+		"views": {
+			"taskmaster": [
+				{
+					"id": "taskmaster.welcome",
+					"name": "Task Master",
+					"type": "webview"
+				}
+			]
+		},
 		"commands": [
 			{
-				"command": "taskr.showKanbanBoard",
-				"title": "Task Master Kanban: Show Board"
+				"command": "tm.showKanbanBoard",
+				"title": "Task Master: Show Board",
+				"icon": "$(checklist)"
 			},
 			{
-				"command": "taskr.checkConnection",
-				"title": "Task Master Kanban: Check Connection"
+				"command": "tm.checkConnection",
+				"title": "Task Master: Check Connection"
 			},
 			{
-				"command": "taskr.reconnect",
-				"title": "Task Master Kanban: Reconnect"
+				"command": "tm.reconnect",
+				"title": "Task Master: Reconnect"
 			},
 			{
-				"command": "taskr.openSettings",
-				"title": "Task Master Kanban: Open Settings"
+				"command": "tm.openSettings",
+				"title": "Task Master: Open Settings"
 			}
 		],
+		"menus": {
+			"view/title": [
+				{
+					"command": "tm.showKanbanBoard",
+					"when": "view == taskmaster.welcome",
+					"group": "navigation"
+				}
+			]
+		},
 		"configuration": {
 			"title": "Task Master Kanban",
 			"properties": {
@@ -88,6 +116,13 @@
 					"minimum": 5000,
 					"maximum": 60000,
 					"description": "Health check interval in milliseconds"
+				},
+				"taskmaster.mcp.requestTimeoutMs": {
+					"type": "number",
+					"default": 300000,
+					"minimum": 30000,
+					"maximum": 600000,
+					"description": "MCP request timeout in milliseconds (default: 5 minutes)"
 				},
 				"taskmaster.ui.autoRefresh": {
 					"type": "boolean",
@@ -192,14 +227,18 @@
 		"vscode:prepublish": "npm run build",
 		"build": "npm run build:js && npm run build:css",
 		"build:js": "node ./esbuild.js --production",
-		"build:css": "npx @tailwindcss/cli -i ./src/webview/index.css -o ./dist/index.css --minify",
+		"build:css": "npm run build:css:main && npm run build:css:sidebar",
+		"build:css:main": "npx @tailwindcss/cli -i ./src/webview/index.css -o ./dist/index.css --minify",
+		"build:css:sidebar": "npx @tailwindcss/cli -i ./src/webview/index.css -o ./dist/sidebar.css --minify",
 		"package": "npm exec node ./package.mjs",
 		"package:direct": "node ./package.mjs",
 		"debug:env": "node ./debug-env.mjs",
 		"compile": "node ./esbuild.js",
 		"watch": "npm run watch:js & npm run watch:css",
 		"watch:js": "node ./esbuild.js --watch",
-		"watch:css": "npx @tailwindcss/cli -i ./src/webview/index.css -o ./dist/index.css --watch",
+		"watch:css": "npm run watch:css:main & npm run watch:css:sidebar",
+		"watch:css:main": "npx @tailwindcss/cli -i ./src/webview/index.css -o ./dist/index.css --watch",
+		"watch:css:sidebar": "npx @tailwindcss/cli -i ./src/webview/index.css -o ./dist/sidebar.css --watch",
 		"test": "vscode-test",
 		"check-types": "tsc --noEmit"
 	},

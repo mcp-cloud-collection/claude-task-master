@@ -118,12 +118,52 @@ async function main() {
 		plugins: [esbuildProblemMatcherPlugin, aliasPlugin]
 	});
 
+	// Build configuration for the React sidebar
+	const sidebarCtx = await esbuild.context({
+		entryPoints: ['src/webview/sidebar.tsx'],
+		bundle: true,
+		format: 'iife',
+		globalName: 'SidebarApp',
+		minify: production,
+		sourcemap: !production ? 'inline' : false,
+		sourcesContent: !production,
+		platform: 'browser',
+		outdir: 'dist',
+		logLevel: 'silent',
+		target: ['es2020'],
+		jsx: 'automatic',
+		jsxImportSource: 'react',
+		external: ['*.css'],
+		alias: {
+			react: path.resolve(__dirname, '../../node_modules/react'),
+			'react-dom': path.resolve(__dirname, '../../node_modules/react-dom')
+		},
+		define: {
+			'process.env.NODE_ENV': production ? '"production"' : '"development"',
+			global: 'globalThis'
+		},
+		...(production && {
+			drop: ['debugger'],
+			pure: ['console.log', 'console.debug', 'console.trace']
+		}),
+		plugins: [esbuildProblemMatcherPlugin, aliasPlugin]
+	});
+
 	if (watch) {
-		await Promise.all([extensionCtx.watch(), webviewCtx.watch()]);
+		await Promise.all([
+			extensionCtx.watch(),
+			webviewCtx.watch(),
+			sidebarCtx.watch()
+		]);
 	} else {
-		await Promise.all([extensionCtx.rebuild(), webviewCtx.rebuild()]);
+		await Promise.all([
+			extensionCtx.rebuild(),
+			webviewCtx.rebuild(),
+			sidebarCtx.rebuild()
+		]);
 		await extensionCtx.dispose();
 		await webviewCtx.dispose();
+		await sidebarCtx.dispose();
 	}
 }
 

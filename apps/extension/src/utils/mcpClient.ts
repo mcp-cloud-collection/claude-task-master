@@ -8,6 +8,7 @@ export interface MCPConfig {
 	args: string[];
 	cwd?: string;
 	env?: Record<string, string>;
+	timeout?: number;
 }
 
 export interface MCPServerStatus {
@@ -210,9 +211,6 @@ export class MCPClientManager {
 			};
 
 			logger.log('MCP client connected successfully');
-			vscode.window.showInformationMessage(
-				'Task Master connected successfully'
-			);
 		} catch (error) {
 			logger.error('Failed to connect to MCP server:', error);
 			this.status = {
@@ -275,10 +273,21 @@ export class MCPClientManager {
 		}
 
 		try {
-			const result = await this.client.callTool({
-				name: toolName,
-				arguments: arguments_
-			});
+			// Use the configured timeout or default to 5 minutes
+			const timeout = this.config.timeout || 300000; // 5 minutes default
+
+			logger.log(`Calling MCP tool "${toolName}" with timeout: ${timeout}ms`);
+
+			const result = await this.client.callTool(
+				{
+					name: toolName,
+					arguments: arguments_
+				},
+				undefined,
+				{
+					timeout: timeout
+				}
+			);
 
 			return result;
 		} catch (error) {
@@ -297,6 +306,7 @@ export class MCPClientManager {
 				return false;
 			}
 
+			// listTools is a simple metadata request, no need for extended timeout
 			const result = await this.client.listTools();
 			logger.log(
 				'Available MCP tools:',
@@ -347,6 +357,7 @@ export function createMCPConfigFromSettings(): MCPConfig {
 		vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || process.cwd();
 	const cwd = config.get<string>('mcp.cwd', defaultCwd);
 	const env = config.get<Record<string, string>>('mcp.env');
+	const timeout = config.get<number>('mcp.requestTimeoutMs', 300000);
 
 	logger.log('✅ Using workspace directory:', defaultCwd);
 
@@ -377,6 +388,7 @@ export function createMCPConfigFromSettings(): MCPConfig {
 		command,
 		args,
 		cwd: cwd || defaultCwd,
-		env
+		env,
+		timeout
 	};
 }

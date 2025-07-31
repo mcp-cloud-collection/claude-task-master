@@ -112,9 +112,9 @@ export class ErrorHandler {
 						)
 						.then((action) => {
 							if (action === 'Retry') {
-								vscode.commands.executeCommand('taskr.reconnect');
+								vscode.commands.executeCommand('tm.reconnect');
 							} else if (action === 'Settings') {
-								vscode.commands.executeCommand('taskr.openSettings');
+								vscode.commands.executeCommand('tm.openSettings');
 							}
 						});
 				} else {

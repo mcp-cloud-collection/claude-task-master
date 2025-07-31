@@ -22,14 +22,25 @@ export class TaskRepository extends EventEmitter {
 		super();
 	}
 
-	async getAll(): Promise<Task[]> {
-		// Return from cache if valid
-		if (this.cache && Date.now() - this.cacheTimestamp < this.CACHE_DURATION) {
-			return this.cache;
+	async getAll(options?: {
+		tag?: string;
+		withSubtasks?: boolean;
+	}): Promise<Task[]> {
+		// If a tag is specified, always fetch fresh data
+		const shouldUseCache =
+			!options?.tag &&
+			this.cache &&
+			Date.now() - this.cacheTimestamp < this.CACHE_DURATION;
+
+		if (shouldUseCache) {
+			return this.cache || [];
 		}
 
 		try {
-			const result = await this.api.getTasks({ withSubtasks: true });
+			const result = await this.api.getTasks({
+				withSubtasks: options?.withSubtasks ?? true,
+				tag: options?.tag
+			});
 
 			if (result.success && result.data) {
 				this.cache = result.data;

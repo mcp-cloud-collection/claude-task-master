@@ -1,9 +1,9 @@
 {
-	"name": "taskr-kanban",
-	"displayName": "taskr: Task Master Kanban",
+	"name": "task-master",
+	"displayName": "Task Master",
 	"description": "A visual Kanban board interface for Task Master projects in VS Code",
 	"version": "1.0.0",
-	"publisher": "DavidMaliglowka",
+	"publisher": "Hamster",
 	"icon": "assets/icon.png",
 	"engines": {
 		"vscode": "^1.93.0"
@@ -44,29 +44,29 @@
 	],
 	"repository": "https://github.com/eyaltoledano/claude-task-master",
 	"activationEvents": [
-		"onCommand:taskr.showKanbanBoard",
-		"onCommand:taskr.checkConnection",
-		"onCommand:taskr.reconnect",
-		"onCommand:taskr.openSettings"
+		"onCommand:tm.showKanbanBoard",
+		"onCommand:tm.checkConnection",
+		"onCommand:tm.reconnect",
+		"onCommand:tm.openSettings"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "taskr.showKanbanBoard",
-				"title": "Task Master Kanban: Show Board"
+				"command": "tm.showKanbanBoard",
+				"title": "Task Master: Show Board"
 			},
 			{
-				"command": "taskr.checkConnection",
-				"title": "Task Master Kanban: Check Connection"
+				"command": "tm.checkConnection",
+				"title": "Task Master: Check Connection"
 			},
 			{
-				"command": "taskr.reconnect",
-				"title": "Task Master Kanban: Reconnect"
+				"command": "tm.reconnect",
+				"title": "Task Master: Reconnect"
 			},
 			{
-				"command": "taskr.openSettings",
-				"title": "Task Master Kanban: Open Settings"
+				"command": "tm.openSettings",
+				"title": "Task Master: Open Settings"
 			}
 		],
 		"configuration": {
@@ -127,6 +127,13 @@
 					"minimum": 5000,
 					"maximum": 60000,
 					"description": "Health check interval in milliseconds"
+				},
+				"taskmaster.mcp.requestTimeoutMs": {
+					"type": "number",
+					"default": 300000,
+					"minimum": 30000,
+					"maximum": 600000,
+					"description": "MCP request timeout in milliseconds (default: 5 minutes)"
 				},
 				"taskmaster.ui.autoRefresh": {
 					"type": "boolean",
