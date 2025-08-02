@@ -268,9 +268,7 @@ export function useScopeUpTask() {
 			return response;
 		},
 		onSuccess: async (data, variables) => {
-			console.log(
-				'✅ Task scope up successful, invalidating all task queries'
-			);
+			console.log('✅ Task scope up successful, invalidating all task queries');
 			console.log('Task ID:', variables.taskId);
 
 			// Invalidate ALL task-related queries
