@@ -15,7 +15,9 @@ function findRootDir(startDir) {
 		if (existsSync(join(currentDir, 'package.json'))) {
 			// Verify it's the root package.json by checking for expected fields
 			try {
-				const pkg = JSON.parse(readFileSync(join(currentDir, 'package.json'), 'utf8'));
+				const pkg = JSON.parse(
+					readFileSync(join(currentDir, 'package.json'), 'utf8')
+				);
 				if (pkg.name === 'task-master-ai' || pkg.repository) {
 					return currentDir;
 				}
