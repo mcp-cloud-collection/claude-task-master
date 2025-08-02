@@ -1,6 +1,6 @@
 {
 	"meta": {
-		"generatedAt": "2025-08-02T09:50:02.895Z",
+		"generatedAt": "2025-08-02T14:28:59.851Z",
 		"tasksAnalyzed": 1,
 		"totalTasks": 93,
 		"analysisCount": 1,
@@ -10,12 +10,12 @@
 	},
 	"complexityAnalysis": [
 		{
-			"taskId": 104,
-			"taskTitle": "Implement 'scope-up' and 'scope-down' CLI Commands for Dynamic Task Complexity Adjustment",
+			"taskId": 24,
+			"taskTitle": "Implement AI-Powered Test Generation Command",
 			"complexityScore": 8,
 			"recommendedSubtasks": 6,
-			"expansionPrompt": "Break down the implementation of the 'scope-up' and 'scope-down' CLI commands into detailed subtasks, focusing on: 1) Command structure and argument parsing, 2) Task/subtask retrieval and context gathering, 3) AI prompt construction for different strength levels, 4) Response processing and task updating, 5) Error handling and user feedback, and 6) Integration with existing systems including MCP tool. For each subtask, include specific implementation details, dependencies, and test strategies.",
-			"reasoning": "This task has high complexity (8/10) due to several factors: 1) It requires integration with multiple existing systems (CLI, AI services, task management), 2) It involves sophisticated AI prompt engineering with context awareness, 3) It needs to handle various parameters and edge cases, 4) It must maintain data integrity across task modifications, and 5) It requires both CLI and MCP tool implementations. The task already has 5 subtasks that cover the main components, but could benefit from one additional subtask focused on testing and documentation."
+			"expansionPrompt": "Expand task 24 'Implement AI-Powered Test Generation Command' into 6 subtasks, focusing on: 1) Command structure implementation, 2) AI prompt engineering for test generation, 3) Test file generation and output, 4) Framework-specific template implementation, 5) MCP tool integration, and 6) Documentation and help system integration. Include detailed implementation steps, dependencies, and testing approaches for each subtask.",
+			"reasoning": "This task has high complexity due to several challenging aspects: 1) AI integration requiring sophisticated prompt engineering, 2) Test generation across multiple frameworks, 3) File system operations with proper error handling, 4) MCP tool integration, 5) Complex configuration requirements, and 6) Framework-specific template generation. The task already has 5 subtasks but could benefit from reorganization based on the updated implementation details in the info blocks, particularly around framework support and configuration."
 		}
 	]
 }
