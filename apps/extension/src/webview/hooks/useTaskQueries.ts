@@ -251,7 +251,7 @@ export function useScopeUpTask() {
 				type: 'mcpRequest',
 				tool: 'scope_up_task',
 				params: {
-					id: taskId,
+					id: String(taskId),
 					strength,
 					prompt,
 					research: options.research || false
@@ -309,7 +309,7 @@ export function useScopeDownTask() {
 				type: 'mcpRequest',
 				tool: 'scope_down_task',
 				params: {
-					id: taskId,
+					id: String(taskId),
 					strength,
 					prompt,
 					research: options.research || false
