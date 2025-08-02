@@ -2,12 +2,20 @@ name: Pre-Release (RC)
 
 on:
   workflow_dispatch: # Allows manual triggering from GitHub UI/API
+    inputs:
+      branch:
+        description: 'Branch to create pre-release from (e.g., next, develop)'
+        required: false
+        default: 'next'
+        type: string
 
 concurrency: pre-release-${{ github.ref }}
 
 jobs:
   rc:
     runs-on: ubuntu-latest
+    # Only allow pre-releases on non-main branches
+    if: github.ref != 'refs/heads/main'
     steps:
       - uses: actions/checkout@v4
         with:
