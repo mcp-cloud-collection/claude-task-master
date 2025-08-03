@@ -9,8 +9,7 @@ on:
         default: 'next'
         type: string
 
-concurrency: pre-release-${{ inputs.branch || github.ref }}
-
+concurrency: pre-release-${{ inputs.branch || github.ref_name }}
 jobs:
   rc:
     runs-on: ubuntu-latest
