@@ -40,8 +40,9 @@ jobs:
 
       - name: Check pre-release mode
         run: |
+          set -euo pipefail
           echo "🔍 Checking pre-release mode status..."
-          if [ -f .changeset/pre.json ]; then
+          if [[ -f .changeset/pre.json ]]; then
             echo "❌ ERROR: Main branch is in pre-release mode!"
             echo ""
             echo "Pre-release mode should only be used on feature branches, not main."
