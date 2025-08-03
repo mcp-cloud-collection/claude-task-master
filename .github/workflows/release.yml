@@ -49,7 +49,7 @@ jobs:
             echo ""
             echo "To fix this, run the following commands locally:"
             echo "  npx changeset pre exit"
-            echo "  git add .changeset/pre.json"
+            echo "  git add -u"
             echo "  git commit -m 'chore: exit pre-release mode'"
             echo "  git push origin main"
             echo ""
