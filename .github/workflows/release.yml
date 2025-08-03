@@ -41,7 +41,6 @@ jobs:
       - name: Check pre-release mode
         run: |
           echo "🔍 Checking pre-release mode status..."
-          
           if [ -f .changeset/pre.json ]; then
             echo "❌ ERROR: Main branch is in pre-release mode!"
             echo ""
@@ -56,7 +55,7 @@ jobs:
             echo "Then re-run this workflow."
             exit 1
           fi
-          
+
           echo "✅ Not in pre-release mode - proceeding with release"
 
       - name: Create Release Pull Request or Publish to npm

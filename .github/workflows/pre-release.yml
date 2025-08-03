@@ -9,17 +9,18 @@ on:
         default: 'next'
         type: string
 
-concurrency: pre-release-${{ github.ref }}
+concurrency: pre-release-${{ inputs.branch || github.ref }}
 
 jobs:
   rc:
     runs-on: ubuntu-latest
     # Only allow pre-releases on non-main branches
-    if: github.ref != 'refs/heads/main'
+    if: github.ref != 'refs/heads/main' && (!inputs.branch || inputs.branch != 'main')
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ inputs.branch || github.ref }}
 
       - uses: actions/setup-node@v4
         with:
@@ -66,5 +67,5 @@ jobs:
         uses: actions-js/push@master
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
+          branch: ${{ inputs.branch || github.ref }}
           message: "chore: rc version bump"
