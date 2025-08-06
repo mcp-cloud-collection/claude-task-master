@@ -13,7 +13,7 @@ import {
 
 import { generateTextService } from '../ai-services-unified.js';
 
-import { getDebugFlag, getProjectName } from '../config-manager.js';
+import { getDebugFlag, getProjectName, getMainProvider, getResearchProvider } from '../config-manager.js';
 import { getPromptManager } from '../prompt-manager.js';
 import {
 	COMPLEXITY_REPORT_FILE,
@@ -410,9 +410,6 @@ async function analyzeTaskComplexity(options, context = {}) {
 		const promptManager = getPromptManager();
 
 		// Check if Claude Code is being used as the provider
-		const { getMainProvider, getResearchProvider } = await import(
-			'../config-manager.js'
-		);
 		const currentProvider = useResearch
 			? getResearchProvider(projectRoot)
 			: getMainProvider(projectRoot);
