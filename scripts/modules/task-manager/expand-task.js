@@ -18,8 +18,8 @@ import {
 
 import { generateTextService } from '../ai-services-unified.js';
 
-import { 
-	getDefaultSubtasks, 
+import {
+	getDefaultSubtasks,
 	getDebugFlag,
 	getMainProvider,
 	getResearchProvider

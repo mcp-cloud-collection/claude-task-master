@@ -17,7 +17,12 @@ import {
 } from '../utils.js';
 
 import { generateObjectService } from '../ai-services-unified.js';
-import { getDebugFlag, getMainProvider, getResearchProvider, getDefaultPriority } from '../config-manager.js';
+import {
+	getDebugFlag,
+	getMainProvider,
+	getResearchProvider,
+	getDefaultPriority
+} from '../config-manager.js';
 import { getPromptManager } from '../prompt-manager.js';
 import { displayAiUsageSummary } from '../ui.js';
 import { CUSTOM_PROVIDERS } from '../../../src/constants/providers.js';

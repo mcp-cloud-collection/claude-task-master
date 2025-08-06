@@ -13,7 +13,12 @@ import {
 
 import { generateTextService } from '../ai-services-unified.js';
 
-import { getDebugFlag, getProjectName, getMainProvider, getResearchProvider } from '../config-manager.js';
+import {
+	getDebugFlag,
+	getProjectName,
+	getMainProvider,
+	getResearchProvider
+} from '../config-manager.js';
 import { getPromptManager } from '../prompt-manager.js';
 import {
 	COMPLEXITY_REPORT_FILE,
