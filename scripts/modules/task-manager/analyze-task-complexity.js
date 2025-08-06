@@ -410,8 +410,12 @@ async function analyzeTaskComplexity(options, context = {}) {
 		const promptManager = getPromptManager();
 
 		// Check if Claude Code is being used as the provider
-		const { getMainProvider, getResearchProvider } = await import('../config-manager.js');
-		const currentProvider = useResearch ? getResearchProvider(projectRoot) : getMainProvider(projectRoot);
+		const { getMainProvider, getResearchProvider } = await import(
+			'../config-manager.js'
+		);
+		const currentProvider = useResearch
+			? getResearchProvider(projectRoot)
+			: getMainProvider(projectRoot);
 		const isClaudeCode = currentProvider === CUSTOM_PROVIDERS.CLAUDE_CODE;
 
 		const promptParams = {
