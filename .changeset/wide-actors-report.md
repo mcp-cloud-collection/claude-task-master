@@ -2,7 +2,7 @@
 "task-master-ai": minor
 ---
 
-Added Claude Code subagent support with task-orchestrator, task-executor, and task-checker
+Add Claude Code subagent support with task-orchestrator, task-executor, and task-checker
 
 ## New Claude Code Agents
 
