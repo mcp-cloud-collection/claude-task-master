@@ -2,11 +2,11 @@
 "task-master-ai": minor
 ---
 
-Added Claude Code subagent support with task-orchestrator and task-executor
+Added Claude Code subagent support with task-orchestrator, task-executor, and task-checker
 
 ## New Claude Code Agents
 
-Added specialized agents for Claude Code users to enable parallel task execution and intelligent task orchestration:
+Added specialized agents for Claude Code users to enable parallel task execution, intelligent task orchestration, and quality assurance:
 
 ### task-orchestrator
 Coordinates and manages the execution of Task Master tasks with intelligent dependency analysis:
@@ -21,6 +21,13 @@ Handles the actual implementation of individual tasks:
 - Works on concrete implementation rather than planning
 - Updates task status and logs progress
 - Can work in parallel with other executors on independent tasks
+
+### task-checker
+Verifies that completed tasks meet their specifications:
+- Reviews tasks marked as 'review' status
+- Validates implementation against requirements
+- Runs tests and checks for best practices
+- Ensures quality before marking tasks as 'done'
 
 ## Installation
 
