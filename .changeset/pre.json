@@ -6,8 +6,12 @@
     "extension": "0.23.0"
   },
   "changesets": [
+    "fuzzy-brooms-mate",
     "fuzzy-words-count",
+    "honest-steaks-check",
     "tender-trams-refuse",
-    "vast-sites-leave"
+    "upset-ants-return",
+    "vast-sites-leave",
+    "wide-actors-report"
   ]
 }
