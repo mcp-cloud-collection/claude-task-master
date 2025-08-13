@@ -5,11 +5,11 @@ async function githubRequest(endpoint, token, method = 'GET', body) {
 		method,
 		headers: {
 			Authorization: `Bearer ${token}`,
-			Accept: "application/vnd.github.v3+json",
-			"User-Agent": "backfill-duplicate-comments-script",
-			...(body && { "Content-Type": "application/json" }),
+			Accept: 'application/vnd.github.v3+json',
+			'User-Agent': 'backfill-duplicate-comments-script',
+			...(body && { 'Content-Type': 'application/json' })
 		},
-		...(body && { body: JSON.stringify(body) }),
+		...(body && { body: JSON.stringify(body) })
 	});
 
 	if (!response.ok) {
@@ -29,7 +29,9 @@ async function triggerDedupeWorkflow(
 	dryRun = true
 ) {
 	if (dryRun) {
-		console.log(`[DRY RUN] Would trigger dedupe workflow for issue #${issueNumber}`);
+		console.log(
+			`[DRY RUN] Would trigger dedupe workflow for issue #${issueNumber}`
+		);
 		return;
 	}
 
@@ -47,7 +49,7 @@ async function triggerDedupeWorkflow(
 }
 
 async function backfillDuplicateComments() {
-	console.log("[DEBUG] Starting backfill duplicate comments script");
+	console.log('[DEBUG] Starting backfill duplicate comments script');
 
 	const token = process.env.GITHUB_TOKEN;
 	if (!token) {
@@ -61,13 +63,13 @@ Environment Variables:
   DRY_RUN - Set to "false" to actually trigger workflows (default: true for safety)
   DAYS_BACK - How many days back to look for old issues (default: 90)`);
 	}
-	console.log("[DEBUG] GitHub token found");
+	console.log('[DEBUG] GitHub token found');
 
-	const owner = process.env.GITHUB_REPOSITORY_OWNER || "eyaltoledano";
-	const repo = process.env.GITHUB_REPOSITORY_NAME || "claude-task-master";
-	const dryRun = process.env.DRY_RUN !== "false";
-	const daysBack = parseInt(process.env.DAYS_BACK || "90", 10);
-	
+	const owner = process.env.GITHUB_REPOSITORY_OWNER || 'eyaltoledano';
+	const repo = process.env.GITHUB_REPOSITORY_NAME || 'claude-task-master';
+	const dryRun = process.env.DRY_RUN !== 'false';
+	const daysBack = parseInt(process.env.DAYS_BACK || '90', 10);
+
 	console.log(`[DEBUG] Repository: ${owner}/${repo}`);
 	console.log(`[DEBUG] Dry run mode: ${dryRun}`);
 	console.log(`[DEBUG] Looking back ${daysBack} days`);
@@ -75,30 +77,34 @@ Environment Variables:
 	const cutoffDate = new Date();
 	cutoffDate.setDate(cutoffDate.getDate() - daysBack);
 
-	console.log(`[DEBUG] Fetching issues created since ${cutoffDate.toISOString()}...`);
+	console.log(
+		`[DEBUG] Fetching issues created since ${cutoffDate.toISOString()}...`
+	);
 	const allIssues = [];
 	let page = 1;
 	const perPage = 100;
-	
+
 	while (true) {
 		const pageIssues = await githubRequest(
 			`/repos/${owner}/${repo}/issues?state=all&per_page=${perPage}&page=${page}&since=${cutoffDate.toISOString()}`,
 			token
 		);
-		
+
 		if (pageIssues.length === 0) break;
-		
+
 		allIssues.push(...pageIssues);
 		page++;
-		
+
 		// Safety limit to avoid infinite loops
 		if (page > 100) {
-			console.log("[DEBUG] Reached page limit, stopping pagination");
+			console.log('[DEBUG] Reached page limit, stopping pagination');
 			break;
 		}
 	}
-	
-	console.log(`[DEBUG] Found ${allIssues.length} issues from the last ${daysBack} days`);
+
+	console.log(
+		`[DEBUG] Found ${allIssues.length} issues from the last ${daysBack} days`
+	);
 
 	let processedCount = 0;
 	let candidateCount = 0;
@@ -122,9 +128,9 @@ Environment Variables:
 		// Look for existing duplicate detection comments (from the dedupe bot)
 		const dupeDetectionComments = comments.filter(
 			(comment) =>
-				comment.body.includes("Found") &&
-				comment.body.includes("possible duplicate") &&
-				comment.user.type === "Bot"
+				comment.body.includes('Found') &&
+				comment.body.includes('possible duplicate') &&
+				comment.user.type === 'Bot'
 		);
 
 		console.log(
@@ -141,13 +147,13 @@ Environment Variables:
 
 		candidateCount++;
 		const issueUrl = `https://github.com/${owner}/${repo}/issues/${issue.number}`;
-		
+
 		try {
 			console.log(
 				`[INFO] ${dryRun ? '[DRY RUN] ' : ''}Triggering dedupe workflow for issue #${issue.number}: ${issueUrl}`
 			);
 			await triggerDedupeWorkflow(owner, repo, issue.number, token, dryRun);
-			
+
 			if (!dryRun) {
 				console.log(
 					`[SUCCESS] Successfully triggered dedupe workflow for issue #${issue.number}`
@@ -161,7 +167,7 @@ Environment Variables:
 		}
 
 		// Add a delay between workflow triggers to avoid overwhelming the system
-		await new Promise(resolve => setTimeout(resolve, 1000));
+		await new Promise((resolve) => setTimeout(resolve, 1000));
 	}
 
 	console.log(
