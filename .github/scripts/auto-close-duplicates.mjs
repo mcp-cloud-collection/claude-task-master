@@ -82,9 +82,12 @@ async function autoCloseDuplicates() {
 	let page = 1;
 	const perPage = 100;
 
+	const MAX_PAGES = 50; // Increase limit for larger repos
+	let foundRecentIssue = false;
+	
 	while (true) {
 		const pageIssues = await githubRequest(
-			`/repos/${owner}/${repo}/issues?state=open&per_page=${perPage}&page=${page}`,
+			`/repos/${owner}/${repo}/issues?state=open&per_page=${perPage}&page=${page}&sort=created&direction=desc`,
 			token
 		);
 
@@ -96,10 +99,22 @@ async function autoCloseDuplicates() {
 		);
 
 		allIssues.push(...oldEnoughIssues);
+		
+		// If all issues on this page are newer than 3 days, we can stop
+		if (oldEnoughIssues.length === 0 && page === 1) {
+			foundRecentIssue = true;
+			break;
+		}
+		
+		// If we found some old issues but not all, continue to next page
+		// as there might be more old issues
 		page++;
 
 		// Safety limit to avoid infinite loops
-		if (page > 20) break;
+		if (page > MAX_PAGES) {
+			console.log(`[WARNING] Reached maximum page limit of ${MAX_PAGES}`);
+			break;
+		}
 	}
 
 	const issues = allIssues;
