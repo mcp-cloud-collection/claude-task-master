@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- [#1152](https://github.com/eyaltoledano/claude-task-master/pull/1152) [`8933557`](https://github.com/eyaltoledano/claude-task-master/commit/89335578ffffc65504b2055c0c85aa7521e5e79b) Thanks [@Crunchyman-ralph](https://github.com/Crunchyman-ralph)! - fix(claude-code): prevent crash/hang when the optional `@anthropic-ai/claude-code` SDK is missing by guarding `AbortError instanceof` checks and adding explicit SDK presence checks in `doGenerate`/`doStream`. Also bump the optional dependency to `^1.0.88` for improved export consistency.
+- [#1152](https://github.com/eyaltoledano/claude-task-master/pull/1152) [`8933557`](https://github.com/eyaltoledano/claude-task-master/commit/89335578ffffc65504b2055c0c85aa7521e5e79b) Thanks [@ben-vargas](https://github.com/ben-vargas)! - fix(claude-code): prevent crash/hang when the optional `@anthropic-ai/claude-code` SDK is missing by guarding `AbortError instanceof` checks and adding explicit SDK presence checks in `doGenerate`/`doStream`. Also bump the optional dependency to `^1.0.88` for improved export consistency.
 
   Related to JSON truncation handling in #920; this change addresses a separate error-path crash reported in #1142.
 
