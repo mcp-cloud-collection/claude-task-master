@@ -34,18 +34,25 @@ export class TaskEntity implements Task {
 	assignee?: string;
 	complexity?: Task['complexity'];
 
-	constructor(data: Task) {
+	constructor(data: Task | (Omit<Task, 'id'> & { id: number | string })) {
 		this.validate(data);
 
-		this.id = data.id;
+		// Always convert ID to string
+		this.id = String(data.id);
 		this.title = data.title;
 		this.description = data.description;
 		this.status = data.status;
 		this.priority = data.priority;
-		this.dependencies = data.dependencies || [];
+		// Ensure dependency IDs are also strings
+		this.dependencies = (data.dependencies || []).map((dep) => String(dep));
 		this.details = data.details;
 		this.testStrategy = data.testStrategy;
-		this.subtasks = data.subtasks || [];
+		// Normalize subtask IDs to strings
+		this.subtasks = (data.subtasks || []).map((subtask) => ({
+			...subtask,
+			id: Number(subtask.id), // Keep subtask IDs as numbers per interface
+			parentId: String(subtask.parentId)
+		}));
 
 		// Optional properties
 		this.createdAt = data.createdAt;
@@ -60,10 +67,16 @@ export class TaskEntity implements Task {
 	/**
 	 * Validate task data
 	 */
-	private validate(data: Partial<Task>): void {
-		if (!data.id || typeof data.id !== 'string') {
+	private validate(
+		data: Partial<Task> | Partial<Omit<Task, 'id'> & { id: number | string }>
+	): void {
+		if (
+			data.id === undefined ||
+			data.id === null ||
+			(typeof data.id !== 'string' && typeof data.id !== 'number')
+		) {
 			throw new TaskMasterError(
-				'Task ID is required and must be a string',
+				'Task ID is required and must be a string or number',
 				ERROR_CODES.VALIDATION_ERROR
 			);
 		}

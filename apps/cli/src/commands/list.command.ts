@@ -24,7 +24,7 @@ export interface ListCommandOptions {
 	status?: string;
 	tag?: string;
 	withSubtasks?: boolean;
-	format?: string;
+	format?: OutputFormat;
 	silent?: boolean;
 	project?: string;
 }
@@ -73,6 +73,7 @@ export class ListTasksCommand extends Command {
 	 * Execute the list command
 	 */
 	private async executeCommand(options: ListCommandOptions): Promise<void> {
+		console.log('executeCommand', options);
 		try {
 			// Validate options
 			if (!this.validateOptions(options)) {
@@ -138,8 +139,7 @@ export class ListTasksCommand extends Command {
 	 */
 	private async initializeCore(projectRoot: string): Promise<void> {
 		if (!this.tmCore) {
-			this.tmCore = createTaskMasterCore(projectRoot);
-			await this.tmCore.initialize();
+			this.tmCore = await createTaskMasterCore({ projectPath: projectRoot });
 		}
 	}
 

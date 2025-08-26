@@ -60,9 +60,6 @@ export class TaskService {
 	async initialize(): Promise<void> {
 		if (this.initialized) return;
 
-		// Ensure config manager is initialized
-		await this.configManager.initialize();
-
 		// Create storage based on configuration
 		const storageConfig = this.configManager.getStorageConfig();
 		const projectRoot = this.configManager.getProjectRoot();
@@ -83,7 +80,7 @@ export class TaskService {
 	 * This is the main method that retrieves tasks from storage and applies filters
 	 */
 	async getTaskList(options: GetTaskListOptions = {}): Promise<TaskListResult> {
-		await this.ensureInitialized();
+		console.log('getTaskList', options);
 
 		// Determine which tag to use
 		const activeTag = this.configManager.getActiveTag();
@@ -113,13 +110,15 @@ export class TaskService {
 				}));
 			}
 
+			console.log('tasks', tasks);
+
 			return {
 				tasks,
 				total: rawTasks.length,
 				filtered: filteredEntities.length,
 				tag: options.tag, // Only include tag if explicitly provided
 				storageType: this.configManager.getStorageConfig().type
-			} as TaskListResult;
+			};
 		} catch (error) {
 			throw new TaskMasterError(
 				'Failed to get task list',
@@ -334,15 +333,6 @@ export class TaskService {
 
 			return true;
 		});
-	}
-
-	/**
-	 * Ensure service is initialized
-	 */
-	private async ensureInitialized(): Promise<void> {
-		if (!this.initialized) {
-			await this.initialize();
-		}
 	}
 
 	/**

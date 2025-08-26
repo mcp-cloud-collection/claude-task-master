@@ -127,6 +127,18 @@ export class FileStorage implements IStorage {
 		// Ensure directory exists
 		await this.ensureDirectoryExists();
 
+		// Normalize task IDs to strings (force string IDs everywhere)
+		const normalizedTasks = tasks.map(task => ({
+			...task,
+			id: String(task.id), // Force ID to string
+			dependencies: task.dependencies?.map(dep => String(dep)) || [],
+			subtasks: task.subtasks?.map(subtask => ({
+				...subtask,
+				id: String(subtask.id),
+				parentId: String(subtask.parentId)
+			})) || []
+		}));
+
 		// Check if we need to use legacy format
 		let dataToWrite: any;
 
@@ -140,12 +152,12 @@ export class FileStorage implements IStorage {
 			) {
 				dataToWrite = {
 					[resolvedTag]: {
-						tasks,
+						tasks: normalizedTasks,
 						metadata: {
 							version: '1.0.0',
 							lastModified: new Date().toISOString(),
-							taskCount: tasks.length,
-							completedCount: tasks.filter((t) => t.status === 'done').length,
+							taskCount: normalizedTasks.length,
+							completedCount: normalizedTasks.filter((t) => t.status === 'done').length,
 							tags: [resolvedTag]
 						}
 					}
@@ -153,12 +165,12 @@ export class FileStorage implements IStorage {
 			} else {
 				// Use standard format for new files
 				dataToWrite = {
-					tasks,
+					tasks: normalizedTasks,
 					metadata: {
 						version: '1.0.0',
 						lastModified: new Date().toISOString(),
-						taskCount: tasks.length,
-						completedCount: tasks.filter((t) => t.status === 'done').length,
+						taskCount: normalizedTasks.length,
+						completedCount: normalizedTasks.filter((t) => t.status === 'done').length,
 						tags: tag ? [tag] : []
 					}
 				};
@@ -166,12 +178,12 @@ export class FileStorage implements IStorage {
 		} catch (error: any) {
 			// File doesn't exist, use standard format
 			dataToWrite = {
-				tasks,
+				tasks: normalizedTasks,
 				metadata: {
 					version: '1.0.0',
 					lastModified: new Date().toISOString(),
-					taskCount: tasks.length,
-					completedCount: tasks.filter((t) => t.status === 'done').length,
+					taskCount: normalizedTasks.length,
+					completedCount: normalizedTasks.filter((t) => t.status === 'done').length,
 					tags: tag ? [tag] : []
 				}
 			};

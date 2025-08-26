@@ -25,65 +25,80 @@ describe('ConfigManager', () => {
 
 	beforeEach(async () => {
 		vi.clearAllMocks();
-		
+
 		// Clear environment variables
-		Object.keys(process.env).forEach(key => {
+		Object.keys(process.env).forEach((key) => {
 			if (key.startsWith('TASKMASTER_')) {
 				delete process.env[key];
 			}
 		});
 
 		// Setup default mock behaviors
-		vi.mocked(ConfigLoader).mockImplementation(() => ({
-			getDefaultConfig: vi.fn().mockReturnValue({
-				models: { main: 'default-model', fallback: 'fallback-model' },
-				storage: { type: 'file' },
-				version: '1.0.0'
-			}),
-			loadLocalConfig: vi.fn().mockResolvedValue(null),
-			loadGlobalConfig: vi.fn().mockResolvedValue(null),
-			hasLocalConfig: vi.fn().mockResolvedValue(false),
-			hasGlobalConfig: vi.fn().mockResolvedValue(false)
-		} as any));
+		vi.mocked(ConfigLoader).mockImplementation(
+			() =>
+				({
+					getDefaultConfig: vi.fn().mockReturnValue({
+						models: { main: 'default-model', fallback: 'fallback-model' },
+						storage: { type: 'file' },
+						version: '1.0.0'
+					}),
+					loadLocalConfig: vi.fn().mockResolvedValue(null),
+					loadGlobalConfig: vi.fn().mockResolvedValue(null),
+					hasLocalConfig: vi.fn().mockResolvedValue(false),
+					hasGlobalConfig: vi.fn().mockResolvedValue(false)
+				}) as any
+		);
 
-		vi.mocked(ConfigMerger).mockImplementation(() => ({
-			addSource: vi.fn(),
-			clearSources: vi.fn(),
-			merge: vi.fn().mockReturnValue({
-				models: { main: 'merged-model', fallback: 'fallback-model' },
-				storage: { type: 'file' }
-			}),
-			getSources: vi.fn().mockReturnValue([]),
-			hasSource: vi.fn().mockReturnValue(false),
-			removeSource: vi.fn().mockReturnValue(false)
-		} as any));
+		vi.mocked(ConfigMerger).mockImplementation(
+			() =>
+				({
+					addSource: vi.fn(),
+					clearSources: vi.fn(),
+					merge: vi.fn().mockReturnValue({
+						models: { main: 'merged-model', fallback: 'fallback-model' },
+						storage: { type: 'file' }
+					}),
+					getSources: vi.fn().mockReturnValue([]),
+					hasSource: vi.fn().mockReturnValue(false),
+					removeSource: vi.fn().mockReturnValue(false)
+				}) as any
+		);
 
-		vi.mocked(RuntimeStateManager).mockImplementation(() => ({
-			loadState: vi.fn().mockResolvedValue({ activeTag: 'master' }),
-			saveState: vi.fn().mockResolvedValue(undefined),
-			getActiveTag: vi.fn().mockReturnValue('master'),
-			setActiveTag: vi.fn().mockResolvedValue(undefined),
-			getState: vi.fn().mockReturnValue({ activeTag: 'master' }),
-			updateMetadata: vi.fn().mockResolvedValue(undefined),
-			clearState: vi.fn().mockResolvedValue(undefined)
-		} as any));
+		vi.mocked(RuntimeStateManager).mockImplementation(
+			() =>
+				({
+					loadState: vi.fn().mockResolvedValue({ activeTag: 'master' }),
+					saveState: vi.fn().mockResolvedValue(undefined),
+					getActiveTag: vi.fn().mockReturnValue('master'),
+					setActiveTag: vi.fn().mockResolvedValue(undefined),
+					getState: vi.fn().mockReturnValue({ activeTag: 'master' }),
+					updateMetadata: vi.fn().mockResolvedValue(undefined),
+					clearState: vi.fn().mockResolvedValue(undefined)
+				}) as any
+		);
 
-		vi.mocked(ConfigPersistence).mockImplementation(() => ({
-			saveConfig: vi.fn().mockResolvedValue(undefined),
-			configExists: vi.fn().mockResolvedValue(false),
-			deleteConfig: vi.fn().mockResolvedValue(undefined),
-			getBackups: vi.fn().mockResolvedValue([]),
-			restoreFromBackup: vi.fn().mockResolvedValue(undefined)
-		} as any));
+		vi.mocked(ConfigPersistence).mockImplementation(
+			() =>
+				({
+					saveConfig: vi.fn().mockResolvedValue(undefined),
+					configExists: vi.fn().mockResolvedValue(false),
+					deleteConfig: vi.fn().mockResolvedValue(undefined),
+					getBackups: vi.fn().mockResolvedValue([]),
+					restoreFromBackup: vi.fn().mockResolvedValue(undefined)
+				}) as any
+		);
 
-		vi.mocked(EnvironmentConfigProvider).mockImplementation(() => ({
-			loadConfig: vi.fn().mockReturnValue({}),
-			getRuntimeState: vi.fn().mockReturnValue({}),
-			hasEnvVar: vi.fn().mockReturnValue(false),
-			getAllTaskmasterEnvVars: vi.fn().mockReturnValue({}),
-			addMapping: vi.fn(),
-			getMappings: vi.fn().mockReturnValue([])
-		} as any));
+		vi.mocked(EnvironmentConfigProvider).mockImplementation(
+			() =>
+				({
+					loadConfig: vi.fn().mockReturnValue({}),
+					getRuntimeState: vi.fn().mockReturnValue({}),
+					hasEnvVar: vi.fn().mockReturnValue(false),
+					getAllTaskmasterEnvVars: vi.fn().mockReturnValue({}),
+					addMapping: vi.fn(),
+					getMappings: vi.fn().mockReturnValue([])
+				}) as any
+		);
 
 		// Since constructor is private, we need to use the factory method
 		// But for testing, we'll create a test instance using create()
@@ -167,20 +182,23 @@ describe('ConfigManager', () => {
 
 		it('should return API storage configuration when configured', async () => {
 			// Create a new instance with API storage config
-			vi.mocked(ConfigMerger).mockImplementationOnce(() => ({
-				addSource: vi.fn(),
-				clearSources: vi.fn(),
-				merge: vi.fn().mockReturnValue({
-					storage: {
-						type: 'api',
-						apiEndpoint: 'https://api.example.com',
-						apiAccessToken: 'token123'
-					}
-				}),
-				getSources: vi.fn().mockReturnValue([]),
-				hasSource: vi.fn().mockReturnValue(false),
-				removeSource: vi.fn().mockReturnValue(false)
-			} as any));
+			vi.mocked(ConfigMerger).mockImplementationOnce(
+				() =>
+					({
+						addSource: vi.fn(),
+						clearSources: vi.fn(),
+						merge: vi.fn().mockReturnValue({
+							storage: {
+								type: 'api',
+								apiEndpoint: 'https://api.example.com',
+								apiAccessToken: 'token123'
+							}
+						}),
+						getSources: vi.fn().mockReturnValue([]),
+						hasSource: vi.fn().mockReturnValue(false),
+						removeSource: vi.fn().mockReturnValue(false)
+					}) as any
+			);
 
 			const apiManager = await ConfigManager.create(testProjectRoot);
 
@@ -271,7 +289,9 @@ describe('ConfigManager', () => {
 		// Manager is already initialized in the main beforeEach
 
 		it('should update configuration and save', async () => {
-			const updates = { models: { main: 'new-model', fallback: 'fallback-model' } };
+			const updates = {
+				models: { main: 'new-model', fallback: 'fallback-model' }
+			};
 			await manager.updateConfig(updates);
 
 			const persistence = (manager as any).persistence;
@@ -302,10 +322,10 @@ describe('ConfigManager', () => {
 			await manager.saveConfig();
 
 			const persistence = (manager as any).persistence;
-			expect(persistence.saveConfig).toHaveBeenCalledWith(
-				expect.any(Object),
-				{ createBackup: true, atomic: true }
-			);
+			expect(persistence.saveConfig).toHaveBeenCalledWith(expect.any(Object), {
+				createBackup: true,
+				atomic: true
+			});
 		});
 	});
 
@@ -347,9 +367,11 @@ describe('ConfigManager', () => {
 
 			const unsubscribe = manager.watch(callback);
 
-			expect(warnSpy).toHaveBeenCalledWith('Configuration watching not yet implemented');
+			expect(warnSpy).toHaveBeenCalledWith(
+				'Configuration watching not yet implemented'
+			);
 			expect(unsubscribe).toBeInstanceOf(Function);
-			
+
 			// Calling unsubscribe should not throw
 			expect(() => unsubscribe()).not.toThrow();
 
@@ -364,7 +386,9 @@ describe('ConfigManager', () => {
 			loader.loadLocalConfig.mockRejectedValue(new Error('File error'));
 
 			// Creating a new manager should not throw even if service fails
-			await expect(ConfigManager.create(testProjectRoot)).resolves.not.toThrow();
+			await expect(
+				ConfigManager.create(testProjectRoot)
+			).resolves.not.toThrow();
 		});
 	});
 });

@@ -266,7 +266,7 @@ export function createTaskTable(
 		if (showSubtasks && task.subtasks && task.subtasks.length > 0) {
 			task.subtasks.forEach((subtask) => {
 				const subRow: string[] = [
-					chalk.gray(`  └─ ${task.id}.${subtask.id}`),
+					chalk.gray(` └─ ${subtask.id}`),
 					chalk.gray(truncate(subtask.title, 36)),
 					getStatusWithColor(subtask.status),
 					chalk.gray(subtask.priority || 'medium')

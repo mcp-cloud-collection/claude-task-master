@@ -41,7 +41,7 @@ export class ConfigManager {
 	/**
 	 * Create and initialize a new ConfigManager instance
 	 * This is the ONLY way to create a ConfigManager
-	 * 
+	 *
 	 * @param projectRoot - The root directory of the project
 	 * @returns Fully initialized ConfigManager instance
 	 */

@@ -33,9 +33,35 @@ export type { GetTaskListOptions } from './services/task-service.js';
 export class TaskMasterCore {
 	private configManager: ConfigManager;
 	private taskService: TaskService;
-	private initialized = false;
 
-	constructor(options: TaskMasterCoreOptions) {
+	/**
+	 * Create and initialize a new TaskMasterCore instance
+	 * This is the ONLY way to create a TaskMasterCore
+	 *
+	 * @param options - Configuration options for TaskMasterCore
+	 * @returns Fully initialized TaskMasterCore instance
+	 */
+	static async create(options: TaskMasterCoreOptions): Promise<TaskMasterCore> {
+		const instance = new TaskMasterCore();
+		await instance.initialize(options);
+		return instance;
+	}
+
+	/**
+	 * Private constructor - use TaskMasterCore.create() instead
+	 * This ensures the TaskMasterCore is always properly initialized
+	 */
+	private constructor() {
+		// Services will be initialized in the initialize() method
+		this.configManager = null as any;
+		this.taskService = null as any;
+	}
+
+	/**
+	 * Initialize by loading services
+	 * Private - only called by the factory method
+	 */
+	private async initialize(options: TaskMasterCoreOptions): Promise<void> {
 		if (!options.projectPath) {
 			throw new TaskMasterError(
 				'Project path is required',
@@ -43,28 +69,18 @@ export class TaskMasterCore {
 			);
 		}
 
-		// Create config manager
-		this.configManager = new ConfigManager(options.projectPath);
-
-		// Create task service
-		this.taskService = new TaskService(this.configManager);
-
-		// Apply any provided configuration
-		if (options.configuration) {
-			// This will be applied after initialization
-		}
-	}
-
-	/**
-	 * Initialize the TaskMasterCore instance
-	 */
-	async initialize(): Promise<void> {
-		if (this.initialized) return;
-
 		try {
-			await this.configManager.initialize();
+			// Create config manager using factory method
+			this.configManager = await ConfigManager.create(options.projectPath);
+
+			// Apply configuration overrides if provided
+			if (options.configuration) {
+				await this.configManager.updateConfig(options.configuration);
+			}
+
+			// Create task service
+			this.taskService = new TaskService(this.configManager);
 			await this.taskService.initialize();
-			this.initialized = true;
 		} catch (error) {
 			throw new TaskMasterError(
 				'Failed to initialize TaskMasterCore',
@@ -72,15 +88,6 @@ export class TaskMasterCore {
 				{ operation: 'initialize' },
 				error as Error
 			);
-		}
-	}
-
-	/**
-	 * Ensure the instance is initialized
-	 */
-	private async ensureInitialized(): Promise<void> {
-		if (!this.initialized) {
-			await this.initialize();
 		}
 	}
 
@@ -100,7 +107,6 @@ export class TaskMasterCore {
 	 * Get list of tasks with optional filtering
 	 */
 	async getTaskList(options?: GetTaskListOptions): Promise<ListTasksResult> {
-		await this.ensureInitialized();
 		return this.taskService.getTaskList(options);
 	}
 
@@ -108,7 +114,6 @@ export class TaskMasterCore {
 	 * Get a specific task by ID
 	 */
 	async getTask(taskId: string, tag?: string): Promise<Task | null> {
-		await this.ensureInitialized();
 		return this.taskService.getTask(taskId, tag);
 	}
 
@@ -119,7 +124,6 @@ export class TaskMasterCore {
 		status: TaskStatus | TaskStatus[],
 		tag?: string
 	): Promise<Task[]> {
-		await this.ensureInitialized();
 		return this.taskService.getTasksByStatus(status, tag);
 	}
 
@@ -132,7 +136,6 @@ export class TaskMasterCore {
 		withSubtasks: number;
 		blocked: number;
 	}> {
-		await this.ensureInitialized();
 		const stats = await this.taskService.getTaskStats(tag);
 		// Remove storageType from the return to maintain backward compatibility
 		const { storageType, ...restStats } = stats;
@@ -143,7 +146,6 @@ export class TaskMasterCore {
 	 * Get next available task
 	 */
 	async getNextTask(tag?: string): Promise<Task | null> {
-		await this.ensureInitialized();
 		return this.taskService.getNextTask(tag);
 	}
 
@@ -173,21 +175,14 @@ export class TaskMasterCore {
 	 */
 	async close(): Promise<void> {
 		// TaskService handles storage cleanup internally
-		this.initialized = false;
 	}
 }
 
 /**
  * Factory function to create TaskMasterCore instance
  */
-export function createTaskMasterCore(
-	projectPath: string,
-	options?: {
-		configuration?: Partial<IConfiguration>;
-	}
-): TaskMasterCore {
-	return new TaskMasterCore({
-		projectPath,
-		configuration: options?.configuration
-	});
+export async function createTaskMasterCore(
+	options: TaskMasterCoreOptions
+): Promise<TaskMasterCore> {
+	return TaskMasterCore.create(options);
 }

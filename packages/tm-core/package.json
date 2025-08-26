@@ -8,39 +8,10 @@
 	"types": "./dist/index.d.ts",
 	"exports": {
 		".": {
+			"development": "./src/index.ts",
 			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",
 			"require": "./dist/index.cjs"
-		},
-		"./types": {
-			"types": "./dist/types/index.d.ts",
-			"import": "./dist/types/index.js",
-			"require": "./dist/types/index.cjs"
-		},
-		"./providers": {
-			"types": "./dist/providers/index.d.ts",
-			"import": "./dist/providers/index.js",
-			"require": "./dist/providers/index.cjs"
-		},
-		"./storage": {
-			"types": "./dist/storage/index.d.ts",
-			"import": "./dist/storage/index.js",
-			"require": "./dist/storage/index.cjs"
-		},
-		"./parser": {
-			"types": "./dist/parser/index.d.ts",
-			"import": "./dist/parser/index.js",
-			"require": "./dist/parser/index.cjs"
-		},
-		"./utils": {
-			"types": "./dist/utils/index.d.ts",
-			"import": "./dist/utils/index.js",
-			"require": "./dist/utils/index.cjs"
-		},
-		"./errors": {
-			"types": "./dist/errors/index.d.ts",
-			"import": "./dist/errors/index.js",
-			"require": "./dist/errors/index.cjs"
 		}
 	},
 	"scripts": {
