@@ -28,12 +28,12 @@
 		"isolatedModules": true,
 		"paths": {
 			"@/*": ["./src/*"],
-			"@/types": ["./src/types/index"],
-			"@/providers": ["./src/providers/index"],
-			"@/storage": ["./src/storage/index"],
-			"@/parser": ["./src/parser/index"],
-			"@/utils": ["./src/utils/index"],
-			"@/errors": ["./src/errors/index"]
+			"@/types": ["./src/types"],
+			"@/providers": ["./src/providers"],
+			"@/storage": ["./src/storage"],
+			"@/parser": ["./src/parser"],
+			"@/utils": ["./src/utils"],
+			"@/errors": ["./src/errors"]
 		}
 	},
 	"include": ["src/**/*"],

@@ -24,11 +24,13 @@ export class FormatHandler {
 		}
 
 		const keys = Object.keys(data);
-		
+
 		// Check if this uses the legacy format with tag keys
 		// Legacy format has keys that are not 'tasks' or 'metadata'
-		const hasLegacyFormat = keys.some(key => key !== 'tasks' && key !== 'metadata');
-		
+		const hasLegacyFormat = keys.some(
+			(key) => key !== 'tasks' && key !== 'metadata'
+		);
+
 		return hasLegacyFormat ? 'legacy' : 'standard';
 	}
 
@@ -41,11 +43,11 @@ export class FormatHandler {
 		}
 
 		const format = this.detectFormat(data);
-		
+
 		if (format === 'legacy') {
 			return this.extractTasksFromLegacy(data, tag);
 		}
-		
+
 		return this.extractTasksFromStandard(data);
 	}
 
@@ -60,7 +62,9 @@ export class FormatHandler {
 		}
 
 		// If we're looking for 'master' tag but it doesn't exist, try the first available tag
-		const availableKeys = Object.keys(data).filter(key => key !== 'tasks' && key !== 'metadata');
+		const availableKeys = Object.keys(data).filter(
+			(key) => key !== 'tasks' && key !== 'metadata'
+		);
 		if (tag === 'master' && availableKeys.length > 0) {
 			const firstTag = availableKeys[0];
 			const tagData = data[firstTag];
@@ -86,18 +90,21 @@ export class FormatHandler {
 		}
 
 		const format = this.detectFormat(data);
-		
+
 		if (format === 'legacy') {
 			return this.extractMetadataFromLegacy(data, tag);
 		}
-		
+
 		return this.extractMetadataFromStandard(data);
 	}
 
 	/**
 	 * Extract metadata from legacy format
 	 */
-	private extractMetadataFromLegacy(data: any, tag: string): TaskMetadata | null {
+	private extractMetadataFromLegacy(
+		data: any,
+		tag: string
+	): TaskMetadata | null {
 		if (tag in data) {
 			const tagData = data[tag];
 			// Generate metadata if not present in legacy format
@@ -108,7 +115,9 @@ export class FormatHandler {
 		}
 
 		// If we're looking for 'master' tag but it doesn't exist, try the first available tag
-		const availableKeys = Object.keys(data).filter(key => key !== 'tasks' && key !== 'metadata');
+		const availableKeys = Object.keys(data).filter(
+			(key) => key !== 'tasks' && key !== 'metadata'
+		);
 		if (tag === 'master' && availableKeys.length > 0) {
 			const firstTag = availableKeys[0];
 			const tagData = data[firstTag];
@@ -137,13 +146,13 @@ export class FormatHandler {
 		}
 
 		const format = this.detectFormat(data);
-		
+
 		if (format === 'legacy') {
 			// Return all tag keys from legacy format
 			const keys = Object.keys(data);
-			return keys.filter(key => key !== 'tasks' && key !== 'metadata');
+			return keys.filter((key) => key !== 'tasks' && key !== 'metadata');
 		}
-		
+
 		// Standard format - just has 'master' tag
 		return ['master'];
 	}
@@ -152,21 +161,21 @@ export class FormatHandler {
 	 * Convert tasks and metadata to the appropriate format for saving
 	 */
 	convertToSaveFormat(
-		tasks: Task[], 
-		metadata: TaskMetadata, 
-		existingData: any, 
+		tasks: Task[],
+		metadata: TaskMetadata,
+		existingData: any,
 		tag: string
 	): any {
 		const resolvedTag = tag || 'master';
-		
+
 		// Normalize task IDs to strings
 		const normalizedTasks = this.normalizeTasks(tasks);
-		
+
 		// Check if existing file uses legacy format
 		if (existingData && this.detectFormat(existingData) === 'legacy') {
 			return this.convertToLegacyFormat(normalizedTasks, metadata, resolvedTag);
 		}
-		
+
 		// Use standard format for new files
 		return this.convertToStandardFormat(normalizedTasks, metadata, tag);
 	}
@@ -175,8 +184,8 @@ export class FormatHandler {
 	 * Convert to legacy format
 	 */
 	private convertToLegacyFormat(
-		tasks: Task[], 
-		metadata: TaskMetadata, 
+		tasks: Task[],
+		metadata: TaskMetadata,
 		tag: string
 	): any {
 		return {
@@ -194,8 +203,8 @@ export class FormatHandler {
 	 * Convert to standard format
 	 */
 	private convertToStandardFormat(
-		tasks: Task[], 
-		metadata: TaskMetadata, 
+		tasks: Task[],
+		metadata: TaskMetadata,
 		tag?: string
 	): FileStorageData {
 		return {
@@ -215,11 +224,12 @@ export class FormatHandler {
 			...task,
 			id: String(task.id), // Task IDs are strings
 			dependencies: task.dependencies?.map((dep) => String(dep)) || [],
-			subtasks: task.subtasks?.map((subtask) => ({
-				...subtask,
-				id: Number(subtask.id), // Subtask IDs are numbers
-				parentId: String(subtask.parentId) // Parent ID is string (Task ID)
-			})) || []
+			subtasks:
+				task.subtasks?.map((subtask) => ({
+					...subtask,
+					id: Number(subtask.id), // Subtask IDs are numbers
+					parentId: String(subtask.parentId) // Parent ID is string (Task ID)
+				})) || []
 		}));
 	}
 

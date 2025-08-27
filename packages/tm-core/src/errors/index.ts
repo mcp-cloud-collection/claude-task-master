@@ -3,6 +3,15 @@
  * This file exports all custom error types and error handling utilities
  */
 
+// Export the main TaskMasterError class
+export {
+	TaskMasterError,
+	ERROR_CODES,
+	type ErrorCode,
+	type ErrorContext,
+	type SerializableError
+} from './task-master-error.js';
+
 // Error implementations will be defined here
 // export * from './task-errors.js';
 // export * from './storage-errors.js';

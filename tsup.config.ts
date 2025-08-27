@@ -10,8 +10,6 @@ export default defineConfig({
 	splitting: false,
 	sourcemap: true,
 	clean: true,
-	shims: true,
-	dts: true,
 	bundle: true, // Bundle everything into one file
 	outDir: 'dist',
 	// Handle TypeScript imports transparently

@@ -1,5 +1,10 @@
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+
+// __dirname in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export default defineConfig({
 	test: {
@@ -8,6 +13,7 @@ export default defineConfig({
 		include: [
 			'tests/**/*.test.ts',
 			'tests/**/*.spec.ts',
+			'tests/{unit,integration,e2e}/**/*.{test,spec}.ts',
 			'src/**/*.test.ts',
 			'src/**/*.spec.ts'
 		],
@@ -22,7 +28,7 @@ export default defineConfig({
 				'**/*.test.ts',
 				'**/*.spec.ts',
 				'**/*.d.ts',
-				'**/index.ts'
+				'src/index.ts'
 			],
 			thresholds: {
 				branches: 80,

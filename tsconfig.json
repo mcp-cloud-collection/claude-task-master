@@ -3,6 +3,8 @@
 		"target": "ES2022",
 		"module": "ESNext",
 		"moduleResolution": "bundler",
+		"lib": ["ES2022"],
+		"types": ["node"],
 		"allowJs": true,
 		"resolveJsonModule": true,
 		"esModuleInterop": true,
@@ -10,13 +12,7 @@
 		"strict": true,
 		"skipLibCheck": true,
 		"noEmit": true,
-		"baseUrl": ".",
-		"paths": {
-			"@tm/core": ["packages/tm-core/src/index.ts"],
-			"@tm/core/*": ["packages/tm-core/src/*"],
-			"@tm/cli": ["apps/cli/src/index.ts"],
-			"@tm/cli/*": ["apps/cli/src/*"]
-		}
+		"baseUrl": "."
 	},
 	"tsx": {
 		"tsconfig": {

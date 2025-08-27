@@ -32,7 +32,10 @@ export class FileOperations {
 	/**
 	 * Write JSON file with atomic operation and locking
 	 */
-	async writeJson(filePath: string, data: FileStorageData | any): Promise<void> {
+	async writeJson(
+		filePath: string,
+		data: FileStorageData | any
+	): Promise<void> {
 		// Use file locking to prevent concurrent writes
 		const lockKey = filePath;
 		const existingLock = this.fileLocks.get(lockKey);
@@ -109,7 +112,9 @@ export class FileOperations {
 		try {
 			await fs.mkdir(dirPath, { recursive: true });
 		} catch (error: any) {
-			throw new Error(`Failed to create directory ${dirPath}: ${error.message}`);
+			throw new Error(
+				`Failed to create directory ${dirPath}: ${error.message}`
+			);
 		}
 	}
 
@@ -133,7 +138,9 @@ export class FileOperations {
 		try {
 			await fs.rename(oldPath, newPath);
 		} catch (error: any) {
-			throw new Error(`Failed to move file from ${oldPath} to ${newPath}: ${error.message}`);
+			throw new Error(
+				`Failed to move file from ${oldPath} to ${newPath}: ${error.message}`
+			);
 		}
 	}
 
@@ -144,7 +151,9 @@ export class FileOperations {
 		try {
 			await fs.copyFile(srcPath, destPath);
 		} catch (error: any) {
-			throw new Error(`Failed to copy file from ${srcPath} to ${destPath}: ${error.message}`);
+			throw new Error(
+				`Failed to copy file from ${srcPath} to ${destPath}: ${error.message}`
+			);
 		}
 	}
 

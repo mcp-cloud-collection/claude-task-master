@@ -44,18 +44,18 @@ export class FileStorage implements IStorage {
 	 */
 	async getStats(): Promise<StorageStats> {
 		const filePath = this.pathResolver.getTasksPath();
-		
+
 		try {
 			const stats = await this.fileOps.getStats(filePath);
 			const data = await this.fileOps.readJson(filePath);
 			const tags = this.formatHandler.extractTags(data);
-			
+
 			let totalTasks = 0;
 			const tagStats = tags.map((tag) => {
 				const tasks = this.formatHandler.extractTasks(data, tag);
 				const taskCount = tasks.length;
 				totalTasks += taskCount;
-				
+
 				return {
 					tag,
 					taskCount,
@@ -136,7 +136,12 @@ export class FileStorage implements IStorage {
 		const normalizedTasks = this.normalizeTaskIds(tasks);
 
 		// Update the specific tag in the existing data structure
-		if (this.formatHandler.detectFormat(existingData) === 'legacy' || Object.keys(existingData).some(key => key !== 'tasks' && key !== 'metadata')) {
+		if (
+			this.formatHandler.detectFormat(existingData) === 'legacy' ||
+			Object.keys(existingData).some(
+				(key) => key !== 'tasks' && key !== 'metadata'
+			)
+		) {
 			// Legacy format - update/add the tag
 			existingData[resolvedTag] = {
 				tasks: normalizedTasks,
@@ -152,7 +157,7 @@ export class FileStorage implements IStorage {
 			// Convert to legacy format when adding non-master tags
 			const masterTasks = existingData.tasks || [];
 			const masterMetadata = existingData.metadata || metadata;
-			
+
 			existingData = {
 				master: {
 					tasks: masterTasks,
@@ -177,11 +182,12 @@ export class FileStorage implements IStorage {
 			...task,
 			id: String(task.id), // Task IDs are strings
 			dependencies: task.dependencies?.map((dep) => String(dep)) || [],
-			subtasks: task.subtasks?.map((subtask) => ({
-				...subtask,
-				id: Number(subtask.id), // Subtask IDs are numbers
-				parentId: String(subtask.parentId) // Parent ID is string (Task ID)
-			})) || []
+			subtasks:
+				task.subtasks?.map((subtask) => ({
+					...subtask,
+					id: Number(subtask.id), // Subtask IDs are numbers
+					parentId: String(subtask.parentId) // Parent ID is string (Task ID)
+				})) || []
 		}));
 	}
 
@@ -286,10 +292,10 @@ export class FileStorage implements IStorage {
 	 */
 	async deleteTag(tag: string): Promise<void> {
 		const filePath = this.pathResolver.getTasksPath();
-		
+
 		try {
 			const existingData = await this.fileOps.readJson(filePath);
-			
+
 			if (this.formatHandler.detectFormat(existingData) === 'legacy') {
 				// Legacy format - remove the tag key
 				if (tag in existingData) {
@@ -317,21 +323,21 @@ export class FileStorage implements IStorage {
 	 */
 	async renameTag(oldTag: string, newTag: string): Promise<void> {
 		const filePath = this.pathResolver.getTasksPath();
-		
+
 		try {
 			const existingData = await this.fileOps.readJson(filePath);
-			
+
 			if (this.formatHandler.detectFormat(existingData) === 'legacy') {
 				// Legacy format - rename the tag key
 				if (oldTag in existingData) {
 					existingData[newTag] = existingData[oldTag];
 					delete existingData[oldTag];
-					
+
 					// Update metadata tags array
 					if (existingData[newTag].metadata) {
 						existingData[newTag].metadata.tags = [newTag];
 					}
-					
+
 					await this.fileOps.writeJson(filePath, existingData);
 				} else {
 					throw new Error(`Tag ${oldTag} not found`);
@@ -340,14 +346,14 @@ export class FileStorage implements IStorage {
 				// Convert standard format to legacy when renaming master
 				const masterTasks = existingData.tasks || [];
 				const masterMetadata = existingData.metadata || {};
-				
+
 				const newData = {
 					[newTag]: {
 						tasks: masterTasks,
 						metadata: { ...masterMetadata, tags: [newTag] }
 					}
 				};
-				
+
 				await this.fileOps.writeJson(filePath, newData);
 			} else {
 				throw new Error(`Tag ${oldTag} not found in standard format`);

@@ -2,7 +2,11 @@
  * @fileoverview Exports for file storage components
  */
 
-export { FormatHandler, type FileStorageData, type FileFormat } from './format-handler.js';
+export {
+	FormatHandler,
+	type FileStorageData,
+	type FileFormat
+} from './format-handler.js';
 export { FileOperations } from './file-operations.js';
 export { PathResolver } from './path-resolver.js';
 

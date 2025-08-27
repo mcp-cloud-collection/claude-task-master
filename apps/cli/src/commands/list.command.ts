@@ -93,7 +93,10 @@ export class ListTasksCommand extends Command {
 				this.displayResults(result, options);
 			}
 		} catch (error: any) {
-			console.error(chalk.red(`Error: ${error.message}`));
+			const msg = error?.getSanitizedDetails?.() ?? {
+				message: error?.message ?? String(error)
+			};
+			console.error(chalk.red(`Error: ${msg.message || 'Unexpected error'}`));
 			if (error.stack && process.env.DEBUG) {
 				console.error(chalk.gray(error.stack));
 			}
