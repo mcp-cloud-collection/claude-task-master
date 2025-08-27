@@ -16,7 +16,7 @@ import { DEFAULT_CONFIG_VALUES } from '../../interfaces/configuration.interface.
  */
 export interface RuntimeState {
 	/** Currently active tag */
-	activeTag: string;
+	currentTag: string;
 	/** Last updated timestamp */
 	lastUpdated?: string;
 	/** Additional metadata */
@@ -34,7 +34,7 @@ export class RuntimeStateManager {
 	constructor(projectRoot: string) {
 		this.stateFilePath = path.join(projectRoot, '.taskmaster', 'state.json');
 		this.currentState = {
-			activeTag: DEFAULT_CONFIG_VALUES.TAGS.DEFAULT_TAG
+			currentTag: DEFAULT_CONFIG_VALUES.TAGS.DEFAULT_TAG
 		};
 	}
 
@@ -44,11 +44,21 @@ export class RuntimeStateManager {
 	async loadState(): Promise<RuntimeState> {
 		try {
 			const stateData = await fs.readFile(this.stateFilePath, 'utf-8');
-			const state = JSON.parse(stateData);
+			const rawState = JSON.parse(stateData);
 
-			// Apply environment variable override for active tag
+			// Map legacy field names to current interface
+			const state: RuntimeState = {
+				currentTag:
+					rawState.currentTag ||
+					rawState.activeTag ||
+					DEFAULT_CONFIG_VALUES.TAGS.DEFAULT_TAG,
+				lastUpdated: rawState.lastUpdated,
+				metadata: rawState.metadata
+			};
+
+			// Apply environment variable override for current tag
 			if (process.env.TASKMASTER_TAG) {
-				state.activeTag = process.env.TASKMASTER_TAG;
+				state.currentTag = process.env.TASKMASTER_TAG;
 			}
 
 			this.currentState = state;
@@ -60,7 +70,7 @@ export class RuntimeStateManager {
 
 				// Check environment variable
 				if (process.env.TASKMASTER_TAG) {
-					this.currentState.activeTag = process.env.TASKMASTER_TAG;
+					this.currentState.currentTag = process.env.TASKMASTER_TAG;
 				}
 
 				return this.currentState;
@@ -103,15 +113,15 @@ export class RuntimeStateManager {
 	/**
 	 * Get the currently active tag
 	 */
-	getActiveTag(): string {
-		return this.currentState.activeTag;
+	getCurrentTag(): string {
+		return this.currentState.currentTag;
 	}
 
 	/**
-	 * Set the active tag
+	 * Set the current tag
 	 */
-	async setActiveTag(tag: string): Promise<void> {
-		this.currentState.activeTag = tag;
+	async setCurrentTag(tag: string): Promise<void> {
+		this.currentState.currentTag = tag;
 		await this.saveState();
 	}
 
@@ -145,7 +155,7 @@ export class RuntimeStateManager {
 			}
 		}
 		this.currentState = {
-			activeTag: DEFAULT_CONFIG_VALUES.TAGS.DEFAULT_TAG
+			currentTag: DEFAULT_CONFIG_VALUES.TAGS.DEFAULT_TAG
 		};
 	}
 }

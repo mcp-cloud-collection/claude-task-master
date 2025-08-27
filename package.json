@@ -12,7 +12,7 @@
 	"workspaces": ["apps/*", "packages/*", "."],
 	"scripts": {
 		"build": "npm run build:packages && tsup",
-		"dev": "npm run build:packages && (npm run dev:packages & tsup --watch --onSuccess 'echo Build complete')",
+		"dev": "npm run build:packages && npm link && (npm run dev:packages & tsup --watch --onSuccess 'echo Build complete && npm link')",
 		"dev:packages": "(cd packages/tm-core && npm run dev) & (cd apps/cli && npm run dev) & wait",
 		"dev:core": "cd packages/tm-core && npm run dev",
 		"dev:cli": "cd apps/cli && npm run dev",

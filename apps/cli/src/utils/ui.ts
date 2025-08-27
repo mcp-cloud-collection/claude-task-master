@@ -9,33 +9,49 @@ import Table from 'cli-table3';
 import type { Task, TaskStatus, TaskPriority } from '@tm/core';
 
 /**
- * Get colored status display
+ * Get colored status display with ASCII icons (matches scripts/modules/ui.js style)
  */
-export function getStatusWithColor(status: TaskStatus): string {
-	const statusColors: Record<TaskStatus, (text: string) => string> = {
-		pending: chalk.yellow,
-		'in-progress': chalk.blue,
-		done: chalk.green,
-		deferred: chalk.gray,
-		cancelled: chalk.red,
-		blocked: chalk.magenta,
-		review: chalk.cyan
+export function getStatusWithColor(
+	status: TaskStatus,
+	forTable: boolean = false
+): string {
+	const statusConfig = {
+		done: {
+			color: chalk.green,
+			icon: String.fromCharCode(8730),
+			tableIcon: String.fromCharCode(8730)
+		}, // √
+		pending: { color: chalk.yellow, icon: 'o', tableIcon: 'o' },
+		'in-progress': {
+			color: chalk.hex('#FFA500'),
+			icon: String.fromCharCode(9654),
+			tableIcon: '>'
+		}, // ▶
+		deferred: { color: chalk.gray, icon: 'x', tableIcon: 'x' },
+		blocked: { color: chalk.red, icon: '!', tableIcon: '!' },
+		review: { color: chalk.magenta, icon: '?', tableIcon: '?' },
+		cancelled: { color: chalk.gray, icon: 'X', tableIcon: 'X' }
 	};
 
-	const statusEmojis: Record<TaskStatus, string> = {
-		pending: '⏳',
-		'in-progress': '🚀',
-		done: '✅',
-		deferred: '⏸️',
-		cancelled: '❌',
-		blocked: '🚫',
-		review: '👀'
+	const config = statusConfig[status] || {
+		color: chalk.red,
+		icon: 'X',
+		tableIcon: 'X'
 	};
 
-	const colorFn = statusColors[status] || chalk.white;
-	const emoji = statusEmojis[status] || '';
+	// Use simple ASCII characters for stable display
+	const simpleIcons = {
+		done: String.fromCharCode(8730), // √
+		pending: 'o',
+		'in-progress': '>',
+		deferred: 'x',
+		blocked: '!',
+		review: '?',
+		cancelled: 'X'
+	};
 
-	return `${emoji} ${colorFn(status)}`;
+	const icon = forTable ? simpleIcons[status] || 'X' : config.icon;
+	return config.color(`${icon} ${status}`);
 }
 
 /**
@@ -109,23 +125,23 @@ export function createProgressBar(
  */
 export function displayBanner(title: string = 'Task Master'): void {
 	console.log(
-		boxen(chalk.cyan.bold(title), {
+		boxen(chalk.white.bold(title), {
 			padding: 1,
 			margin: { top: 1, bottom: 1 },
-			borderStyle: 'double',
-			borderColor: 'cyan',
+			borderStyle: 'round',
+			borderColor: 'blue',
 			textAlignment: 'center'
 		})
 	);
 }
 
 /**
- * Display an error message
+ * Display an error message (matches scripts/modules/ui.js style)
  */
 export function displayError(message: string, details?: string): void {
 	console.error(
 		boxen(
-			chalk.red.bold('Error: ') +
+			chalk.red.bold('X Error: ') +
 				chalk.white(message) +
 				(details ? '\n\n' + chalk.gray(details) : ''),
 			{
@@ -142,11 +158,14 @@ export function displayError(message: string, details?: string): void {
  */
 export function displaySuccess(message: string): void {
 	console.log(
-		boxen(chalk.green.bold('✓ ') + chalk.white(message), {
-			padding: 1,
-			borderStyle: 'round',
-			borderColor: 'green'
-		})
+		boxen(
+			chalk.green.bold(String.fromCharCode(8730) + ' ') + chalk.white(message),
+			{
+				padding: 1,
+				borderStyle: 'round',
+				borderColor: 'green'
+			}
+		)
 	);
 }
 
@@ -168,7 +187,7 @@ export function displayWarning(message: string): void {
  */
 export function displayInfo(message: string): void {
 	console.log(
-		boxen(chalk.blue.bold('ℹ ') + chalk.white(message), {
+		boxen(chalk.blue.bold('i ') + chalk.white(message), {
 			padding: 1,
 			borderStyle: 'round',
 			borderColor: 'blue'
@@ -225,30 +244,42 @@ export function createTaskTable(
 		showDependencies = true
 	} = options || {};
 
-	const headers = ['ID', 'Title', 'Status', 'Priority'];
-	const colWidths = [8, 40, 15, 10];
+	// Calculate dynamic column widths based on terminal width
+	const terminalWidth = process.stdout.columns || 100;
+	const baseColWidths = showComplexity
+		? [8, Math.floor(terminalWidth * 0.35), 18, 12, 15, 12] // ID, Title, Status, Priority, Dependencies, Complexity
+		: [8, Math.floor(terminalWidth * 0.4), 18, 12, 20]; // ID, Title, Status, Priority, Dependencies
+
+	const headers = [
+		chalk.blue.bold('ID'),
+		chalk.blue.bold('Title'),
+		chalk.blue.bold('Status'),
+		chalk.blue.bold('Priority')
+	];
+	const colWidths = baseColWidths.slice(0, 4);
 
 	if (showDependencies) {
-		headers.push('Dependencies');
-		colWidths.push(20);
+		headers.push(chalk.blue.bold('Dependencies'));
+		colWidths.push(baseColWidths[4]);
 	}
 
 	if (showComplexity) {
-		headers.push('Complexity');
-		colWidths.push(12);
+		headers.push(chalk.blue.bold('Complexity'));
+		colWidths.push(baseColWidths[5] || 12);
 	}
 
 	const table = new Table({
 		head: headers,
-		style: { head: ['blue'] },
-		colWidths
+		style: { head: [], border: [] },
+		colWidths,
+		wordWrap: true
 	});
 
 	tasks.forEach((task) => {
 		const row: string[] = [
 			chalk.cyan(task.id.toString()),
-			truncate(task.title, 38),
-			getStatusWithColor(task.status),
+			truncate(task.title, colWidths[1] - 3),
+			getStatusWithColor(task.status, true), // Use table version
 			getPriorityWithColor(task.priority)
 		];
 
@@ -267,8 +298,8 @@ export function createTaskTable(
 			task.subtasks.forEach((subtask) => {
 				const subRow: string[] = [
 					chalk.gray(` └─ ${subtask.id}`),
-					chalk.gray(truncate(subtask.title, 36)),
-					getStatusWithColor(subtask.status),
+					chalk.gray(truncate(subtask.title, colWidths[1] - 6)),
+					chalk.gray(getStatusWithColor(subtask.status, true)),
 					chalk.gray(subtask.priority || 'medium')
 				];
 
@@ -276,8 +307,8 @@ export function createTaskTable(
 					subRow.push(
 						chalk.gray(
 							subtask.dependencies && subtask.dependencies.length > 0
-								? subtask.dependencies.join(', ')
-								: 'none'
+								? subtask.dependencies.map((dep) => String(dep)).join(', ')
+								: 'None'
 						)
 					);
 				}

@@ -128,15 +128,16 @@ export class FileStorage implements IStorage {
 		await this.ensureDirectoryExists();
 
 		// Normalize task IDs to strings (force string IDs everywhere)
-		const normalizedTasks = tasks.map(task => ({
+		const normalizedTasks = tasks.map((task) => ({
 			...task,
 			id: String(task.id), // Force ID to string
-			dependencies: task.dependencies?.map(dep => String(dep)) || [],
-			subtasks: task.subtasks?.map(subtask => ({
-				...subtask,
-				id: String(subtask.id),
-				parentId: String(subtask.parentId)
-			})) || []
+			dependencies: task.dependencies?.map((dep) => String(dep)) || [],
+			subtasks:
+				task.subtasks?.map((subtask) => ({
+					...subtask,
+					id: String(subtask.id),
+					parentId: String(subtask.parentId)
+				})) || []
 		}));
 
 		// Check if we need to use legacy format
@@ -157,7 +158,8 @@ export class FileStorage implements IStorage {
 							version: '1.0.0',
 							lastModified: new Date().toISOString(),
 							taskCount: normalizedTasks.length,
-							completedCount: normalizedTasks.filter((t) => t.status === 'done').length,
+							completedCount: normalizedTasks.filter((t) => t.status === 'done')
+								.length,
 							tags: [resolvedTag]
 						}
 					}
@@ -170,7 +172,8 @@ export class FileStorage implements IStorage {
 						version: '1.0.0',
 						lastModified: new Date().toISOString(),
 						taskCount: normalizedTasks.length,
-						completedCount: normalizedTasks.filter((t) => t.status === 'done').length,
+						completedCount: normalizedTasks.filter((t) => t.status === 'done')
+							.length,
 						tags: tag ? [tag] : []
 					}
 				};
@@ -183,7 +186,8 @@ export class FileStorage implements IStorage {
 					version: '1.0.0',
 					lastModified: new Date().toISOString(),
 					taskCount: normalizedTasks.length,
-					completedCount: normalizedTasks.filter((t) => t.status === 'done').length,
+					completedCount: normalizedTasks.filter((t) => t.status === 'done')
+						.length,
 					tags: tag ? [tag] : []
 				}
 			};

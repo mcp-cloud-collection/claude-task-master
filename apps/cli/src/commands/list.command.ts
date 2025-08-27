@@ -73,7 +73,6 @@ export class ListTasksCommand extends Command {
 	 * Execute the list command
 	 */
 	private async executeCommand(options: ListCommandOptions): Promise<void> {
-		console.log('executeCommand', options);
 		try {
 			// Validate options
 			if (!this.validateOptions(options)) {

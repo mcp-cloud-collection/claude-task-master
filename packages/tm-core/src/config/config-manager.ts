@@ -196,14 +196,14 @@ export class ConfigManager {
 	 * Get the currently active tag
 	 */
 	getActiveTag(): string {
-		return this.stateManager.getActiveTag();
+		return this.stateManager.getCurrentTag();
 	}
 
 	/**
 	 * Set the active tag
 	 */
 	async setActiveTag(tag: string): Promise<void> {
-		await this.stateManager.setActiveTag(tag);
+		await this.stateManager.setCurrentTag(tag);
 	}
 
 	// ==================== Configuration Updates ====================
