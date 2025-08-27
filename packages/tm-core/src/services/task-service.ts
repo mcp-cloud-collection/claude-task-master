@@ -80,8 +80,6 @@ export class TaskService {
 	 * This is the main method that retrieves tasks from storage and applies filters
 	 */
 	async getTaskList(options: GetTaskListOptions = {}): Promise<TaskListResult> {
-		console.log('getTaskList', options);
-
 		// Determine which tag to use
 		const activeTag = this.configManager.getActiveTag();
 		const tag = options.tag || activeTag;
@@ -109,8 +107,6 @@ export class TaskService {
 					subtasks: []
 				}));
 			}
-
-			console.log('tasks', tasks);
 
 			return {
 				tasks,
