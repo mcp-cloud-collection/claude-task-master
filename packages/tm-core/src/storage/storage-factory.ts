@@ -4,7 +4,7 @@
 
 import type { IStorage } from '../interfaces/storage.interface.js';
 import type { IConfiguration } from '../interfaces/configuration.interface.js';
-import { FileStorage } from './file-storage.js';
+import { FileStorage } from './file-storage';
 import { ApiStorage } from './api-storage.js';
 import { ERROR_CODES, TaskMasterError } from '../errors/task-master-error.js';
 

@@ -4,7 +4,7 @@
  */
 
 // Export storage implementations
-export { FileStorage } from './file-storage.js';
+export { FileStorage } from './file-storage/index.js';
 export { ApiStorage, type ApiStorageConfig } from './api-storage.js';
 export { StorageFactory } from './storage-factory.js';
 
