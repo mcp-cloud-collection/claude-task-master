@@ -109,16 +109,6 @@ async function addTask(
 		context;
 	const isMCP = !!mcpLog;
 
-	/**
-	 * Check if Claude Code is being used
-	 */
-	const isClaudeCode = () => {
-		const currentProvider = useResearch
-			? getResearchProvider(projectRoot)
-			: getMainProvider(projectRoot);
-		return currentProvider === CUSTOM_PROVIDERS.CLAUDE_CODE;
-	};
-
 	// Create a consistent logFn object regardless of context
 	const logFn = isMCP
 		? mcpLog // Use MCP logger if provided

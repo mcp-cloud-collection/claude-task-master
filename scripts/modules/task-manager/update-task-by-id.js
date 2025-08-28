@@ -279,17 +279,6 @@ async function updateTaskById(
 	const logFn = mcpLog || consoleLog;
 	const isMCP = !!mcpLog;
 
-	/**
-	 * Check if Claude Code is being used
-	 */
-	const isClaudeCode = () => {
-		const projectRoot = providedProjectRoot || findProjectRoot();
-		const currentProvider = useResearch
-			? getResearchProvider(projectRoot)
-			: getMainProvider(projectRoot);
-		return currentProvider === CUSTOM_PROVIDERS.CLAUDE_CODE;
-	};
-
 	// Use report helper for logging
 	const report = (level, ...args) => {
 		if (isMCP) {
