@@ -300,6 +300,17 @@ async function updateTasks(
 	// Flag to easily check which logger type we have
 	const isMCP = !!mcpLog;
 
+	/**
+	 * Check if Claude Code is being used
+	 */
+	const isClaudeCode = () => {
+		const projectRoot = providedProjectRoot || findProjectRoot();
+		const currentProvider = useResearch
+			? getResearchProvider(projectRoot)
+			: getMainProvider(projectRoot);
+		return currentProvider === CUSTOM_PROVIDERS.CLAUDE_CODE;
+	};
+
 	if (isMCP)
 		logFn.info(`updateTasks called with context: session=${!!session}`);
 	else logFn('info', `updateTasks called`); // CLI log
