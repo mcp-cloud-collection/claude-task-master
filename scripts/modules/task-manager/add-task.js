@@ -25,8 +25,10 @@ import {
 	markMigrationForNotice
 } from '../utils.js';
 import { generateObjectService } from '../ai-services-unified.js';
-import { getDefaultPriority, getMainProvider, getResearchProvider } from '../config-manager.js';
-import { CUSTOM_PROVIDERS } from '../../../src/constants/providers.js';
+import {
+	getDefaultPriority,
+	isClaudeCode
+} from '../config-manager.js';
 import { getPromptManager } from '../prompt-manager.js';
 import ContextGatherer from '../utils/contextGatherer.js';
 import generateTaskFiles from './generate-task-files.js';
@@ -110,15 +112,6 @@ async function addTask(
 		context;
 	const isMCP = !!mcpLog;
 
-	/**
-	 * Check if Claude Code is being used
-	 */
-	const isClaudeCode = () => {
-		const currentProvider = useResearch
-			? getResearchProvider(projectRoot)
-			: getMainProvider(projectRoot);
-		return currentProvider === CUSTOM_PROVIDERS.CLAUDE_CODE;
-	};
 
 	// Create a consistent logFn object regardless of context
 	const logFn = isMCP
@@ -437,7 +430,7 @@ async function addTask(
 					useResearch,
 					priority: effectivePriority,
 					dependencies: numericDependencies,
-					isClaudeCode: isClaudeCode(),
+					isClaudeCode: isClaudeCode(useResearch, projectRoot),
 					projectRoot: projectRoot
 				}
 			);

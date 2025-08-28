@@ -19,8 +19,10 @@ import {
 	displayAiUsageSummary
 } from '../ui.js';
 
-import { getDebugFlag, getMainProvider, getResearchProvider } from '../config-manager.js';
-import { CUSTOM_PROVIDERS } from '../../../src/constants/providers.js';
+import {
+	getDebugFlag,
+	isClaudeCode
+} from '../config-manager.js';
 import { getPromptManager } from '../prompt-manager.js';
 import generateTaskFiles from './generate-task-files.js';
 import { generateTextService } from '../ai-services-unified.js';
@@ -301,16 +303,6 @@ async function updateTasks(
 	// Flag to easily check which logger type we have
 	const isMCP = !!mcpLog;
 
-	/**
-	 * Check if Claude Code is being used
-	 */
-	const isClaudeCode = () => {
-		const projectRoot = providedProjectRoot || findProjectRoot();
-		const currentProvider = useResearch
-			? getResearchProvider(projectRoot)
-			: getMainProvider(projectRoot);
-		return currentProvider === CUSTOM_PROVIDERS.CLAUDE_CODE;
-	};
 
 	if (isMCP)
 		logFn.info(`updateTasks called with context: session=${!!session}`);
@@ -448,7 +440,7 @@ async function updateTasks(
 				updatePrompt: prompt,
 				useResearch,
 				projectContext: gatheredContext,
-				isClaudeCode: isClaudeCode(),
+				isClaudeCode: isClaudeCode(useResearch, projectRoot),
 				projectRoot: projectRoot
 			}
 		);
