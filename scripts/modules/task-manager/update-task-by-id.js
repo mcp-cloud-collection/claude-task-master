@@ -23,11 +23,7 @@ import {
 } from '../ui.js';
 
 import { generateTextService } from '../ai-services-unified.js';
-import {
-	getDebugFlag,
-	isApiKeySet,
-	isClaudeCode
-} from '../config-manager.js';
+import { getDebugFlag, isApiKeySet, isClaudeCode } from '../config-manager.js';
 import { getPromptManager } from '../prompt-manager.js';
 import { ContextGatherer } from '../utils/contextGatherer.js';
 import { FuzzyTaskSearch } from '../utils/fuzzyTaskSearch.js';
@@ -282,7 +278,6 @@ async function updateTaskById(
 	const { session, mcpLog, projectRoot: providedProjectRoot, tag } = context;
 	const logFn = mcpLog || consoleLog;
 	const isMCP = !!mcpLog;
-
 
 	// Use report helper for logging
 	const report = (level, ...args) => {

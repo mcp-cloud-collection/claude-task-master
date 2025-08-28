@@ -19,10 +19,7 @@ import {
 	displayAiUsageSummary
 } from '../ui.js';
 
-import {
-	getDebugFlag,
-	isClaudeCode
-} from '../config-manager.js';
+import { getDebugFlag, isClaudeCode } from '../config-manager.js';
 import { getPromptManager } from '../prompt-manager.js';
 import generateTaskFiles from './generate-task-files.js';
 import { generateTextService } from '../ai-services-unified.js';
@@ -302,7 +299,6 @@ async function updateTasks(
 	const logFn = mcpLog || consoleLog;
 	// Flag to easily check which logger type we have
 	const isMCP = !!mcpLog;
-
 
 	if (isMCP)
 		logFn.info(`updateTasks called with context: session=${!!session}`);

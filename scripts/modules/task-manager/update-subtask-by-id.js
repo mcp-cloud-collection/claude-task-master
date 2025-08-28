@@ -20,10 +20,7 @@ import {
 	flattenTasksWithSubtasks
 } from '../utils.js';
 import { generateTextService } from '../ai-services-unified.js';
-import {
-	getDebugFlag,
-	isClaudeCode
-} from '../config-manager.js';
+import { getDebugFlag, isClaudeCode } from '../config-manager.js';
 import { getPromptManager } from '../prompt-manager.js';
 import generateTaskFiles from './generate-task-files.js';
 import { ContextGatherer } from '../utils/contextGatherer.js';
@@ -54,7 +51,6 @@ async function updateSubtaskById(
 	const { session, mcpLog, projectRoot: providedProjectRoot, tag } = context;
 	const logFn = mcpLog || consoleLog;
 	const isMCP = !!mcpLog;
-
 
 	// Report helper
 	const report = (level, ...args) => {
