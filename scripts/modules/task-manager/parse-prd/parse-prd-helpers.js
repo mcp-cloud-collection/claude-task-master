@@ -242,7 +242,7 @@ export async function buildPrompts(config, prdContent, nextId) {
 		prdContent,
 		prdPath: config.prdPath,
 		defaultTaskPriority,
-		isClaudeCode: config.isClaudeCode(),
+		isClaudeCode: config.hasCodebaseAnalysis(),
 		projectRoot: config.projectRoot || ''
 	});
 }
