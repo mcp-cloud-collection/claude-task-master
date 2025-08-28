@@ -456,7 +456,10 @@ async function expandTask(
 		const promptManager = getPromptManager();
 
 		// Check if a codebase analysis provider is being used
-		const hasCodebaseAnalysisCapability = hasCodebaseAnalysis(useResearch, projectRoot);
+		const hasCodebaseAnalysisCapability = hasCodebaseAnalysis(
+			useResearch,
+			projectRoot
+		);
 
 		// Combine all context sources into a single additionalContext parameter
 		let combinedAdditionalContext = '';

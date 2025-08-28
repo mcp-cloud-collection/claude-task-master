@@ -437,8 +437,10 @@ function hasCodebaseAnalysis(useResearch = false, projectRoot = null) {
 	const currentProvider = useResearch
 		? getResearchProvider(projectRoot)
 		: getMainProvider(projectRoot);
-	return currentProvider === CUSTOM_PROVIDERS.CLAUDE_CODE || 
-		   currentProvider === CUSTOM_PROVIDERS.GEMINI_CLI;
+	return (
+		currentProvider === CUSTOM_PROVIDERS.CLAUDE_CODE ||
+		currentProvider === CUSTOM_PROVIDERS.GEMINI_CLI
+	);
 }
 
 function getResearchModelId(explicitRoot = null) {

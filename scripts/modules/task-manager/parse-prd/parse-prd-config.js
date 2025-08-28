@@ -6,8 +6,7 @@ import { z } from 'zod';
 import { TASK_PRIORITY_OPTIONS } from '../../../../src/constants/task-priority.js';
 import { getCurrentTag, isSilentMode, log } from '../../utils.js';
 import { Duration } from '../../../../src/utils/timeout-manager.js';
-import { CUSTOM_PROVIDERS } from '../../../../src/constants/providers.js';
-import { getMainProvider, getResearchProvider, hasCodebaseAnalysis } from '../../config-manager.js';
+import { hasCodebaseAnalysis } from '../../config-manager.js';
 
 // ============================================================================
 // SCHEMAS
