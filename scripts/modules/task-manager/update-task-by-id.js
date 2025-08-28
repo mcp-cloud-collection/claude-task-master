@@ -23,7 +23,8 @@ import {
 } from '../ui.js';
 
 import { generateTextService } from '../ai-services-unified.js';
-import { getDebugFlag, isApiKeySet } from '../config-manager.js';
+import { getDebugFlag, isApiKeySet, getMainProvider, getResearchProvider } from '../config-manager.js';
+import { CUSTOM_PROVIDERS } from '../../../src/constants/providers.js';
 import { getPromptManager } from '../prompt-manager.js';
 import { ContextGatherer } from '../utils/contextGatherer.js';
 import { FuzzyTaskSearch } from '../utils/fuzzyTaskSearch.js';
@@ -279,6 +280,17 @@ async function updateTaskById(
 	const logFn = mcpLog || consoleLog;
 	const isMCP = !!mcpLog;
 
+	/**
+	 * Check if Claude Code is being used
+	 */
+	const isClaudeCode = () => {
+		const projectRoot = providedProjectRoot || findProjectRoot();
+		const currentProvider = useResearch
+			? getResearchProvider(projectRoot)
+			: getMainProvider(projectRoot);
+		return currentProvider === CUSTOM_PROVIDERS.CLAUDE_CODE;
+	};
+
 	// Use report helper for logging
 	const report = (level, ...args) => {
 		if (isMCP) {
@@ -453,7 +465,9 @@ async function updateTaskById(
 			appendMode: appendMode,
 			useResearch: useResearch,
 			currentDetails: taskToUpdate.details || '(No existing details)',
-			gatheredContext: gatheredContext || ''
+			gatheredContext: gatheredContext || '',
+			isClaudeCode: isClaudeCode(),
+			projectRoot: projectRoot
 		};
 
 		const variantKey = appendMode

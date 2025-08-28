@@ -20,7 +20,8 @@ import {
 	flattenTasksWithSubtasks
 } from '../utils.js';
 import { generateTextService } from '../ai-services-unified.js';
-import { getDebugFlag } from '../config-manager.js';
+import { getDebugFlag, getMainProvider, getResearchProvider } from '../config-manager.js';
+import { CUSTOM_PROVIDERS } from '../../../src/constants/providers.js';
 import { getPromptManager } from '../prompt-manager.js';
 import generateTaskFiles from './generate-task-files.js';
 import { ContextGatherer } from '../utils/contextGatherer.js';
@@ -51,6 +52,17 @@ async function updateSubtaskById(
 	const { session, mcpLog, projectRoot: providedProjectRoot, tag } = context;
 	const logFn = mcpLog || consoleLog;
 	const isMCP = !!mcpLog;
+
+	/**
+	 * Check if Claude Code is being used
+	 */
+	const isClaudeCode = () => {
+		const projectRoot = providedProjectRoot || findProjectRoot();
+		const currentProvider = useResearch
+			? getResearchProvider(projectRoot)
+			: getMainProvider(projectRoot);
+		return currentProvider === CUSTOM_PROVIDERS.CLAUDE_CODE;
+	};
 
 	// Report helper
 	const report = (level, ...args) => {
@@ -231,7 +243,9 @@ async function updateSubtaskById(
 				currentDetails: subtask.details || '(No existing details)',
 				updatePrompt: prompt,
 				useResearch: useResearch,
-				gatheredContext: gatheredContext || ''
+				gatheredContext: gatheredContext || '',
+				isClaudeCode: isClaudeCode(),
+				projectRoot: projectRoot
 			};
 
 			const variantKey = useResearch ? 'research' : 'default';
