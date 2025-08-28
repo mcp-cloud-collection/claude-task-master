@@ -34,7 +34,7 @@
 		"hasCodebaseAnalysis": {
 			"type": "boolean",
 			"default": false,
-			"description": "Whether Claude Code is being used as the provider"
+			"description": "Whether codebase analysis is available"
 		},
 		"projectRoot": {
 			"type": "string",

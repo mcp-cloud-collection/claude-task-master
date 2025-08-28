@@ -50,7 +50,7 @@
 			"type": "boolean",
 			"required": false,
 			"default": false,
-			"description": "Whether a codebase analysis provider (Claude Code or Gemini CLI) is being used"
+			"description": "Whether codebase analysis is available"
 		},
 		"projectRoot": {
 			"type": "string",
