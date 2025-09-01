@@ -110,14 +110,10 @@
 		"url": "https://github.com/eyaltoledano/claude-task-master/issues"
 	},
 	"files": [
-		"scripts/**",
-		"assets/**",
-		".cursor/**",
+		"dist/**",
 		"README-task-master.md",
-		"index.js",
-		"bin/**",
-		"mcp-server/**",
-		"src/**"
+		"README.md",
+		"LICENSE"
 	],
 	"overrides": {
 		"node-fetch": "^2.6.12",

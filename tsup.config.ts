@@ -12,6 +12,7 @@ export default defineConfig({
 	clean: true,
 	bundle: true, // Bundle everything into one file
 	outDir: 'dist',
+	publicDir: 'public',
 	// Handle TypeScript imports transparently
 	loader: {
 		'.js': 'jsx',
