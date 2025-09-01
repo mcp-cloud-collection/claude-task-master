@@ -1,7 +1,7 @@
 /**
  * Asset Resolver Module
  * Handles resolving paths to asset files in the package
- * 
+ *
  * The public/assets folder is copied to dist/assets during build via tsup's publicDir,
  * so we can reliably find it relative to the bundled files.
  */
@@ -29,7 +29,13 @@ export function getAssetsDir() {
 		// When installed as npm package - assets at package root
 		path.join(process.cwd(), 'assets'),
 		// For npx usage - check node_modules
-		path.join(process.cwd(), 'node_modules', 'task-master-ai', 'dist', 'assets'),
+		path.join(
+			process.cwd(),
+			'node_modules',
+			'task-master-ai',
+			'dist',
+			'assets'
+		),
 		path.join(process.cwd(), 'node_modules', 'task-master-ai', 'assets')
 	];
 
@@ -45,7 +51,9 @@ export function getAssetsDir() {
 	}
 
 	// If no assets directory found, throw an error
-	throw new Error('Assets directory not found. This is likely a packaging issue.');
+	throw new Error(
+		'Assets directory not found. This is likely a packaging issue.'
+	);
 }
 
 /**

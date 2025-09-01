@@ -401,7 +401,7 @@ export function removeProfileRules(projectRoot, profile) {
 							} else if (stats.isDirectory() && !stats.isSymbolicLink()) {
 								// Only recurse into safe directories
 								const subFiles = fs.readdirSync(itemPath, { recursive: true });
-								subFiles.forEach(subFile => {
+								subFiles.forEach((subFile) => {
 									allFiles.push(path.join(item, subFile.toString()));
 								});
 							}
@@ -413,7 +413,7 @@ export function removeProfileRules(projectRoot, profile) {
 					// For non-root directories, use normal recursive read
 					allFiles = fs.readdirSync(targetDir, { recursive: true });
 				}
-				
+
 				const allFilePaths = allFiles
 					.filter((file) => {
 						const fullPath = path.join(targetDir, file);
