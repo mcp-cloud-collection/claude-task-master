@@ -20,17 +20,6 @@ export class CredentialStore {
 	 */
 	getCredentials(): AuthCredentials | null {
 		try {
-			// Check for environment variable override (useful for CI/CD)
-			if (process.env.TASKMASTER_ACCESS_TOKEN) {
-				return {
-					token: process.env.TASKMASTER_ACCESS_TOKEN,
-					userId: process.env.TASKMASTER_USER_ID || 'env-user',
-					email: process.env.TASKMASTER_EMAIL,
-					tokenType: 'api_key',
-					savedAt: new Date().toISOString()
-				};
-			}
-
 			if (!fs.existsSync(this.config.configFile)) {
 				return null;
 			}
@@ -103,11 +92,6 @@ export class CredentialStore {
 	 * Check if credentials exist and are valid
 	 */
 	hasValidCredentials(): boolean {
-		// Fast check for environment variable
-		if (process.env.TASKMASTER_ACCESS_TOKEN) {
-			return true;
-		}
-
 		const credentials = this.getCredentials();
 		return credentials !== null;
 	}
