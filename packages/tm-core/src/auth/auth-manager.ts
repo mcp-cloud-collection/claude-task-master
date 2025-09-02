@@ -9,6 +9,7 @@ import https from 'https';
 import http from 'http';
 import { URL } from 'url';
 import crypto from 'crypto';
+import { getLogger } from '../logger';
 
 // Auth configuration
 const AUTH_CONFIG_DIR = path.join(os.homedir(), '.taskmaster');
@@ -58,6 +59,7 @@ export class AuthenticationError extends Error {
  */
 export class AuthManager {
 	private static instance: AuthManager;
+	private logger = getLogger('AuthManager');
 
 	private constructor() {}
 
@@ -98,13 +100,13 @@ export class AuthManager {
 
 			// Check if token is expired
 			if (authData.expiresAt && new Date(authData.expiresAt) < new Date()) {
-				console.warn('Authentication token has expired');
+				this.logger.warn('Authentication token has expired');
 				return null;
 			}
 
 			return authData;
 		} catch (error) {
-			console.error(
+			this.logger.error(
 				`Failed to read auth credentials: ${(error as Error).message}`
 			);
 			return null;

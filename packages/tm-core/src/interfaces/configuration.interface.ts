@@ -77,8 +77,8 @@ export interface TagSettings {
  * Storage and persistence settings
  */
 export interface StorageSettings {
-	/** Storage backend type */
-	type: 'file' | 'api';
+	/** Storage backend type - 'auto' detects based on auth status */
+	type: 'file' | 'api' | 'auto';
 	/** Base path for file storage */
 	basePath?: string;
 	/** API endpoint for API storage (Hamster integration) */
