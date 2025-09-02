@@ -42,8 +42,7 @@ export interface OAuthFlowOptions {
 }
 
 export interface AuthConfig {
-	apiBaseUrl: string;
-	webBaseUrl: string;
+	baseUrl: string;
 	configDir: string;
 	configFile: string;
 }

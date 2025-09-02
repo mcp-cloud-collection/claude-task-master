@@ -24,7 +24,7 @@ export class OAuthService {
 	private logger = getLogger('OAuthService');
 	private credentialStore: CredentialStore;
 	private supabaseClient: SupabaseAuthClient;
-	private webBaseUrl: string;
+	private baseUrl: string;
 	private authorizationUrl: string | null = null;
 	private originalState: string | null = null;
 
@@ -35,7 +35,7 @@ export class OAuthService {
 		this.credentialStore = credentialStore;
 		this.supabaseClient = new SupabaseAuthClient();
 		const authConfig = getAuthConfig(config);
-		this.webBaseUrl = authConfig.webBaseUrl;
+		this.baseUrl = authConfig.baseUrl;
 	}
 
 	/**
@@ -160,7 +160,7 @@ export class OAuthService {
 			// Start server on localhost only
 			server.listen(port, '127.0.0.1', () => {
 				// Build authorization URL for web app sign-in page
-				const authUrl = new URL(`${this.webBaseUrl}/auth/sign-in`);
+				const authUrl = new URL(`${this.baseUrl}/auth/sign-in`);
 
 				// Encode CLI data as base64
 				const cliParam = Buffer.from(JSON.stringify(cliData)).toString(
@@ -311,12 +311,18 @@ export class OAuthService {
 	 * Get a random available port
 	 */
 	private async getRandomPort(): Promise<number> {
-		return new Promise((resolve) => {
+		return new Promise((resolve, reject) => {
 			const server = http.createServer();
 			server.listen(0, '127.0.0.1', () => {
-				const port = (server.address() as any).port;
+				const address = server.address();
+				if (!address || typeof address === 'string') {
+					reject(new Error('Failed to get port'));
+					return;
+				}
+				const port = address.port;
 				server.close(() => resolve(port));
 			});
+			server.on('error', reject);
 		});
 	}
 
