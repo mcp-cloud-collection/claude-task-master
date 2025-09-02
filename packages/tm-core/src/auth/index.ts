@@ -18,12 +18,6 @@ export type {
 export { AuthenticationError } from './types';
 
 export {
-	getSuccessHtml,
-	getErrorHtml,
-	getSecurityErrorHtml
-} from './templates';
-
-export {
 	DEFAULT_AUTH_CONFIG,
 	getAuthConfig
 } from './config';
