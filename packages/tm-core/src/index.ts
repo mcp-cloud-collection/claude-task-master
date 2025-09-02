@@ -43,3 +43,12 @@ export * from './errors';
 
 // Re-export entities
 export { TaskEntity } from './entities/task.entity';
+
+// Re-export authentication
+export {
+	AuthManager,
+	AuthenticationError,
+	type AuthCredentials,
+	type AuthOptions,
+	type AuthResponse
+} from './auth/auth-manager';
