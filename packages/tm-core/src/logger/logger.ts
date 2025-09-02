@@ -36,27 +36,40 @@ export class Logger {
 	constructor(config: LoggerConfig = {}) {
 		// Check environment variables
 		const envConfig: LoggerConfig = {};
-		
+
 		// Check for MCP mode
-		if (process.env.MCP_MODE === 'true' || process.env.TASK_MASTER_MCP === 'true') {
+		if (
+			process.env.MCP_MODE === 'true' ||
+			process.env.TASK_MASTER_MCP === 'true'
+		) {
 			envConfig.mcpMode = true;
 		}
-		
+
 		// Check for silent mode
-		if (process.env.TASK_MASTER_SILENT === 'true' || process.env.TM_SILENT === 'true') {
+		if (
+			process.env.TASK_MASTER_SILENT === 'true' ||
+			process.env.TM_SILENT === 'true'
+		) {
 			envConfig.silent = true;
 		}
-		
+
 		// Check for log level
 		if (process.env.TASK_MASTER_LOG_LEVEL || process.env.TM_LOG_LEVEL) {
-			const levelStr = (process.env.TASK_MASTER_LOG_LEVEL || process.env.TM_LOG_LEVEL || '').toUpperCase();
+			const levelStr = (
+				process.env.TASK_MASTER_LOG_LEVEL ||
+				process.env.TM_LOG_LEVEL ||
+				''
+			).toUpperCase();
 			if (levelStr in LogLevel) {
 				envConfig.level = LogLevel[levelStr as keyof typeof LogLevel];
 			}
 		}
-		
+
 		// Check for no colors
-		if (process.env.NO_COLOR === 'true' || process.env.TASK_MASTER_NO_COLOR === 'true') {
+		if (
+			process.env.NO_COLOR === 'true' ||
+			process.env.TASK_MASTER_NO_COLOR === 'true'
+		) {
 			envConfig.colors = false;
 		}
 
@@ -86,18 +99,26 @@ export class Logger {
 	/**
 	 * Format a log message
 	 */
-	private formatMessage(level: LogLevel, message: string, ...args: any[]): string {
+	private formatMessage(
+		level: LogLevel,
+		message: string,
+		...args: any[]
+	): string {
 		let formatted = '';
 
 		// Add timestamp if enabled
 		if (this.config.timestamp) {
 			const timestamp = new Date().toISOString();
-			formatted += this.config.colors ? chalk.gray(`[${timestamp}] `) : `[${timestamp}] `;
+			formatted += this.config.colors
+				? chalk.gray(`[${timestamp}] `)
+				: `[${timestamp}] `;
 		}
 
 		// Add prefix if configured
 		if (this.config.prefix) {
-			formatted += this.config.colors ? chalk.cyan(`[${this.config.prefix}] `) : `[${this.config.prefix}] `;
+			formatted += this.config.colors
+				? chalk.cyan(`[${this.config.prefix}] `)
+				: `[${this.config.prefix}] `;
 		}
 
 		// Skip level indicator for cleaner output
@@ -124,9 +145,13 @@ export class Logger {
 
 		// Add any additional arguments
 		if (args.length > 0) {
-			formatted += ' ' + args.map(arg => 
-				typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
-			).join(' ');
+			formatted +=
+				' ' +
+				args
+					.map((arg) =>
+						typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+					)
+					.join(' ');
 		}
 
 		return formatted;
@@ -170,7 +195,7 @@ export class Logger {
 	 */
 	log(message: string, ...args: any[]): void {
 		if (this.config.silent || this.config.mcpMode) return;
-		
+
 		if (args.length > 0) {
 			console.log(message, ...args);
 		} else {
@@ -204,10 +229,10 @@ export class Logger {
 	 * Create a child logger with a prefix
 	 */
 	child(prefix: string, config?: Partial<LoggerConfig>): Logger {
-		const childPrefix = this.config.prefix 
+		const childPrefix = this.config.prefix
 			? `${this.config.prefix}:${prefix}`
 			: prefix;
-		
+
 		return new Logger({
 			...this.config,
 			...config,

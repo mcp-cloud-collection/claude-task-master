@@ -31,10 +31,13 @@ export function getLogger(name?: string, config?: LoggerConfig): Logger {
 
 	// Check if named logger exists
 	if (!loggers.has(name)) {
-		loggers.set(name, createLogger({
-			prefix: name,
-			...config
-		}));
+		loggers.set(
+			name,
+			createLogger({
+				prefix: name,
+				...config
+			})
+		);
 	}
 
 	return loggers.get(name)!;

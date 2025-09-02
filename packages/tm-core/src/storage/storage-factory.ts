@@ -52,7 +52,10 @@ export class StorageFactory {
 							...config.storage,
 							type: 'api' as const,
 							apiAccessToken: credentials.token,
-							apiEndpoint: config.storage?.apiEndpoint || process.env.HAMSTER_API_URL || 'https://tryhamster.com/api'
+							apiEndpoint:
+								config.storage?.apiEndpoint ||
+								process.env.HAMSTER_API_URL ||
+								'https://tryhamster.com/api'
 						} as any; // Cast to any to bypass strict type checking for partial config
 					}
 				}
@@ -62,13 +65,13 @@ export class StorageFactory {
 			case 'auto':
 				// Auto-detect based on authentication status
 				const authManager = AuthManager.getInstance();
-				
+
 				// First check if API credentials are explicitly configured
 				if (StorageFactory.isHamsterAvailable(config)) {
 					logger.info('☁️  Using API storage (configured)');
 					return StorageFactory.createApiStorage(config);
 				}
-				
+
 				// Then check if authenticated via AuthManager
 				if (authManager.isAuthenticated()) {
 					const credentials = authManager.getCredentials();
@@ -78,13 +81,16 @@ export class StorageFactory {
 							...config.storage,
 							type: 'api' as const,
 							apiAccessToken: credentials.token,
-							apiEndpoint: config.storage?.apiEndpoint || process.env.HAMSTER_API_URL || 'https://tryhamster.com/api'
+							apiEndpoint:
+								config.storage?.apiEndpoint ||
+								process.env.HAMSTER_API_URL ||
+								'https://tryhamster.com/api'
 						} as any; // Cast to any to bypass strict type checking for partial config
 						logger.info('☁️  Using API storage (authenticated)');
 						return StorageFactory.createApiStorage(config);
 					}
 				}
-				
+
 				// Default to file storage
 				logger.debug('📁 Using local file storage');
 				return StorageFactory.createFileStorage(projectPath, config);

@@ -50,5 +50,10 @@ export {
 	AuthenticationError,
 	type AuthCredentials,
 	type AuthOptions,
-	type AuthResponse
-} from './auth/auth-manager';
+	type AuthResponse,
+	type OAuthFlowOptions,
+	type AuthConfig
+} from './auth';
+
+// Re-export logger
+export { getLogger, createLogger, setGlobalLogger } from './logger';

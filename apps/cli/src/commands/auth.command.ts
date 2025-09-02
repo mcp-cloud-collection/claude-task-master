@@ -6,8 +6,7 @@
 import { Command } from 'commander';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
-import ora from 'ora';
-import { exec } from 'child_process';
+import ora, { type Ora } from 'ora';
 import {
 	AuthManager,
 	AuthenticationError,
@@ -212,7 +211,9 @@ export class AuthCommand extends Command {
 			};
 		} else {
 			console.log(chalk.yellow('✗ Not authenticated'));
-			console.log(chalk.gray('\n  Run "task-master auth login" to authenticate'));
+			console.log(
+				chalk.gray('\n  Run "task-master auth login" to authenticate')
+			);
 
 			return {
 				success: false,
@@ -354,79 +355,50 @@ export class AuthCommand extends Command {
 	 * Authenticate with browser using OAuth 2.0 with PKCE
 	 */
 	private async authenticateWithBrowser(): Promise<AuthCredentials> {
-		const spinner = ora('Starting authentication server...').start();
+		let authSpinner: Ora | null = null;
 
 		try {
-			// Start OAuth flow with PKCE (this starts the local server)
-			const authPromise = this.authManager.startOAuthFlow();
+			// Use AuthManager's new unified OAuth flow method with callbacks
+			const credentials = await this.authManager.authenticateWithOAuth({
+				openBrowser: true,
+				timeout: 5 * 60 * 1000, // 5 minutes
 
-			// Wait a moment for server to start
-			await new Promise((resolve) => setTimeout(resolve, 100));
+				// Callback when auth URL is ready
+				onAuthUrl: (authUrl) => {
+					// Display authentication instructions
+					console.log(chalk.blue.bold('\n🔐 Browser Authentication\n'));
+					console.log(chalk.white('  Opening your browser to authenticate...'));
+					console.log(chalk.gray("  If the browser doesn't open, visit:"));
+					console.log(chalk.cyan.underline(`  ${authUrl}\n`));
+				},
 
-			// Get the authorization URL
-			const authUrl = this.authManager.getAuthorizationUrl();
+				// Callback when waiting for authentication
+				onWaitingForAuth: () => {
+					authSpinner = ora({
+						text: 'Waiting for authentication...',
+						spinner: 'dots'
+					}).start();
+				},
 
-			if (!authUrl) {
-				throw new AuthenticationError(
-					'Failed to generate authorization URL',
-					'URL_GENERATION_FAILED'
-				);
-			}
+				// Callback on success
+				onSuccess: () => {
+					if (authSpinner) {
+						authSpinner.succeed('Authentication successful!');
+					}
+				},
 
-			spinner.stop();
+				// Callback on error
+				onError: () => {
+					if (authSpinner) {
+						authSpinner.fail('Authentication failed');
+					}
+				}
+			});
 
-			// Display authentication instructions
-			console.log(chalk.blue.bold('\n🔐 Browser Authentication\n'));
-			console.log(chalk.white('  Opening your browser to authenticate...'));
-			console.log(chalk.gray("  If the browser doesn't open, visit:"));
-			console.log(chalk.cyan.underline(`  ${authUrl}\n`));
-
-			// Open browser
-			this.openBrowser(authUrl);
-
-			// Wait for authentication with spinner
-			const authSpinner = ora({
-				text: 'Waiting for authentication...',
-				spinner: 'dots'
-			}).start();
-
-			try {
-				const credentials = await authPromise;
-				authSpinner.succeed('Authentication successful!');
-				return credentials;
-			} catch (error) {
-				authSpinner.fail('Authentication failed');
-				throw error;
-			}
+			return credentials;
 		} catch (error) {
-			if (spinner.isSpinning) {
-				spinner.fail('Authentication failed');
-			}
 			throw error;
 		}
-	}
-
-	/**
-	 * Open browser with the given URL
-	 */
-	private openBrowser(url: string): void {
-		const platform = process.platform;
-		let command: string;
-
-		if (platform === 'darwin') {
-			command = `open "${url}"`;
-		} else if (platform === 'win32') {
-			command = `start "${url}"`;
-		} else {
-			command = `xdg-open "${url}"`;
-		}
-
-		exec(command, (error) => {
-			if (error) {
-				// Silently fail - user can still manually open the URL
-				console.log(chalk.gray('\n  (Could not automatically open browser)'));
-			}
-		});
 	}
 
 	/**
