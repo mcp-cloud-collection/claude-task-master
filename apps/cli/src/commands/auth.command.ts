@@ -108,6 +108,12 @@ export class AuthCommand extends Command {
 			if (!result.success) {
 				process.exit(1);
 			}
+
+			// Exit cleanly after successful authentication
+			// Small delay to ensure all output is flushed
+			setTimeout(() => {
+				process.exit(0);
+			}, 100);
 		} catch (error: any) {
 			this.handleError(error);
 			process.exit(1);

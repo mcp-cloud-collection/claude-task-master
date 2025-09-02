@@ -6,8 +6,6 @@ import http from 'http';
 import { URL } from 'url';
 import crypto from 'crypto';
 import os from 'os';
-import fs from 'fs';
-import path from 'path';
 import open from 'open';
 import {
 	AuthCredentials,
@@ -16,32 +14,26 @@ import {
 	AuthConfig,
 	CliData
 } from './types';
-import { ApiClient } from './api-client';
 import { CredentialStore } from './credential-store';
-import {
-	getSuccessHtml,
-	getErrorHtml,
-	getSecurityErrorHtml
-} from './templates';
+import { SupabaseAuthClient } from '../clients/supabase-client';
 import { getAuthConfig } from './config';
 import { getLogger } from '../logger';
 import packageJson from '../../../../package.json' with { type: 'json' };
 
 export class OAuthService {
 	private logger = getLogger('OAuthService');
-	private apiClient: ApiClient;
 	private credentialStore: CredentialStore;
+	private supabaseClient: SupabaseAuthClient;
 	private webBaseUrl: string;
 	private authorizationUrl: string | null = null;
 	private originalState: string | null = null;
 
 	constructor(
-		apiClient: ApiClient,
 		credentialStore: CredentialStore,
 		config: Partial<AuthConfig> = {}
 	) {
-		this.apiClient = apiClient;
 		this.credentialStore = credentialStore;
+		this.supabaseClient = new SupabaseAuthClient();
 		const authConfig = getAuthConfig(config);
 		this.webBaseUrl = authConfig.webBaseUrl;
 	}
@@ -129,7 +121,7 @@ export class OAuthService {
 		// Store the original state for verification
 		this.originalState = state;
 
-		// Prepare CLI data object
+		// Prepare CLI data object (server handles OAuth/PKCE)
 		const cliData: CliData = {
 			callback: callbackUrl,
 			state: state,
@@ -211,16 +203,20 @@ export class OAuthService {
 		resolve: (value: AuthCredentials) => void,
 		reject: (error: any) => void
 	): Promise<void> {
-		const code = url.searchParams.get('code');
+		// Server now returns tokens directly instead of code
+		const type = url.searchParams.get('type');
 		const returnedState = url.searchParams.get('state');
+		const accessToken = url.searchParams.get('access_token');
+		const refreshToken = url.searchParams.get('refresh_token');
+		const expiresIn = url.searchParams.get('expires_in');
 		const error = url.searchParams.get('error');
 		const errorDescription = url.searchParams.get('error_description');
 
-		// Send response to browser
-		res.writeHead(200, { 'Content-Type': 'text/html' });
+		// Server handles displaying success/failure, just close connection
+		res.writeHead(200);
+		res.end();
 
 		if (error) {
-			res.end(getErrorHtml(errorDescription || error));
 			if (!serverClosed) {
 				server.close();
 				reject(
@@ -235,7 +231,6 @@ export class OAuthService {
 
 		// Verify state parameter for CSRF protection
 		if (returnedState !== this.originalState) {
-			res.end(getSecurityErrorHtml());
 			if (!serverClosed) {
 				server.close();
 				reject(
@@ -245,20 +240,29 @@ export class OAuthService {
 			return;
 		}
 
-		if (code) {
-			res.end(getSuccessHtml());
-
+		// Handle direct token response from server
+		if (
+			accessToken &&
+			(type === 'oauth_success' || type === 'session_transfer')
+		) {
 			try {
-				// Exchange authorization code for tokens
-				const response = await this.apiClient.exchangeCode(code);
+				this.logger.info(`Received tokens via ${type}`);
+
+				// Get user info using the access token if possible
+				const user = await this.supabaseClient.getUser(accessToken);
+
+				// Calculate expiration time
+				const expiresAt = expiresIn
+					? new Date(Date.now() + parseInt(expiresIn) * 1000).toISOString()
+					: undefined;
 
 				// Save authentication data
 				const authData: AuthCredentials = {
-					token: response.token,
-					refreshToken: response.refreshToken,
-					userId: response.userId,
-					email: response.email,
-					expiresAt: response.expiresAt,
+					token: accessToken,
+					refreshToken: refreshToken || undefined,
+					userId: user?.id || 'unknown',
+					email: user?.email,
+					expiresAt: expiresAt,
 					tokenType: 'standard',
 					savedAt: new Date().toISOString()
 				};
@@ -274,6 +278,11 @@ export class OAuthService {
 					server.close();
 					reject(error);
 				}
+			}
+		} else {
+			if (!serverClosed) {
+				server.close();
+				reject(new AuthenticationError('No access token received', 'NO_TOKEN'));
 			}
 		}
 	}

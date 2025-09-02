@@ -6,10 +6,13 @@ import os from 'os';
 import path from 'path';
 import { AuthConfig } from './types';
 
-// Centralized URL configuration - change these for different environments
-// For production, use: https://tryhamster.com
-// For local testing, use: http://localhost:8080
-const BASE_DOMAIN = 'http://localhost:8080'; // 'https://tryhamster.com';
+// Use build-time value if available, otherwise use runtime env or default
+// Build-time: process.env.TM_PUBLIC_BASE_DOMAIN gets replaced by tsup's env option
+// Runtime: TM_BASE_DOMAIN or HAMSTER_BASE_URL from user's environment
+// Default: https://tryhamster.com for production
+const BASE_DOMAIN =
+	process.env.TM_PUBLIC_BASE_DOMAIN || // This gets replaced at build time by tsup
+	'https://tryhamster.com';
 
 /**
  * Default authentication configuration

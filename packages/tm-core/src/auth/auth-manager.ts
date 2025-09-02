@@ -9,8 +9,8 @@ import {
 	AuthConfig
 } from './types';
 import { CredentialStore } from './credential-store';
-import { ApiClient } from './api-client';
 import { OAuthService } from './oauth-service';
+import { SupabaseAuthClient } from '../clients/supabase-client';
 
 /**
  * Authentication manager class
@@ -18,17 +18,13 @@ import { OAuthService } from './oauth-service';
 export class AuthManager {
 	private static instance: AuthManager;
 	private credentialStore: CredentialStore;
-	private apiClient: ApiClient;
 	private oauthService: OAuthService;
+	private supabaseClient: SupabaseAuthClient;
 
 	private constructor(config?: Partial<AuthConfig>) {
 		this.credentialStore = new CredentialStore(config);
-		this.apiClient = new ApiClient(config);
-		this.oauthService = new OAuthService(
-			this.apiClient,
-			this.credentialStore,
-			config
-		);
+		this.supabaseClient = new SupabaseAuthClient();
+		this.oauthService = new OAuthService(this.credentialStore, config);
 	}
 
 	/**
@@ -65,55 +61,23 @@ export class AuthManager {
 	}
 
 	/**
-	 * Authenticate with email and password
-	 */
-	async authenticateWithCredentials(
-		email: string,
-		password: string
-	): Promise<AuthCredentials> {
-		try {
-			const response = await this.apiClient.login(email, password);
-
-			// Save authentication data
-			const authData: AuthCredentials = {
-				token: response.token,
-				refreshToken: response.refreshToken,
-				userId: response.userId,
-				email: email,
-				expiresAt: response.expiresAt,
-				tokenType: 'standard',
-				savedAt: new Date().toISOString()
-			};
-
-			this.credentialStore.saveCredentials(authData);
-			return authData;
-		} catch (error) {
-			throw error;
-		}
-	}
-
-	/**
 	 * Authenticate with API key
+	 * Note: This would require a custom implementation or Supabase RLS policies
 	 */
 	async authenticateWithApiKey(apiKey: string): Promise<AuthCredentials> {
-		try {
-			const response = await this.apiClient.validateApiKey(apiKey);
+		// TODO: Implement API key validation if needed
+		// For now, we can store the API key directly as a token
+		const authData: AuthCredentials = {
+			token: apiKey,
+			tokenType: 'api_key',
+			userId: 'api-user',
+			email: undefined,
+			expiresAt: undefined, // API keys don't expire
+			savedAt: new Date().toISOString()
+		};
 
-			// Save authentication data
-			const authData: AuthCredentials = {
-				token: apiKey,
-				tokenType: 'api_key',
-				userId: response.userId,
-				email: response.email,
-				expiresAt: undefined, // API keys don't expire
-				savedAt: new Date().toISOString()
-			};
-
-			this.credentialStore.saveCredentials(authData);
-			return authData;
-		} catch (error) {
-			throw error;
-		}
+		this.credentialStore.saveCredentials(authData);
+		return authData;
 	}
 
 	/**
@@ -130,12 +94,16 @@ export class AuthManager {
 		}
 
 		try {
-			const response = await this.apiClient.refreshToken(authData.refreshToken);
+			// Use Supabase client to refresh the token
+			const response = await this.supabaseClient.refreshSession(
+				authData.refreshToken
+			);
 
 			// Update authentication data
 			const newAuthData: AuthCredentials = {
 				...authData,
 				token: response.token,
+				refreshToken: response.refreshToken,
 				expiresAt: response.expiresAt,
 				savedAt: new Date().toISOString()
 			};

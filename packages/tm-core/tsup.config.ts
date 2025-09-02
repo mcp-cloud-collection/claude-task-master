@@ -1,4 +1,18 @@
 import { defineConfig } from 'tsup';
+import { dotenvLoad } from 'dotenv-mono';
+dotenvLoad();
+
+// Get all TM_PUBLIC_* env variables for build-time injection
+const getBuildTimeEnvs = () => {
+	const envs: Record<string, string> = {};
+	for (const [key, value] of Object.entries(process.env)) {
+		if (key.startsWith('TM_PUBLIC_')) {
+			// Return the actual value, not JSON.stringify'd
+			envs[key] = value || '';
+		}
+	}
+	return envs;
+};
 
 export default defineConfig({
 	entry: {
@@ -20,7 +34,13 @@ export default defineConfig({
 	target: 'es2022',
 	tsconfig: './tsconfig.json',
 	outDir: 'dist',
-	external: ['zod'],
+	// Replace process.env.TM_PUBLIC_* with actual values at build time
+	env: getBuildTimeEnvs(),
+	// Auto-external all dependencies from package.json
+	external: [
+		// External all node_modules - everything not starting with . or /
+		/^[^./]/
+	],
 	esbuildOptions(options) {
 		options.conditions = ['module'];
 	}

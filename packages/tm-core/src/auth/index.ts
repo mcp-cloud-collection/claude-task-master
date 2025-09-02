@@ -4,7 +4,6 @@
 
 export { AuthManager } from './auth-manager';
 export { CredentialStore } from './credential-store';
-export { ApiClient } from './api-client';
 export { OAuthService } from './oauth-service';
 
 export type {
