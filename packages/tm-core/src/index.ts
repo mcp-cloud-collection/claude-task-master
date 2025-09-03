@@ -49,8 +49,6 @@ export {
 	AuthManager,
 	AuthenticationError,
 	type AuthCredentials,
-	type AuthOptions,
-	type AuthResponse,
 	type OAuthFlowOptions,
 	type AuthConfig
 } from './auth';

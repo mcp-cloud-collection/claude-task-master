@@ -8,8 +8,6 @@ export { OAuthService } from './oauth-service';
 
 export type {
 	AuthCredentials,
-	AuthOptions,
-	AuthResponse,
 	OAuthFlowOptions,
 	AuthConfig,
 	CliData

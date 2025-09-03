@@ -15,15 +15,13 @@ export class SupabaseAuthClient {
 	 */
 	private getClient(): SupabaseClient {
 		if (!this.client) {
-			// Get Supabase configuration from environment
-			const supabaseUrl = process.env.SUPABASE_URL || 'http://localhost:8080';
-			const supabaseAnonKey =
-				process.env.SUPABASE_ANON_KEY ||
-				'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6ImFub24iLCJleHAiOjE5ODM4MTI5OTZ9.CRXP1A7WOeoJeXxjNni43kdQwgnWNReilDMblYTn_I0';
+			// Get Supabase configuration from environment - using TM_PUBLIC prefix
+			const supabaseUrl = process.env.TM_PUBLIC_SUPABASE_URL;
+			const supabaseAnonKey = process.env.TM_PUBLIC_SUPABASE_ANON_KEY;
 
 			if (!supabaseUrl || !supabaseAnonKey) {
 				throw new AuthenticationError(
-					'Supabase configuration missing. Please set SUPABASE_URL and SUPABASE_ANON_KEY environment variables.',
+					'Supabase configuration missing. Please set TM_PUBLIC_SUPABASE_URL and TM_PUBLIC_SUPABASE_ANON_KEY environment variables.',
 					'CONFIG_MISSING'
 				);
 			}
@@ -136,13 +134,15 @@ export class SupabaseAuthClient {
 
 	/**
 	 * Sign out (revoke tokens)
+	 * Note: This requires the user to be authenticated with the current session.
+	 * For remote token revocation, a server-side admin API with service_role key would be needed.
 	 */
-	async signOut(token: string): Promise<void> {
+	async signOut(): Promise<void> {
 		try {
 			const client = this.getClient();
 
-			// Sign out using the token
-			const { error } = await client.auth.admin.signOut(token);
+			// Sign out the current session with global scope to revoke all refresh tokens
+			const { error } = await client.auth.signOut({ scope: 'global' });
 
 			if (error) {
 				this.logger.warn('Failed to sign out:', error);

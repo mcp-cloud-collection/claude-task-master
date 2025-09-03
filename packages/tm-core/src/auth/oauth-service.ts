@@ -6,7 +6,6 @@ import http from 'http';
 import { URL } from 'url';
 import crypto from 'crypto';
 import os from 'os';
-import open from 'open';
 import {
 	AuthCredentials,
 	AuthenticationError,
@@ -27,6 +26,8 @@ export class OAuthService {
 	private baseUrl: string;
 	private authorizationUrl: string | null = null;
 	private originalState: string | null = null;
+	private authorizationReady: Promise<void> | null = null;
+	private resolveAuthorizationReady: (() => void) | null = null;
 
 	constructor(
 		credentialStore: CredentialStore,
@@ -43,7 +44,7 @@ export class OAuthService {
 	 */
 	async authenticate(options: OAuthFlowOptions = {}): Promise<AuthCredentials> {
 		const {
-			openBrowser = true,
+			openBrowser,
 			timeout = 300000, // 5 minutes default
 			onAuthUrl,
 			onWaitingForAuth,
@@ -55,8 +56,10 @@ export class OAuthService {
 			// Start the OAuth flow (starts local server)
 			const authPromise = this.startFlow(timeout);
 
-			// Wait for server to start
-			await new Promise((resolve) => setTimeout(resolve, 100));
+			// Wait for server to be ready and URL to be generated
+			if (this.authorizationReady) {
+				await this.authorizationReady;
+			}
 
 			// Get the authorization URL
 			const authUrl = this.getAuthorizationUrl();
@@ -73,9 +76,15 @@ export class OAuthService {
 				onAuthUrl(authUrl);
 			}
 
-			// Open browser if requested
+			// Open browser if callback provided
 			if (openBrowser) {
-				await this.openBrowser(authUrl);
+				try {
+					await openBrowser(authUrl);
+					this.logger.debug('Browser opened successfully with URL:', authUrl);
+				} catch (error) {
+					// Log the error but don't throw - user can still manually open the URL
+					this.logger.warn('Failed to open browser automatically:', error);
+				}
 			}
 
 			// Notify that we're waiting for authentication
@@ -98,7 +107,8 @@ export class OAuthService {
 					? error
 					: new AuthenticationError(
 							`OAuth authentication failed: ${(error as Error).message}`,
-							'OAUTH_FAILED'
+							'OAUTH_FAILED',
+							error
 						);
 
 			// Notify error
@@ -115,50 +125,62 @@ export class OAuthService {
 	 */
 	private async startFlow(timeout: number = 300000): Promise<AuthCredentials> {
 		const state = this.generateState();
-		const port = await this.getRandomPort();
-		const callbackUrl = `http://localhost:${port}/callback`;
 
 		// Store the original state for verification
 		this.originalState = state;
 
-		// Prepare CLI data object (server handles OAuth/PKCE)
-		const cliData: CliData = {
-			callback: callbackUrl,
-			state: state,
-			name: 'Task Master CLI',
-			version: this.getCliVersion(),
-			device: os.hostname(),
-			user: os.userInfo().username,
-			platform: os.platform(),
-			timestamp: Date.now()
-		};
+		// Create a promise that will resolve when the server is ready
+		this.authorizationReady = new Promise<void>((resolve) => {
+			this.resolveAuthorizationReady = resolve;
+		});
 
 		return new Promise((resolve, reject) => {
-			let serverClosed = false;
-
+			let timeoutId: NodeJS.Timeout;
 			// Create local HTTP server for OAuth callback
-			const server = http.createServer(async (req, res) => {
-				const url = new URL(req.url!, `http://127.0.0.1:${port}`);
+			const server = http.createServer();
 
-				if (url.pathname === '/callback') {
-					await this.handleCallback(
-						url,
-						res,
-						server,
-						serverClosed,
-						resolve,
-						reject
-					);
-					serverClosed = true;
-				} else {
-					// Handle other paths (favicon, etc.)
-					res.writeHead(404);
-					res.end();
+			// Start server on localhost only, bind to port 0 for automatic port assignment
+			server.listen(0, '127.0.0.1', () => {
+				const address = server.address();
+				if (!address || typeof address === 'string') {
+					reject(new Error('Failed to get server address'));
+					return;
 				}
-			});
+				const port = address.port;
+				const callbackUrl = `http://localhost:${port}/callback`;
 
-			// Start server on localhost only
-			server.listen(port, '127.0.0.1', () => {
+				// Set up request handler after we know the port
+				server.on('request', async (req, res) => {
+					const url = new URL(req.url!, `http://127.0.0.1:${port}`);
+
+					if (url.pathname === '/callback') {
+						await this.handleCallback(
+							url,
+							res,
+							server,
+							resolve,
+							reject,
+							timeoutId
+						);
+					} else {
+						// Handle other paths (favicon, etc.)
+						res.writeHead(404);
+						res.end();
+					}
+				});
+
+				// Prepare CLI data object (server handles OAuth/PKCE)
+				const cliData: CliData = {
+					callback: callbackUrl,
+					state: state,
+					name: 'Task Master CLI',
+					version: this.getCliVersion(),
+					device: os.hostname(),
+					user: os.userInfo().username,
+					platform: os.platform(),
+					timestamp: Date.now()
+				};
+
 				// Build authorization URL for web app sign-in page
 				const authUrl = new URL(`${this.baseUrl}/auth/sign-in`);
 
@@ -177,13 +199,23 @@ export class OAuthService {
 					`OAuth session started - ${cliData.name} v${cliData.version} on port ${port}`
 				);
 				this.logger.debug('CLI data:', cliData);
+
+				// Signal that the server is ready and URL is available
+				if (this.resolveAuthorizationReady) {
+					this.resolveAuthorizationReady();
+					this.resolveAuthorizationReady = null;
+				}
 			});
 
 			// Set timeout for authentication
-			setTimeout(() => {
-				if (!serverClosed) {
-					serverClosed = true;
+			timeoutId = setTimeout(() => {
+				if (server.listening) {
 					server.close();
+					// Clean up the readiness promise if still pending
+					if (this.resolveAuthorizationReady) {
+						this.resolveAuthorizationReady();
+						this.resolveAuthorizationReady = null;
+					}
 					reject(
 						new AuthenticationError('Authentication timeout', 'AUTH_TIMEOUT')
 					);
@@ -199,9 +231,9 @@ export class OAuthService {
 		url: URL,
 		res: http.ServerResponse,
 		server: http.Server,
-		serverClosed: boolean,
 		resolve: (value: AuthCredentials) => void,
-		reject: (error: any) => void
+		reject: (error: any) => void,
+		timeoutId?: NodeJS.Timeout
 	): Promise<void> {
 		// Server now returns tokens directly instead of code
 		const type = url.searchParams.get('type');
@@ -217,26 +249,26 @@ export class OAuthService {
 		res.end();
 
 		if (error) {
-			if (!serverClosed) {
+			if (server.listening) {
 				server.close();
-				reject(
-					new AuthenticationError(
-						errorDescription || error || 'Authentication failed',
-						'OAUTH_ERROR'
-					)
-				);
 			}
+			reject(
+				new AuthenticationError(
+					errorDescription || error || 'Authentication failed',
+					'OAUTH_ERROR'
+				)
+			);
 			return;
 		}
 
 		// Verify state parameter for CSRF protection
 		if (returnedState !== this.originalState) {
-			if (!serverClosed) {
+			if (server.listening) {
 				server.close();
-				reject(
-					new AuthenticationError('Invalid state parameter', 'INVALID_STATE')
-				);
 			}
+			reject(
+				new AuthenticationError('Invalid state parameter', 'INVALID_STATE')
+			);
 			return;
 		}
 
@@ -269,34 +301,25 @@ export class OAuthService {
 
 				this.credentialStore.saveCredentials(authData);
 
-				if (!serverClosed) {
+				if (server.listening) {
 					server.close();
-					resolve(authData);
 				}
+				// Clear timeout since authentication succeeded
+				if (timeoutId) {
+					clearTimeout(timeoutId);
+				}
+				resolve(authData);
 			} catch (error) {
-				if (!serverClosed) {
+				if (server.listening) {
 					server.close();
-					reject(error);
 				}
+				reject(error);
 			}
 		} else {
-			if (!serverClosed) {
+			if (server.listening) {
 				server.close();
-				reject(new AuthenticationError('No access token received', 'NO_TOKEN'));
 			}
-		}
-	}
-
-	/**
-	 * Open browser with the given URL
-	 */
-	private async openBrowser(url: string): Promise<void> {
-		try {
-			await open(url);
-			this.logger.debug('Browser opened successfully with URL:', url);
-		} catch (error) {
-			// Log the error but don't throw - user can still manually open the URL
-			this.logger.warn('Failed to open browser automatically:', error);
+			reject(new AuthenticationError('No access token received', 'NO_TOKEN'));
 		}
 	}
 
@@ -305,25 +328,6 @@ export class OAuthService {
 	 */
 	private generateState(): string {
 		return crypto.randomBytes(32).toString('base64url');
-	}
-
-	/**
-	 * Get a random available port
-	 */
-	private async getRandomPort(): Promise<number> {
-		return new Promise((resolve, reject) => {
-			const server = http.createServer();
-			server.listen(0, '127.0.0.1', () => {
-				const address = server.address();
-				if (!address || typeof address === 'string') {
-					reject(new Error('Failed to get port'));
-					return;
-				}
-				const port = address.port;
-				server.close(() => resolve(port));
-			});
-			server.on('error', reject);
-		});
 	}
 
 	/**

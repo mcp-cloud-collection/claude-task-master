@@ -17,12 +17,17 @@ const getBuildTimeEnvs = () => {
 export default defineConfig({
 	entry: {
 		index: 'src/index.ts',
-		'types/index': 'src/types/index.ts',
-		'providers/index': 'src/providers/index.ts',
-		'storage/index': 'src/storage/index.ts',
+		'auth/index': 'src/auth/index.ts',
+		'config/index': 'src/config/index.ts',
+		'errors/index': 'src/errors/index.ts',
+		'interfaces/index': 'src/interfaces/index.ts',
+		'logger/index': 'src/logger/index.ts',
 		'parser/index': 'src/parser/index.ts',
-		'utils/index': 'src/utils/index.ts',
-		'errors/index': 'src/errors/index.ts'
+		'providers/index': 'src/providers/index.ts',
+		'services/index': 'src/services/index.ts',
+		'storage/index': 'src/storage/index.ts',
+		'types/index': 'src/types/index.ts',
+		'utils/index': 'src/utils/index.ts'
 	},
 	format: ['cjs', 'esm'],
 	dts: true,

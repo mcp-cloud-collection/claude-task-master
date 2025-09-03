@@ -85,6 +85,8 @@ export interface StorageSettings {
 	apiEndpoint?: string;
 	/** Access token for API authentication */
 	apiAccessToken?: string;
+	/** Indicates whether API is configured (has endpoint or token) */
+	apiConfigured?: boolean;
 	/** Enable automatic backups */
 	enableBackup: boolean;
 	/** Maximum number of backups to retain */
@@ -388,7 +390,7 @@ export const DEFAULT_CONFIG_VALUES = {
 		NAMING_CONVENTION: 'kebab-case' as const
 	},
 	STORAGE: {
-		TYPE: 'file' as const,
+		TYPE: 'auto' as const,
 		ENCODING: 'utf8' as BufferEncoding,
 		MAX_BACKUPS: 5
 	},

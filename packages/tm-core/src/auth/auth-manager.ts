@@ -65,10 +65,13 @@ export class AuthManager {
 	 * Note: This would require a custom implementation or Supabase RLS policies
 	 */
 	async authenticateWithApiKey(apiKey: string): Promise<AuthCredentials> {
-		// TODO: Implement API key validation if needed
-		// For now, we can store the API key directly as a token
+		const token = apiKey.trim();
+		if (!token || token.length < 10) {
+			throw new AuthenticationError('Invalid API key', 'INVALID_API_KEY');
+		}
+
 		const authData: AuthCredentials = {
-			token: apiKey,
+			token,
 			tokenType: 'api_key',
 			userId: 'api-user',
 			email: undefined,
@@ -84,7 +87,9 @@ export class AuthManager {
 	 * Refresh authentication token
 	 */
 	async refreshToken(): Promise<AuthCredentials> {
-		const authData = this.getCredentials();
+		const authData = this.credentialStore.getCredentials({
+			allowExpired: true
+		});
 
 		if (!authData || !authData.refreshToken) {
 			throw new AuthenticationError(
@@ -118,7 +123,16 @@ export class AuthManager {
 	/**
 	 * Logout and clear credentials
 	 */
-	logout(): void {
+	async logout(): Promise<void> {
+		try {
+			// First try to sign out from Supabase to revoke tokens
+			await this.supabaseClient.signOut();
+		} catch (error) {
+			// Log but don't throw - we still want to clear local credentials
+			console.warn('Failed to sign out from Supabase:', error);
+		}
+
+		// Always clear local credentials (removes auth.json file)
 		this.credentialStore.clearCredentials();
 	}
 

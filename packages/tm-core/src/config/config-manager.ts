@@ -138,6 +138,7 @@ export class ConfigManager {
 		type: 'file' | 'api' | 'auto';
 		apiEndpoint?: string;
 		apiAccessToken?: string;
+		apiConfigured: boolean;
 	} {
 		const storage = this.config.storage;
 
@@ -148,11 +149,12 @@ export class ConfigManager {
 			return {
 				type: storageType,
 				apiEndpoint: storage?.apiEndpoint,
-				apiAccessToken: storage?.apiAccessToken
+				apiAccessToken: storage?.apiAccessToken,
+				apiConfigured: Boolean(storage?.apiEndpoint || storage?.apiAccessToken)
 			};
 		}
 
-		return { type: storageType };
+		return { type: storageType, apiConfigured: false };
 	}
 
 	/**

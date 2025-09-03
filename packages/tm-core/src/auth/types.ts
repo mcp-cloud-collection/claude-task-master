@@ -12,23 +12,9 @@ export interface AuthCredentials {
 	savedAt: string;
 }
 
-export interface AuthOptions {
-	email?: string;
-	password?: string;
-	apiKey?: string;
-}
-
-export interface AuthResponse {
-	token: string;
-	refreshToken?: string;
-	userId: string;
-	email?: string;
-	expiresAt?: string;
-}
-
 export interface OAuthFlowOptions {
-	/** Whether to automatically open the browser. Default: true */
-	openBrowser?: boolean;
+	/** Callback to open the browser with the auth URL. If not provided, browser won't be opened */
+	openBrowser?: (url: string) => Promise<void>;
 	/** Timeout for the OAuth flow in milliseconds. Default: 300000 (5 minutes) */
 	timeout?: number;
 	/** Callback to be invoked with the authorization URL */
@@ -59,14 +45,41 @@ export interface CliData {
 }
 
 /**
+ * Authentication error codes
+ */
+export type AuthErrorCode =
+	| 'AUTH_TIMEOUT'
+	| 'AUTH_EXPIRED'
+	| 'OAUTH_FAILED'
+	| 'OAUTH_ERROR'
+	| 'OAUTH_CANCELED'
+	| 'URL_GENERATION_FAILED'
+	| 'INVALID_STATE'
+	| 'NO_TOKEN'
+	| 'TOKEN_EXCHANGE_FAILED'
+	| 'INVALID_API_KEY'
+	| 'INVALID_CREDENTIALS'
+	| 'NO_REFRESH_TOKEN'
+	| 'NOT_AUTHENTICATED'
+	| 'NETWORK_ERROR'
+	| 'CONFIG_MISSING'
+	| 'SAVE_FAILED'
+	| 'CLEAR_FAILED'
+	| 'STORAGE_ERROR';
+
+/**
  * Authentication error class
  */
 export class AuthenticationError extends Error {
 	constructor(
 		message: string,
-		public code: string
+		public code: AuthErrorCode,
+		public cause?: unknown
 	) {
 		super(message);
 		this.name = 'AuthenticationError';
+		if (cause && cause instanceof Error) {
+			this.stack = `${this.stack}\nCaused by: ${cause.stack}`;
+		}
 	}
 }

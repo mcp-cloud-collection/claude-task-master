@@ -18,7 +18,7 @@ export class CredentialStore {
 	/**
 	 * Get stored authentication credentials
 	 */
-	getCredentials(): AuthCredentials | null {
+	getCredentials(options?: { allowExpired?: boolean }): AuthCredentials | null {
 		try {
 			if (!fs.existsSync(this.config.configFile)) {
 				return null;
@@ -29,7 +29,11 @@ export class CredentialStore {
 			) as AuthCredentials;
 
 			// Check if token is expired
-			if (authData.expiresAt && new Date(authData.expiresAt) < new Date()) {
+			if (
+				authData.expiresAt &&
+				new Date(authData.expiresAt) < new Date() &&
+				!options?.allowExpired
+			) {
 				this.logger.warn('Authentication token has expired');
 				return null;
 			}
@@ -50,24 +54,23 @@ export class CredentialStore {
 		try {
 			// Ensure directory exists
 			if (!fs.existsSync(this.config.configDir)) {
-				fs.mkdirSync(this.config.configDir, { recursive: true });
+				fs.mkdirSync(this.config.configDir, { recursive: true, mode: 0o700 });
 			}
 
 			// Add timestamp
 			authData.savedAt = new Date().toISOString();
 
-			// Save credentials
-			fs.writeFileSync(
-				this.config.configFile,
-				JSON.stringify(authData, null, 2)
-			);
-
-			// Set file permissions to read/write for owner only
-			fs.chmodSync(this.config.configFile, 0o600);
+			// Save credentials atomically with secure permissions
+			const tempFile = `${this.config.configFile}.tmp`;
+			fs.writeFileSync(tempFile, JSON.stringify(authData, null, 2), {
+				mode: 0o600
+			});
+			fs.renameSync(tempFile, this.config.configFile);
 		} catch (error) {
 			throw new AuthenticationError(
 				`Failed to save auth credentials: ${(error as Error).message}`,
-				'SAVE_FAILED'
+				'SAVE_FAILED',
+				error
 			);
 		}
 	}
@@ -83,7 +86,8 @@ export class CredentialStore {
 		} catch (error) {
 			throw new AuthenticationError(
 				`Failed to clear credentials: ${(error as Error).message}`,
-				'CLEAR_FAILED'
+				'CLEAR_FAILED',
+				error
 			);
 		}
 	}
@@ -92,7 +96,7 @@ export class CredentialStore {
 	 * Check if credentials exist and are valid
 	 */
 	hasValidCredentials(): boolean {
-		const credentials = this.getCredentials();
+		const credentials = this.getCredentials({ allowExpired: false });
 		return credentials !== null;
 	}
 

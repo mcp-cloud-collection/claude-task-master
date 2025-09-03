@@ -7,11 +7,12 @@ import { Command } from 'commander';
 import chalk from 'chalk';
 import inquirer from 'inquirer';
 import ora, { type Ora } from 'ora';
+import open from 'open';
 import {
 	AuthManager,
 	AuthenticationError,
 	type AuthCredentials
-} from '@tm/core';
+} from '@tm/core/auth';
 import * as ui from '../utils/ui.js';
 
 /**
@@ -125,7 +126,7 @@ export class AuthCommand extends Command {
 	 */
 	private async executeLogout(): Promise<void> {
 		try {
-			const result = this.performLogout();
+			const result = await this.performLogout();
 			this.setLastResult(result);
 
 			if (!result.success) {
@@ -232,9 +233,9 @@ export class AuthCommand extends Command {
 	/**
 	 * Perform logout
 	 */
-	private performLogout(): AuthResult {
+	private async performLogout(): Promise<AuthResult> {
 		try {
-			this.authManager.logout();
+			await this.authManager.logout();
 			ui.displaySuccess('Successfully logged out');
 
 			return {
@@ -366,7 +367,10 @@ export class AuthCommand extends Command {
 		try {
 			// Use AuthManager's new unified OAuth flow method with callbacks
 			const credentials = await this.authManager.authenticateWithOAuth({
-				openBrowser: true,
+				// Callback to handle browser opening
+				openBrowser: async (authUrl) => {
+					await open(authUrl);
+				},
 				timeout: 5 * 60 * 1000, // 5 minutes
 
 				// Callback when auth URL is ready
