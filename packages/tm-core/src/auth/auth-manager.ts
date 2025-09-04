@@ -7,10 +7,11 @@ import {
 	OAuthFlowOptions,
 	AuthenticationError,
 	AuthConfig
-} from './types';
-import { CredentialStore } from './credential-store';
-import { OAuthService } from './oauth-service';
-import { SupabaseAuthClient } from '../clients/supabase-client';
+} from './types.js';
+import { CredentialStore } from './credential-store.js';
+import { OAuthService } from './oauth-service.js';
+import { SupabaseAuthClient } from '../clients/supabase-client.js';
+import { getLogger } from '../logger/index.js';
 
 /**
  * Authentication manager class
@@ -33,8 +34,21 @@ export class AuthManager {
 	static getInstance(config?: Partial<AuthConfig>): AuthManager {
 		if (!AuthManager.instance) {
 			AuthManager.instance = new AuthManager(config);
+		} else if (config) {
+			// Warn if config is provided after initialization
+			const logger = getLogger('AuthManager');
+			logger.warn(
+				'getInstance called with config after initialization; config is ignored.'
+			);
 		}
 		return AuthManager.instance;
+	}
+
+	/**
+	 * Reset the singleton instance (useful for testing)
+	 */
+	static resetInstance(): void {
+		AuthManager.instance = null as any;
 	}
 
 	/**
