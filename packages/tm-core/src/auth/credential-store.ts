@@ -3,6 +3,7 @@
  */
 
 import fs from 'fs';
+import path from 'path';
 import { AuthCredentials, AuthenticationError, AuthConfig } from './types';
 import { getAuthConfig } from './config';
 import { getLogger } from '../logger';
@@ -28,10 +29,25 @@ export class CredentialStore {
 				fs.readFileSync(this.config.configFile, 'utf-8')
 			) as AuthCredentials;
 
-			// Check if token is expired
+			// Normalize/migrate timestamps to numeric (handles both string ISO dates and numbers)
+			const expiresAtMs =
+				typeof authData.expiresAt === 'number'
+					? authData.expiresAt
+					: authData.expiresAt
+						? Date.parse(authData.expiresAt as unknown as string)
+						: undefined;
+
+			// Update the authData with normalized timestamp
+			if (expiresAtMs !== undefined) {
+				authData.expiresAt = expiresAtMs;
+			}
+
+			// Check if token is expired (API keys never expire)
+			const isApiKey = authData.tokenType === 'api_key';
 			if (
-				authData.expiresAt &&
-				new Date(authData.expiresAt) < new Date() &&
+				!isApiKey &&
+				expiresAtMs &&
+				expiresAtMs < Date.now() &&
 				!options?.allowExpired
 			) {
 				this.logger.warn('Authentication token has expired');
@@ -43,6 +59,21 @@ export class CredentialStore {
 			this.logger.error(
 				`Failed to read auth credentials: ${(error as Error).message}`
 			);
+
+			// Quarantine corrupt file to prevent repeated errors
+			try {
+				if (fs.existsSync(this.config.configFile)) {
+					const corruptFile = `${this.config.configFile}.corrupt-${Date.now()}`;
+					fs.renameSync(this.config.configFile, corruptFile);
+					this.logger.warn(`Quarantined corrupt auth file to: ${corruptFile}`);
+				}
+			} catch (quarantineError) {
+				// If we can't quarantine, log but don't throw
+				this.logger.debug(
+					`Could not quarantine corrupt file: ${(quarantineError as Error).message}`
+				);
+			}
+
 			return null;
 		}
 	}
@@ -105,5 +136,49 @@ export class CredentialStore {
 	 */
 	getConfig(): AuthConfig {
 		return { ...this.config };
+	}
+
+	/**
+	 * Clean up old corrupt auth files
+	 * Removes corrupt files older than the specified age
+	 */
+	cleanupCorruptFiles(maxAgeMs: number = 7 * 24 * 60 * 60 * 1000): void {
+		try {
+			const dir = path.dirname(this.config.configFile);
+			const baseName = path.basename(this.config.configFile);
+			const corruptPattern = new RegExp(`^${baseName}\\.corrupt-\\d+$`);
+
+			if (!fs.existsSync(dir)) {
+				return;
+			}
+
+			const files = fs.readdirSync(dir);
+			const now = Date.now();
+
+			for (const file of files) {
+				if (corruptPattern.test(file)) {
+					const filePath = path.join(dir, file);
+					try {
+						const stats = fs.statSync(filePath);
+						const age = now - stats.mtimeMs;
+
+						if (age > maxAgeMs) {
+							fs.unlinkSync(filePath);
+							this.logger.debug(`Cleaned up old corrupt file: ${file}`);
+						}
+					} catch (error) {
+						// Ignore errors for individual file cleanup
+						this.logger.debug(
+							`Could not clean up corrupt file ${file}: ${(error as Error).message}`
+						);
+					}
+				}
+			}
+		} catch (error) {
+			// Log but don't throw - this is a cleanup operation
+			this.logger.debug(
+				`Error during corrupt file cleanup: ${(error as Error).message}`
+			);
+		}
 	}
 }

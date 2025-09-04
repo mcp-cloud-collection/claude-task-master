@@ -74,9 +74,38 @@ export interface TagSettings {
 }
 
 /**
- * Storage and persistence settings
+ * Storage type options
+ * - 'file': Local file system storage
+ * - 'api': Remote API storage (Hamster integration)
+ * - 'auto': Automatically detect based on auth status
  */
-export interface StorageSettings {
+export type StorageType = 'file' | 'api' | 'auto';
+
+/**
+ * Runtime storage configuration used for storage backend selection
+ * This is what getStorageConfig() returns and what StorageFactory expects
+ */
+export interface RuntimeStorageConfig {
+	/** Storage backend type */
+	type: StorageType;
+	/** API endpoint for API storage (Hamster integration) */
+	apiEndpoint?: string;
+	/** Access token for API authentication */
+	apiAccessToken?: string;
+	/**
+	 * Indicates whether API is configured (has endpoint or token)
+	 * @computed Derived automatically from presence of apiEndpoint or apiAccessToken
+	 * @internal Should not be set manually - computed by ConfigManager
+	 */
+	apiConfigured: boolean;
+}
+
+/**
+ * Storage and persistence settings
+ * Extended storage settings including file operation preferences
+ */
+export interface StorageSettings
+	extends Omit<RuntimeStorageConfig, 'apiConfigured'> {
 	/** Storage backend type - 'auto' detects based on auth status */
 	type: 'file' | 'api' | 'auto';
 	/** Base path for file storage */
@@ -85,7 +114,11 @@ export interface StorageSettings {
 	apiEndpoint?: string;
 	/** Access token for API authentication */
 	apiAccessToken?: string;
-	/** Indicates whether API is configured (has endpoint or token) */
+	/**
+	 * Indicates whether API is configured (has endpoint or token)
+	 * @computed Derived automatically from presence of apiEndpoint or apiAccessToken
+	 * @internal Should not be set manually in user config - computed by ConfigManager
+	 */
 	apiConfigured?: boolean;
 	/** Enable automatic backups */
 	enableBackup: boolean;

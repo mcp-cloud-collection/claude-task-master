@@ -6,7 +6,10 @@
  * maintainability, testability, and separation of concerns.
  */
 
-import type { PartialConfiguration } from '../interfaces/configuration.interface.js';
+import type {
+	PartialConfiguration,
+	RuntimeStorageConfig
+} from '../interfaces/configuration.interface.js';
 import { ConfigLoader } from './services/config-loader.service.js';
 import {
 	ConfigMerger,
@@ -134,12 +137,7 @@ export class ConfigManager {
 	/**
 	 * Get storage configuration
 	 */
-	getStorageConfig(): {
-		type: 'file' | 'api' | 'auto';
-		apiEndpoint?: string;
-		apiAccessToken?: string;
-		apiConfigured: boolean;
-	} {
+	getStorageConfig(): RuntimeStorageConfig {
 		const storage = this.config.storage;
 
 		// Return the configured type (including 'auto')

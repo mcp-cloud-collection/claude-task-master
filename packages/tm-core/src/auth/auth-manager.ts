@@ -142,22 +142,4 @@ export class AuthManager {
 	isAuthenticated(): boolean {
 		return this.credentialStore.hasValidCredentials();
 	}
-
-	/**
-	 * Get authorization headers
-	 */
-	getAuthHeaders(): Record<string, string> {
-		const authData = this.getCredentials();
-
-		if (!authData) {
-			throw new AuthenticationError(
-				'Not authenticated. Please authenticate first.',
-				'NOT_AUTHENTICATED'
-			);
-		}
-
-		return {
-			Authorization: `Bearer ${authData.token}`
-		};
-	}
 }
