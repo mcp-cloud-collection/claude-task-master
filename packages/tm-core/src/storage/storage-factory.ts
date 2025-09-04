@@ -57,13 +57,17 @@ export class StorageFactory {
 
 			case 'api':
 				if (!StorageFactory.isHamsterAvailable(config)) {
+					const missing: string[] = [];
+					if (!config.storage?.apiEndpoint) missing.push('apiEndpoint');
+					if (!config.storage?.apiAccessToken) missing.push('apiAccessToken');
+
 					// Check if authenticated via AuthManager
 					const authManager = AuthManager.getInstance();
 					if (!authManager.isAuthenticated()) {
 						throw new TaskMasterError(
-							'API storage configured but not authenticated. Run: tm auth login',
+							`API storage not fully configured (${missing.join(', ') || 'credentials missing'}). Run: tm auth login, or set the missing field(s).`,
 							ERROR_CODES.MISSING_CONFIGURATION,
-							{ storageType: 'api' }
+							{ storageType: 'api', missing }
 						);
 					}
 					// Use auth token from AuthManager
